@@ -77,6 +77,34 @@ Package authors / discovery fields:
 - `aiAgentSkill` — SKILL.md paths
 - skills live under `skills/<name>/SKILL.md` for `skills-npm` discovery
 
+## Adapters (per-agent scripts/hooks)
+
+Skills may ship agent-specific runtime under:
+
+```text
+skills/<skill>/adapters/<adapter>/
+```
+
+### Cursor
+
+`skills/gabe-goal/adapters/cursor/` contains stop/session hooks plus `hooks.json`.
+
+On install (unless `--no-adapters` / `GABE_AGENTS_INSTALL=0`), `scripts/install.mjs`:
+
+1. Copies the skill tree (including `adapters/`) into agent skill dirs
+2. Ensures `~/.cursor/skills/gabe-goal` exists when Cursor is present
+3. Merges managed entries into `~/.cursor/hooks.json` for:
+   - `sessionStart` → `goal-session-start.ts`
+   - `beforeSubmitPrompt` → `goal-session-touch.ts`
+   - `stop` → `goal-stop.ts`
+4. Replaces legacy commands pointing at `~/.cursor/skills/goal/scripts/...`
+
+Runtime prefers `bun`, then `node`.
+
+Other adapters: put files under `adapters/<name>/` and optional `install.json` for extra copy targets. Unknown adapters ship with the skill; Cursor is the only auto-wired adapter today.
+
+`gabe-watch` has no Cursor stop hooks — it uses an in-skill background interval loop and `gabe-unwatch`.
+
 ## gabe-goal
 
 MDScript port of the Cursor `goal` skill. Run:
@@ -91,7 +119,7 @@ or invoke the `gabe-goal` skill. Session state lives under:
 .cursor/goal/sessions/<conversation_id>/runs/<run_id>/
 ```
 
-Completion requires reproducible artifacts + three adversarial blind reviewer sign-offs with empty `p_findings`. Optional Cursor hook scripts are preserved under `skills/gabe-goal/scripts/cursor-hooks/` for environments that still use them.
+Completion requires reproducible artifacts + three adversarial blind reviewer sign-offs with empty `p_findings`. Cursor stop/session hooks live under `skills/gabe-goal/adapters/cursor/` and are wired on install.
 
 ## Layout
 

@@ -95,6 +95,6 @@ All P-levels block completion. Full consensus required: any fail or P-level find
 | Orchestrator / workers | chat `orchestrator_model` |
 | Reviewers A/B/C | `composer-2.5-fast` (composer-2.5) or closest equivalent |
 
-## Cursor hooks (optional)
+## Cursor hooks (adapter)
 
-`scripts/cursor-hooks/` retains the original TypeScript hooks (`goal-lib.ts`, `goal-session-start.ts`, `goal-session-touch.ts`, `goal-stop.ts`) for Cursor Nightly hook wiring. MDScript execution does not require them, but stop-hook resume semantics in `SKILL.md#stop-hook-resume` match their behavior.
+`adapters/cursor/` ships the TypeScript hooks (`goal-lib.ts`, `goal-session-start.ts`, `goal-session-touch.ts`, `goal-stop.ts`) plus `hooks.json`. Package install merges them into `~/.cursor/hooks.json` and points commands at `~/.cursor/skills/gabe-goal/adapters/cursor/…`. MDScript execution does not require the hooks, but stop-hook resume semantics in `SKILL.md#stop-hook-resume` match their behavior.

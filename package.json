@@ -35,6 +35,7 @@
   "scripts": {
     "postinstall": "node ./scripts/install.mjs",
     "install-skills": "node ./scripts/install.mjs",
+    "install-skills:no-adapters": "node ./scripts/install.mjs --no-adapters",
     "pack:check": "npm pack --dry-run"
   },
   "engines": {
@@ -42,34 +43,106 @@
   },
   "agents": {
     "skills": [
-      { "name": "gabe", "path": "./skills/gabe" },
-      { "name": "gabe-automate", "path": "./skills/gabe-automate" },
-      { "name": "gabe-common", "path": "./skills/gabe-common" },
-      { "name": "gabe-goal", "path": "./skills/gabe-goal" },
-      { "name": "gabe-implement", "path": "./skills/gabe-implement" },
-      { "name": "gabe-orchestrate", "path": "./skills/gabe-orchestrate" },
-      { "name": "gabe-review", "path": "./skills/gabe-review" },
-      { "name": "gabe-unwatch", "path": "./skills/gabe-unwatch" },
-      { "name": "gabe-voice", "path": "./skills/gabe-voice" },
-      { "name": "gabe-watch", "path": "./skills/gabe-watch" },
-      { "name": "mdscript-exec", "path": "./skills/mdscript-exec" },
-      { "name": "mdscript-write", "path": "./skills/mdscript-write" }
+      {
+        "name": "gabe",
+        "path": "./skills/gabe"
+      },
+      {
+        "name": "gabe-automate",
+        "path": "./skills/gabe-automate"
+      },
+      {
+        "name": "gabe-common",
+        "path": "./skills/gabe-common"
+      },
+      {
+        "name": "gabe-goal",
+        "path": "./skills/gabe-goal"
+      },
+      {
+        "name": "gabe-implement",
+        "path": "./skills/gabe-implement"
+      },
+      {
+        "name": "gabe-orchestrate",
+        "path": "./skills/gabe-orchestrate"
+      },
+      {
+        "name": "gabe-review",
+        "path": "./skills/gabe-review"
+      },
+      {
+        "name": "gabe-unwatch",
+        "path": "./skills/gabe-unwatch"
+      },
+      {
+        "name": "gabe-voice",
+        "path": "./skills/gabe-voice"
+      },
+      {
+        "name": "gabe-watch",
+        "path": "./skills/gabe-watch"
+      },
+      {
+        "name": "mdscript-exec",
+        "path": "./skills/mdscript-exec"
+      },
+      {
+        "name": "mdscript-write",
+        "path": "./skills/mdscript-write"
+      }
     ]
   },
   "agentskills": {
     "skills": [
-      { "name": "gabe", "path": "./skills/gabe" },
-      { "name": "gabe-automate", "path": "./skills/gabe-automate" },
-      { "name": "gabe-common", "path": "./skills/gabe-common" },
-      { "name": "gabe-goal", "path": "./skills/gabe-goal" },
-      { "name": "gabe-implement", "path": "./skills/gabe-implement" },
-      { "name": "gabe-orchestrate", "path": "./skills/gabe-orchestrate" },
-      { "name": "gabe-review", "path": "./skills/gabe-review" },
-      { "name": "gabe-unwatch", "path": "./skills/gabe-unwatch" },
-      { "name": "gabe-voice", "path": "./skills/gabe-voice" },
-      { "name": "gabe-watch", "path": "./skills/gabe-watch" },
-      { "name": "mdscript-exec", "path": "./skills/mdscript-exec" },
-      { "name": "mdscript-write", "path": "./skills/mdscript-write" }
+      {
+        "name": "gabe",
+        "path": "./skills/gabe"
+      },
+      {
+        "name": "gabe-automate",
+        "path": "./skills/gabe-automate"
+      },
+      {
+        "name": "gabe-common",
+        "path": "./skills/gabe-common"
+      },
+      {
+        "name": "gabe-goal",
+        "path": "./skills/gabe-goal"
+      },
+      {
+        "name": "gabe-implement",
+        "path": "./skills/gabe-implement"
+      },
+      {
+        "name": "gabe-orchestrate",
+        "path": "./skills/gabe-orchestrate"
+      },
+      {
+        "name": "gabe-review",
+        "path": "./skills/gabe-review"
+      },
+      {
+        "name": "gabe-unwatch",
+        "path": "./skills/gabe-unwatch"
+      },
+      {
+        "name": "gabe-voice",
+        "path": "./skills/gabe-voice"
+      },
+      {
+        "name": "gabe-watch",
+        "path": "./skills/gabe-watch"
+      },
+      {
+        "name": "mdscript-exec",
+        "path": "./skills/mdscript-exec"
+      },
+      {
+        "name": "mdscript-write",
+        "path": "./skills/mdscript-write"
+      }
     ]
   },
   "aiAgentSkill": [

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "adapter": "cursor",
+  "skill": "gabe-goal",
+  "runtime": "bun",
+  "runtimeFallbacks": ["bun", "node"],
+  "hooks": {
+    "sessionStart": [
+      {
+        "id": "gabe-goal-session-start",
+        "script": "goal-session-start.ts"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "id": "gabe-goal-session-touch",
+        "script": "goal-session-touch.ts"
+      }
+    ],
+    "stop": [
+      {
+        "id": "gabe-goal-stop",
+        "script": "goal-stop.ts"
+      }
+    ]
+  },
+  "replaceLegacyCommands": [
+    "skills/goal/scripts/goal-session-start.ts",
+    "skills/goal/scripts/goal-session-touch.ts",
+    "skills/goal/scripts/goal-stop.ts",
+    "skills/gabe-goal/scripts/cursor-hooks/",
+    "skills/gabe-goal/adapters/cursor/"
+  ]
+}
