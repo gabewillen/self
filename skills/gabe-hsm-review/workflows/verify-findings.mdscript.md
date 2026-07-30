@@ -13,9 +13,8 @@
 * the verifier answers `refuted` or `stands`, with the reason, against these tests:
   * does the cited code or vertex exist as quoted, at that location, in the current tree?
   * does the rule as written actually cover this, or was it stretched to fit?
-  * is there a reading under which the code is correct — a builder that supplies the missing
-    element, an entry route the reachability walk missed, an injected dependency, a deliberate
-    self-transition that is documented?
+  * is there a reading under which the code is correct: a builder supplying the missing element, an
+    entry route the reachability walk missed, an injected dependency, a documented self-transition?
   * is it already blocked by `{{enforced_patterns}}`, making it unreachable in this tree?
   * is the consequence real, or is the finding true but inert?
 * **default to `refuted` when uncertain**

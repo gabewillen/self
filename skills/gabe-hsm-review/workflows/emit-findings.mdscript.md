@@ -4,7 +4,7 @@
 
 * read `{{findings_log}}` and normalize each entry to `severity`, `rule_id`, `overlay_id`,
   `location`, `summary`, `evidence`, `remediation`, `verdict`, and optional `binding_note`
-* reject any entry whose `rule_id` is not in the loaded rule set — a finding with no rule is a guess
+* reject any entry whose `rule_id` is not in the loaded rule set
 * reject any entry with no `verdict`; unverified findings do not ship
 * drop entries matching `{{enforced_patterns}}`; those are already blocked at edit time
 * drop duplicates sharing rule_id, location, and summary
