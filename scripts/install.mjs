@@ -388,11 +388,18 @@ function reportBrokenSkillDirs(targetRoots, managedSkills) {
 }
 
 const ROUTER_DIRECTIVE =
-  "- ALWAYS use the `gabe` router skill for Gabe-shaped work: judgment, delegation, " +
-  "prioritization, review, implementation, coordination, MR/PR watching, and goal loops. " +
-  "It routes to gabe-orchestrate, gabe-implement, gabe-review, gabe-watch, and gabe-goal.";
+  "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before " +
+  "planning or answering, and let it choose the role: it routes to gabe-orchestrate, " +
+  "gabe-implement, gabe-review, gabe-watch, gabe-goal, gabe-hsm-review, and gabe-automate.\n" +
+  "- NEVER decide for yourself that a request is too small, too conversational, or not " +
+  "\"Gabe-shaped\" to route. Routing is the router's call, not yours.";
 const ROUTER_BLOCK_START = "<!-- gabe-agents:router -->";
 const ROUTER_BLOCK_END = "<!-- /gabe-agents:router -->";
+const ROUTER_BLOCK_RE =
+  /<!-- gabe-agents:router -->[\s\S]*?<!-- \/gabe-agents:router -->\n?/;
+/** Pre-marker directive, so the first upgrade adopts it instead of duplicating it. */
+const LEGACY_DIRECTIVE_RE =
+  /^.*ALWAYS use (?:the )?[`'"]?gabe[`'"]? router skill.*$\n?/im;
 
 /**
  * Global instruction files, by agent home. ~/.agents/AGENTS.md is ours and is
@@ -409,34 +416,52 @@ const INSTRUCTION_TARGETS = [
   { dir: ".copilot", file: "copilot-instructions.md" },
 ];
 
-function hasRouterDirective(text) {
-  if (text.includes(ROUTER_BLOCK_START)) return true;
-  return /ALWAYS use (the )?[`'"]?gabe[`'"]? router skill/i.test(text);
+/**
+ * Rewrite the managed block in place when its wording has changed, so an
+ * install that reworded the directive actually reaches existing users. Matching
+ * on "some gabe-router text is present" would pin everyone to whatever they
+ * installed first.
+ */
+function applyRouterDirective(existing, block) {
+  if (ROUTER_BLOCK_RE.test(existing)) {
+    const next = existing.replace(ROUTER_BLOCK_RE, block);
+    return next === existing
+      ? { body: existing, action: "present" }
+      : { body: next, action: "updated" };
+  }
+  if (LEGACY_DIRECTIVE_RE.test(existing)) {
+    return { body: existing.replace(LEGACY_DIRECTIVE_RE, block), action: "updated" };
+  }
+  if (!existing) {
+    return { body: `# Global agent instructions\n\n${block}`, action: "created" };
+  }
+  return {
+    body: `${existing.replace(/\n*$/, "")}\n\n${block}`,
+    action: "appended",
+  };
 }
 
 function ensureRouterDirective() {
   const home = homedir();
   const report = [];
+  const block = `${ROUTER_BLOCK_START}\n${ROUTER_DIRECTIVE}\n${ROUTER_BLOCK_END}\n`;
   for (const target of INSTRUCTION_TARGETS) {
     const dir = join(home, target.dir);
     if (!target.always && !existsSync(dir)) continue;
     const path = join(dir, target.file);
     const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
-    if (hasRouterDirective(existing)) {
-      report.push({ path, action: "present" });
+    const { body, action } = applyRouterDirective(existing, block);
+    if (action === "present") {
+      report.push({ path, action });
       continue;
     }
     if (dryRun) {
-      report.push({ path, action: existing ? "would-append" : "would-create" });
+      report.push({ path, action });
       continue;
     }
-    const block = `${ROUTER_BLOCK_START}\n${ROUTER_DIRECTIVE}\n${ROUTER_BLOCK_END}\n`;
     ensureDir(dir);
-    const body = existing
-      ? `${existing.replace(/\n*$/, "")}\n\n${block}`
-      : `# Global agent instructions\n\n${block}`;
     writeFileSync(path, body, "utf8");
-    report.push({ path, action: existing ? "appended" : "created" });
+    report.push({ path, action });
   }
   return report;
 }
