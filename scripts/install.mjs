@@ -36,6 +36,7 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync,
   chmodSync,
   realpathSync,
@@ -168,8 +169,20 @@ function chmodTreeExecutables(root) {
   }
 }
 
+/**
+ * Remove a managed install, including a symlink whose target is gone.
+ *
+ * rmSync stats through a symlink, so on a dangling one it sees ENOENT and
+ * force:true swallows it — the link survives and the next symlinkSync fails
+ * EEXIST. Every skill this pack stops shipping leaves exactly that behind, so
+ * unlink symlinks directly instead of asking rmSync to.
+ */
 function removePath(path) {
-  if (!existsSync(path) && !isSymlink(path)) return;
+  if (isSymlink(path)) {
+    unlinkSync(path);
+    return;
+  }
+  if (!existsSync(path)) return;
   rmSync(path, { recursive: true, force: true });
 }
 
