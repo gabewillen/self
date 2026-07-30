@@ -4,7 +4,7 @@ import {
   finishHook,
   readStdinJson,
   workspaceRootFromInput,
-} from "./goal-lib";
+} from "./goal-lib.ts";
 
 interface BeforeSubmitPromptInput {
   conversation_id?: string;

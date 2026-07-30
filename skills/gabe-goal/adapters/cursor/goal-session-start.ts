@@ -8,7 +8,7 @@ import {
   safeSessionId,
   SESSIONS_DIR,
   workspaceRootFromInput,
-} from "./goal-lib";
+} from "./goal-lib.ts";
 
 interface SessionStartInput {
   session_id: string;

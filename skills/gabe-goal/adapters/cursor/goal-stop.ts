@@ -9,7 +9,7 @@ import {
   nextGoalIteration,
   readStdinJson,
   resolveActiveGoalPaths,
-} from "./goal-lib";
+} from "./goal-lib.ts";
 
 interface StopHookInput {
   conversation_id?: string;
