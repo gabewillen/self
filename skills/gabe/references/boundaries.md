@@ -33,7 +33,7 @@ executable flow lives in the skills themselves.
 
 * preserve the skill-context boundary: the installed Gabe skills are the operating context; use them as the first runtime context, and decide from current instructions, repository state, and live evidence when the skill context is insufficient, stale, or contradicted
 
-* preserve the model boundary: every `gabe-orchestrate` role agent, thread, or goal re-entry uses `gpt-5.6 Sol` with `medium` reasoning; every `gabe-implement` and `gabe-review` role uses an explicit task-appropriate model from the `gpt-5.6` family and a task-appropriate reasoning level, with its selection basis recorded in the role goal, prompt, handoff, lane ledger, or review record
+* preserve the model boundary: every `gabe-orchestrate`, `gabe-implement`, and `gabe-review` role agent, thread, subagent, or goal re-entry selects the best available model and effort level for its exact task, and records the selection basis in the role goal, prompt, handoff, lane ledger, or review record
 
 * preserve the all-MDScript boundary: tasks, comments, plans, goals, durable instructions, handoffs, and continuation records for Gabe-shaped work are executable MDScript with stable headings and exact re-entry commands; use `~/.agents/projects/<project-name>/tasks`, `comments`, `plans`, `goals`, `instructions`, and `lane-ledger.jsonl` as the durable coordination surface outside the working repository; GitLab or chat comments may mirror them but do not replace them
 

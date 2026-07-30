@@ -1,4 +1,4 @@
 interface:
   display_name: "Gabe Watch"
   short_description: "Persistent interval PR watcher"
-  default_prompt: "Use $gabe-watch with an interval and PR to arm one persistent while-true loop for unresolved review comments, CI/CD failures, and base-branch drift. Spawn composer-2.5-fast for easy fixes and cursor-grok-4.5-high-fast for hard repairs. Do not re-arm each tick. Stop only on /gabe-unwatch or when the PR is merged/closed."
+  default_prompt: "Use $gabe-watch with an interval and PR to arm one persistent while-true loop for unresolved review comments, CI/CD failures, and base-branch drift. Select a fast model at low effort for easy fixes and the strongest available model at high effort for hard repairs. Do not re-arm each tick. Stop only on /gabe-unwatch or when the PR is merged/closed."

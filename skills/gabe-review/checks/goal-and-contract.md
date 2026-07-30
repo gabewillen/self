@@ -30,10 +30,8 @@
 
 * require each Gabe-shaped task, comment, plan, durable instruction, handoff, and continuation artifact to include an MDScript execution header, stable state headings, one discrete executable action per step, explicit failure and recovery branches, and an exact re-entry command when work can continue
 
-* if the artifact creates, resumes, reviews, or depends on a `gabe-orchestrate` role agent
-  * require an explicit `model: gpt-5.6 Sol` with `reasoning: medium`
-  * add a finding if the orchestrator agent, thread, goal, handoff, lane ledger, or review record uses another model or reasoning level, or omits the configuration while claiming the role is correctly configured
-
-* if the artifact creates, resumes, reviews, or depends on a `gabe-implement` or `gabe-review` role agent
-  * require an explicit `gpt-5.6`-family `model`, `reasoning`, and `model_selection_basis` tied to the exact task and proof scope
-  * add a finding when the selection is missing, unsupported by the task, silently substituted, or clearly insufficient for the role contract
+* if the artifact creates, resumes, reviews, or depends on a `gabe-orchestrate`, `gabe-implement`, or `gabe-review` role agent
+  * require an explicit `model`, `reasoning`, and `model_selection_basis` chosen for that role's exact task and proof scope
+  * add a finding when the selection is missing, unsupported by the task, silently substituted, carried over from another lane, or clearly insufficient for the role contract
+  * add a finding when the artifact claims the role is correctly configured without recording the selection
+  * do not require a specific model name; require that the recorded basis justifies the choice against the task

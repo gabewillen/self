@@ -27,7 +27,7 @@ description: >-
 * set `{{ticker_pid}}`, `{{ticker_pgid}}`, `{{ticker_pid_file}}`, `{{tick_spool}}`, and `{{stop_file}}` from front matter when present
 * create `{{stop_file}}` first — the detached ticker exits on its own at the next interval even if the kill path fails or the PID is stale
 * if `{{ticker_pid}}` is set and still running
-  * kill that PID, and kill its process group with `kill -- -{{ticker_pgid}}` because `setsid` put the ticker in its own group
+  * kill that PID, and kill its process group with `kill -- -{{ticker_pgid}}` because the ticker self-detached into its own process group
 * also kill any remaining process whose command line contains `{{sentinel}}` so orphaned tickers cannot keep spooling
 * stop the disposable tick listener shell when one is attached
 * remove `{{ticker_pid_file}}` once no process for this watch survives, and leave `{{tick_spool}}` in place as the tick record

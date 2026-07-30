@@ -7,9 +7,9 @@
 * group non-overlapping easy fixes into parallel waves; keep overlapping hard fixes serial
 * for each fix item in the current wave
   * if `difficulty` is `easy`
-    * set `{{fix_model}}` to `{{easy_model}}` (`composer-2.5-fast`)
+    * set `{{fix_model}}` to `{{easy_model}}` and `{{fix_effort}}` to `{{easy_effort}}`
   * if `difficulty` is `hard`
-    * set `{{fix_model}}` to `{{hard_model}}` (`cursor-grok-4.5-high-fast`)
+    * set `{{fix_model}}` to `{{hard_model}}` and `{{fix_effort}}` to `{{hard_effort}}`
   * [Spawn Fixer](#spawn-fixer)
 * wait for the wave to finish
 * run [Apply And Verify](#apply-and-verify)
@@ -21,7 +21,7 @@
 
 ## Spawn Fixer
 
-* spawn one readonly-unless-editing `generalPurpose` Task subagent with `model="{{fix_model}}"` and `run_in_background=true`
+* spawn one readonly-unless-editing `generalPurpose` Task subagent with `model="{{fix_model}}"`, the effort level `{{fix_effort}}`, and `run_in_background=true`
 * give the subagent only:
   * `{{repo_root}}`
   * `{{pr_url}}` and `{{head_ref}}`

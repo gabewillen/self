@@ -1,6 +1,6 @@
 ---
 name: gabe-orchestrate
-description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects/project-name/ as the root orchestrator on gpt-5.6 Sol with medium reasoning. Use for prioritization, delegation, child-orchestrator setup, MDScript tasks/comments/plans/goals/instructions, lane ledgers, DBC proof-decision intake, worker handoffs, hot-path events, GitLab aliasing, post-merge closure, publication decisions, and decision-ready reports. Preserve scoped proof decisions, goal re-entry, child-lane boundaries, and parent-visible stop reports."
+description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects/project-name/ as the root orchestrator on a model and effort level selected for coordination work. Use for prioritization, delegation, child-orchestrator setup, MDScript tasks/comments/plans/goals/instructions, lane ledgers, DBC proof-decision intake, worker handoffs, hot-path events, GitLab aliasing, post-merge closure, publication decisions, and decision-ready reports. Preserve scoped proof decisions, goal re-entry, child-lane boundaries, and parent-visible stop reports."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

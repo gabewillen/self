@@ -1,6 +1,6 @@
 ---
 name: gabe
-description: "Compatibility router for project-scoped Gabe MDScript operating-model work with tasks, comments, plans, goals, and instructions stored under ~/.agents/projects/project-name/. Use when the user asks for Gabe-shaped judgment, delegation, prioritization, review, messaging, coordination, MR/PR watching, post-merge closure, implementation, or decision support but has not chosen a split role. Route standalone interval PR repair watches to gabe-watch, coordination to gabe-orchestrate, implementation to gabe-implement, and independent review to gabe-review. Use gpt-5.6 Sol with medium reasoning for orchestrators and select a task-appropriate gpt-5.6-family model and reasoning level for implementers and reviewers."
+description: "Compatibility router for project-scoped Gabe MDScript operating-model work with tasks, comments, plans, goals, and instructions stored under ~/.agents/projects/project-name/. Use when the user asks for Gabe-shaped judgment, delegation, prioritization, review, messaging, coordination, MR/PR watching, post-merge closure, implementation, or decision support but has not chosen a split role. Route standalone interval PR repair watches to gabe-watch, coordination to gabe-orchestrate, implementation to gabe-implement, and independent review to gabe-review. Select the best available model and effort level for each role and task."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -16,7 +16,7 @@ description: "Compatibility router for project-scoped Gabe MDScript operating-mo
 * if the installed skills do not carry the needed context, appear stale, or are contradicted by a new human correction
   * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)
 
-* if the request is a standalone interval PR watch that repairs review comments and CI with composer-2.5 / grok-4.5 fixers (`/gabe-watch`, interval+PR babysit, merge-ready watch loop)
+* if the request is a standalone interval PR watch that repairs review comments and CI with selected fixer models (`/gabe-watch`, interval+PR babysit, merge-ready watch loop)
   * run `/mdscript-exec {{repo_root}}/skills/gabe-watch/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe-watch/SKILL.md`
   * execute as `gabe-watch`
 

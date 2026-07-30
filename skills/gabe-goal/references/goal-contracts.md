@@ -111,7 +111,7 @@ gabe-goal does not implement a parallel reviewer protocol — it execs `gabe-rev
 | Role | Model |
 |------|-------|
 | Orchestrator / workers | chat `orchestrator_model` |
-| Completion review | compose `gabe-review` (task-appropriate gpt-5.6-family per gabe-review) |
+| Completion review | compose `gabe-review` (model and effort selected per gabe-review) |
 
 ## Cursor hooks (adapter)
 

@@ -170,7 +170,6 @@ export const SIGNOFF_RULES_MDSCRIPT = "signoff-reviewer-rules.mdscript.md";
 export const SIGNOFF_SECURITY_MDSCRIPT = "signoff-reviewer-security.mdscript.md";
 export const SIGNOFF_COMPLETENESS_MDSCRIPT = "signoff-reviewer-completeness.mdscript.md";
 export const REVIEW_VERDICT_MDSCRIPT = "review-verdict.mdscript.md";
-export const REVIEWER_MODEL_SLUG = "composer-2.5-fast";
 export const ARTIFACTS_MANIFEST_FILE = "manifest.json";
 export const ACTIVE_RUN_FILE = "active-run.json";
 export const SESSION_LOG_FILE = "session-log.jsonl";
@@ -1602,7 +1601,7 @@ export function splitVerdictReasons(
   }
 
   reasons.push(
-    `Fix every P-level finding and gap, refresh artifacts/manifest if proof changed, delete any stale sign-offs, then spawn reviewers A, B, and C again in parallel with model="${REVIEWER_MODEL_SLUG}".`,
+    "Fix every P-level finding and gap, refresh artifacts/manifest if proof changed, delete any stale sign-offs, then spawn the rules, security, and completeness blind lanes again in parallel, each on a model and effort level chosen for the review task.",
   );
   return reasons;
 }

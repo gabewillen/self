@@ -5,8 +5,9 @@ description: >-
   comments, CI/CD failures, and base-branch drift. Arms one detached ticker that
   survives harness cleanup and keeps ticking until /gabe-unwatch (or PR
   merged/closed). Arming is a standing grant: it fixes findings, pushes, and
-  resolves threads itself instead of asking per fix. Spawns composer-2.5 for
-  routine fixes or grok-4.5 for hard repairs, marks valid threads resolved, and
+  resolves threads itself instead of asking per fix. Selects a fast model for
+  routine fixes and a high-effort model for hard repairs, marks valid threads
+  resolved, and
   keeps the branch in sync. Watch state is MDScript-only:
   one goals/gabe-watch-<N>.mdscript.md whose YAML front matter is the sole
   authoritative state and whose body is the loop resume target. Use for
@@ -22,8 +23,10 @@ description: >-
 * infer `{{interval}}` from the user message (`30s`, `5m`, `10m`, `1h`); default `5m` when omitted
 * if `{{pr}}` is empty
   * ask the user for `{{pr}}` (GitHub PR URL or `owner/repo#N`)
-* set `{{easy_model}}` to `composer-2.5-fast`
-* set `{{hard_model}}` to `cursor-grok-4.5-high-fast`
+* run [Select Configured Model And Reasoning](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{gabe_role}}` set to `implementer`
+* set `{{easy_model}}` to the fastest available model that can reliably land mechanical single-file fixes, and `{{easy_effort}}` to a low effort level
+* set `{{hard_model}}` to the strongest available model for ambiguous, multi-file, or risky repairs, and `{{hard_effort}}` to a high effort level
+* record why each model and effort level was chosen in `{{model_selection_basis}}`
 * set `{{watcher_role}}` to `gabe-watch`
 * set `{{stop_reason}}` to empty
 * set `{{blocker}}` to empty
@@ -67,20 +70,22 @@ description: >-
   * do not start a second ticker
   * [Reattach Tick Listener](#reattach-tick-listener)
 * copy [gabe-watch-ticker.sh](assets/gabe-watch-ticker.sh) to `{{watch_dir}}/gabe-watch-ticker.sh` when missing or outdated and make it executable
-* start exactly one detached ticker so agent-turn, tool-call, and chat-session cleanup cannot reap it:
+* start exactly one ticker with this exact command — plain foreground, no `setsid`, no `nohup`, no `&`, no `disown`, because the script self-detaches and `setsid` does not exist on macOS:
 
 ```bash
-setsid nohup {{watch_dir}}/gabe-watch-ticker.sh \
+{{watch_dir}}/gabe-watch-ticker.sh \
   {{sentinel}} {{interval_seconds}} {{owner_pid}} \
   {{tick_spool}} {{ticker_heartbeat}} {{agent_heartbeat}} \
   {{stop_file}} {{max_idle_seconds}} {{ticker_pid_file}} \
-  "/mdscript-exec {{watch_mdscript}}#resume-watch" \
-  >/dev/null 2>&1 </dev/null & disown
+  "/mdscript-exec {{watch_mdscript}}#resume-watch"
 ```
 
-* read `{{ticker_pid}}` from `{{ticker_pid_file}}` (or the spool `armed` record) once the file appears; never take it from `$!`, which returns the `setsid`/`nohup` wrapper and not the ticker
+* expect that command to return immediately with status `0` — the copy you invoked is only a launcher and exits once the detached ticker is running
+* never wrap the arming command in `setsid`, `nohup`, `&`, or `disown`, and never add a shell-specific detach branch — a wrapper that is missing on macOS silently leaves the ticker as a reapable background job of the agent shell
+* read `{{ticker_pid}}` from `{{ticker_pid_file}}` (or the spool `armed` record) once the file appears; never take it from `$!`, which returns the launcher and not the ticker
 * set `{{ticker_pgid}}` from `ps -o pgid= -p {{ticker_pid}}`
-* confirm the ticker is detached: its parent is `1` (or a reparenting supervisor) and it is not in this agent shell's process group
+* confirm the ticker is detached: `ps -o ppid= -p {{ticker_pid}}` is `1` (or a reparenting supervisor) and `{{ticker_pgid}}` is not this agent shell's process group
+* do not require a new session id — on hosts without `setsid` the ticker gets its own process group but keeps the launching session id, and process-group kills are what session cleanup uses
 * set front matter on `{{watch_mdscript}}` with `watch_active: true`, `status: active`, `resume_heading: resume-watch`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `owner_pid`, `ticker_pid`, `ticker_pgid`, `tick_spool`, `ticker_pid_file`, `stop_file`, `skill_root`, `easy_model`, `hard_model`, and `armed_at`
 * [Reattach Tick Listener](#reattach-tick-listener)
 
@@ -107,8 +112,9 @@ setsid nohup {{watch_dir}}/gabe-watch-ticker.sh \
 
 * set `{{ticker_alive}}` to `true` when `{{ticker_pid_file}}` holds a PID that is running and whose command line still contains `{{sentinel}}`
 * otherwise scan for any running process whose command line contains `{{sentinel}}`
-  * if exactly one exists, adopt it as `{{ticker_pid}}`, refresh `{{ticker_pid_file}}`, and set `{{ticker_alive}}` to `true`
-  * if more than one exists, keep the oldest, kill the rest, and record the duplicate cleanup in the ledger
+  * discard any match whose parent is not `1` (or a reparenting supervisor) — that is the short-lived launcher copy mid-detach, not a ticker
+  * if exactly one remains, adopt it as `{{ticker_pid}}`, refresh `{{ticker_pid_file}}`, and set `{{ticker_alive}}` to `true`
+  * if more than one remains, keep the oldest, kill the rest, and record the duplicate cleanup in the ledger
 * otherwise set `{{ticker_alive}}` to `false`
 
 ## Reattach Tick Listener

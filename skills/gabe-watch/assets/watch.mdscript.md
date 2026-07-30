@@ -27,7 +27,10 @@ watch_grant: "{{watch_grant}}"
 grant_excludes: "{{grant_excludes}}"
 skill_root: "{{skill_root}}"
 easy_model: "{{easy_model}}"
+easy_effort: "{{easy_effort}}"
 hard_model: "{{hard_model}}"
+hard_effort: "{{hard_effort}}"
+model_selection_basis: "{{model_selection_basis}}"
 tick_count: 0
 last_head_sha: ""
 last_tick_at: ""
@@ -45,7 +48,7 @@ blocker: ""
 
 * keep `{{pr_url}}` watched every `{{interval}}` for unresolved review comments, CI/CD failures, and base-branch drift
 
-* repair routine findings with `{{easy_model}}` and hard findings with `{{hard_model}}`
+* repair routine findings with `{{easy_model}}` at `{{easy_effort}}` and hard findings with `{{hard_model}}` at `{{hard_effort}}`
 
 * act on `{{watch_grant}}` without asking again: a finding inside the grant is work for this tick, not a proposal; only `{{grant_excludes}}` reaches the user
 
@@ -53,7 +56,7 @@ blocker: ""
 
 * stop only on `/gabe-unwatch` or PR `MERGED` / `CLOSED`; merge-ready is reported without stopping
 
-* keep exactly one armed ticker: `{{sentinel}}` at PID `{{ticker_pid}}`, detached with `setsid` so agent-turn and session cleanup cannot reap it
+* keep exactly one armed ticker: `{{sentinel}}` at PID `{{ticker_pid}}`, self-detached into its own process group under PID 1 so agent-turn and session cleanup cannot reap it
 
 * the ticker dies only on `/gabe-unwatch`, a terminal PR state, death of owner process `{{owner_pid}}`, or the idle guard; never reap it from a tick, resume, subagent, or cleanup pass
 

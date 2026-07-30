@@ -1,4 +1,4 @@
 interface:
   display_name: "Gabe"
   short_description: "Routes split Gabe roles"
-  default_prompt: "Use $gabe to route Gabe-shaped work with gpt-5.6 Sol medium for orchestrators and a task-appropriate gpt-5.6-family model and reasoning level for implementers and reviewers. Keep control records as executable MDScript under ~/.agents/projects/project-name/, directly validate them, and treat MDScripts exactly like documentation for review: one fresh review when no code changed and no recursive non-code re-review after repair. Use $gabe-orchestrate for coordination, $gabe-implement for implementation, and $gabe-review for scoped review."
+  default_prompt: "Use $gabe to route Gabe-shaped work with the best available model and effort level for each role and task. Keep control records as executable MDScript under ~/.agents/projects/project-name/, directly validate them, and treat MDScripts exactly like documentation for review: one fresh review when no code changed and no recursive non-code re-review after repair. Use $gabe-orchestrate for coordination, $gabe-implement for implementation, and $gabe-review for scoped review."

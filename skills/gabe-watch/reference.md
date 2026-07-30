@@ -16,7 +16,7 @@ is allowed to die:
 
 | Process | Lifetime | Job |
 |---------|----------|-----|
-| **Ticker** — `assets/gabe-watch-ticker.sh`, launched `setsid nohup … & disown` | Survives turns and session cleanup. Exits only on `/gabe-unwatch`, terminal PR state, owner-process death, or the idle guard | Sleeps the interval, appends tick records to the spool |
+| **Ticker** — `assets/gabe-watch-ticker.sh`, launched as one plain foreground command; it self-detaches | Survives turns and session cleanup. Exits only on `/gabe-unwatch`, terminal PR state, owner-process death, or the idle guard | Sleeps the interval, appends tick records to the spool |
 | **Listener** — `tail -n0 -F <spool>` with `notify_on_output` | Disposable; expected to be killed | Relays a tick into the chat so the agent resumes |
 
 If the harness kills the listener, the ticker keeps time and the spool keeps
@@ -29,12 +29,29 @@ process: it must outlive the turn that armed it, but must not outlive the
 session that wanted it.
 
 ```bash
-setsid nohup <watch_dir>/gabe-watch-ticker.sh \
+<watch_dir>/gabe-watch-ticker.sh \
   <sentinel> <interval_seconds> <owner_pid> <spool> <ticker_hb> \
   <agent_hb> <stop_file> <max_idle_seconds> <pid_file> \
-  "/mdscript-exec <watch_mdscript>#resume-watch" \
-  >/dev/null 2>&1 </dev/null & disown
+  "/mdscript-exec <watch_mdscript>#resume-watch"
 ```
+
+The script self-detaches, so the arming line carries no `setsid`, `nohup`, `&`,
+or `disown` and no per-OS branch. macOS ships no `setsid`: the old
+`setsid nohup … & disown` line silently degraded to an ordinary background job
+of the agent shell, and session cleanup reaped the ticker — pid file pointing at
+a dead PID, frozen ticker heartbeat, spool holding only the `armed` record.
+
+Detach happens inside the script, best mechanism first:
+
+| Mechanism | When | Result |
+|-----------|------|--------|
+| `setsid` | present (Linux) | New session and process group, parent PID 1 |
+| `( set -m; cmd & )` subshell | no `setsid` (macOS) | New **process group**, parent PID 1, session id unchanged |
+| `python3 -c` `os.setsid()` | no `setsid` and no bash job control | New session and process group, parent PID 1 |
+
+`python3` is a last-resort branch only — the macOS path needs no dependency
+beyond bash. `GABE_WATCH_DETACH=setsid|subshell|python3` forces one mechanism
+for testing; `GABE_WATCH_DETACHED` is the internal re-exec marker.
 
 Each spooled tick carries its own resume prompt, so a woken agent has the exact
 command even if it sees only the tick line:
@@ -45,8 +62,10 @@ command even if it sees only the tick line:
 
 Rules:
 
-- Take `ticker_pid` from the pid file the ticker writes, **never from `$!`** — `setsid`/`nohup` return the wrapper PID, not the ticker.
-- Kill the group with `kill -- -<ticker_pgid>`; `setsid` puts the ticker in its own process group.
+- Arm with the plain foreground command above; it returns `0` at once because the copy you invoked is only a launcher.
+- Take `ticker_pid` from the pid file the ticker writes, **never from `$!`** — the launcher exits immediately and its PID is not the ticker's.
+- Verify detachment by parent PID `1` and a process group that is not the agent shell's; **do not** require a new session id, which the no-`setsid` path does not get.
+- Kill the group with `kill -- -<ticker_pgid>`; every detach mechanism puts the ticker in its own process group, so `kill -- -<agent shell pgid>` cannot reach it and `kill -- -<ticker_pgid>` still can.
 - `/gabe-unwatch` writes the stop file **first**, so the ticker exits on its own even if the kill path fails or the PID went stale.
 - Never reap the ticker from a tick, resume, subagent, thread-cleanup pass, or end-of-turn tidy.
 - The agent touches `agent_heartbeat` every tick; if it stops, the idle guard retires the orphan after `max_idle_seconds`.
@@ -80,12 +99,17 @@ mdscript-exec ~/.agents/projects/<project>/goals/gabe-watch-<N>.mdscript.md#resu
 
 ## Models
 
-| Difficulty | Task `model` slug | Use for |
-|------------|-------------------|---------|
-| easy | `composer-2.5-fast` | Single-file nits, lint/format, typos, clear mechanical comment fixes, obvious missing imports, narrow test assertion updates |
-| hard | `cursor-grok-4.5-high-fast` | Multi-file design, ambiguous or conflicting review threads, flaky/deep CI root cause, security/correctness disputes, sync regressions, anything needing broader reasoning |
+Pick both the model and the effort level from what the runtime offers, per
+[the model contract](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning).
+Never carry a slug over from a previous session.
 
-If a slug is unavailable, use the closest equivalent composer-class or grok-class model and record the substitution in the ledger.
+| Difficulty | Choose | Use for |
+|------------|--------|---------|
+| easy | fastest model that reliably lands the change, low effort | Single-file nits, lint/format, typos, clear mechanical comment fixes, obvious missing imports, narrow test assertion updates |
+| hard | strongest available model, high effort | Multi-file design, ambiguous or conflicting review threads, flaky/deep CI root cause, security/correctness disputes, sync regressions, anything needing broader reasoning |
+
+Record the chosen models, effort levels, and the basis in the watch MDScript
+front matter and the ledger, so a resumed tick does not silently substitute.
 
 ## Classify Difficulty
 
