@@ -30,6 +30,9 @@
 
 * require each Gabe-shaped task, comment, plan, durable instruction, handoff, and continuation artifact to include an MDScript execution header, stable state headings, one discrete executable action per step, explicit failure and recovery branches, and an exact re-entry command when work can continue
 
+* add a finding for any bullet that explains why a rule exists rather than naming an action
+* require that rationale live in a linked reference file rather than a state body
+
 * if the artifact creates, resumes, reviews, or depends on a `gabe-orchestrate`, `gabe-implement`, or `gabe-review` role agent
   * require an explicit `model`, `reasoning`, and `model_selection_basis` chosen for that role's exact task and proof scope
   * add a finding when the selection is missing, unsupported by the task, silently substituted, carried over from another lane, or clearly insufficient for the role contract

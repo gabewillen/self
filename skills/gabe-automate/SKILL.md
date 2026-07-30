@@ -56,7 +56,7 @@ description: "Design and create Gabe-shaped automations as MDScript-driven conti
 ## Select MDScript Reentry
 
 * set `{{mdscript_reentry}}` to an exact command shaped like `/mdscript-exec <absolute-mdscript-path>#stable-heading`
-* verify the target file exists and that `#stable-heading` resolves to a real `##` state before recording the re-entry; a re-entry into a file with no matching `##` state cannot resume
+* verify the target file exists and that `#stable-heading` resolves to a real `##` state before recording the re-entry
 
 * when `{{task_mdscript}}` exists for a watched or resumable lane, prefer `/mdscript-exec {{task_mdscript}}#hot-path-monitor` over generic role or workflow entries
 

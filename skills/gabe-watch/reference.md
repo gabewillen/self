@@ -60,6 +60,14 @@ command even if it sees only the tick line:
 {"event":"tick","seq":7,"at":"…","prompt":"/mdscript-exec …#resume-watch"}
 ```
 
+Why the arming command has no wrapper: macOS ships no `setsid`, so a shell-side
+detach line is not portable — it silently degrades to an ordinary background job
+that session cleanup reaps. The script self-detaches instead, choosing `setsid`,
+then a `set -m` subshell, then a python3 `os.setsid()` fallback, and verifies the
+ticker came up before accepting a mechanism. On hosts without `setsid` the ticker
+gets its own process group and reparents to PID 1 but keeps the launching session
+id; process-group kills are what session cleanup uses, so that is sufficient.
+
 Rules:
 
 - Arm with the plain foreground command above; it returns `0` at once because the copy you invoked is only a launcher.

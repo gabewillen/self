@@ -38,7 +38,7 @@
 
 * start the goal body with the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->`, not a bare `<!-- mdscript -->` marker
 
-* write every goal heading as a `##` state, because `mdscript-exec` parses only `##` as states; a goal written with `#` headings has zero states and `#resume-goal` cannot match it
+* write every goal heading as a `##` state, never `#`
 
 * include these `##` states:
   * `## Goal Contract`
@@ -46,9 +46,10 @@
   * `## Hot Path`
   * `## Stop`
 
-* write each state body as executable bullets — one discrete action per bullet, with explicit `[State](#anchor)` links for every branch, retry, and recovery path
+* write each state body as executable bullets with one discrete action per bullet
+* write every branch, retry, and recovery path as an explicit `[State](#anchor)` link
 
-* do not write goal states as prose paragraphs; a paragraph is reference material, and the executor will not perform it
+* do not write goal states as prose paragraphs
 
 * after writing the goal, verify `/mdscript-exec {{goal_mdscript}}#resume-goal` resolves to a real `##` state before reporting the lane resumable
 

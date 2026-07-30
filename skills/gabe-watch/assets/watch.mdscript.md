@@ -34,6 +34,7 @@ model_selection_basis: "{{model_selection_basis}}"
 tick_count: 0
 last_head_sha: ""
 last_tick_at: ""
+last_seen_at: ""
 armed_at: "{{armed_at}}"
 stopped_at: ""
 stop_reason: ""

@@ -4,7 +4,17 @@
 
 * set `{{pending_fixes}}` to an empty list when unset
 * load unresolved review threads from `{{unresolved_threads}}`
-* if there are no unresolved threads
+* load PR conversation comments from `{{pr_comments}}`
+* load review bodies from `{{review_bodies}}`
+* treat a request made in the conversation as actionable even when it is not an inline thread
+* for each conversation comment or review body newer than the last tick
+  * if it asks for a change inside `{{watch_grant}}`
+    * append it to `{{pending_fixes}}` with `kind` = `conversation` and the requesting author
+  * if it asks a question this watch can answer from current evidence
+    * reply in the same conversation
+  * if it names work outside `{{watch_grant}}`
+    * record it for the tick report without acting
+* if there are no unresolved threads and no actionable conversation comments
   * return to the caller
 * for each unresolved thread
   * read only the thread id, path, line, and comment bodies needed to act

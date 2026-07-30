@@ -24,8 +24,10 @@ description: >-
 * if `{{pr}}` is empty
   * ask the user for `{{pr}}` (GitHub PR URL or `owner/repo#N`)
 * run [Select Configured Model And Reasoning](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{gabe_role}}` set to `implementer`
-* set `{{easy_model}}` to the fastest available model that can reliably land mechanical single-file fixes, and `{{easy_effort}}` to a low effort level
-* set `{{hard_model}}` to the strongest available model for ambiguous, multi-file, or risky repairs, and `{{hard_effort}}` to a high effort level
+* set `{{easy_model}}` to the fastest available model that can reliably land mechanical single-file fixes
+* set `{{easy_effort}}` to a low effort level
+* set `{{hard_model}}` to the strongest available model for ambiguous, multi-file, or risky repairs
+* set `{{hard_effort}}` to a high effort level
 * record why each model and effort level was chosen in `{{model_selection_basis}}`
 * set `{{watcher_role}}` to `gabe-watch`
 * set `{{stop_reason}}` to empty
@@ -70,7 +72,7 @@ description: >-
   * do not start a second ticker
   * [Reattach Tick Listener](#reattach-tick-listener)
 * copy [gabe-watch-ticker.sh](assets/gabe-watch-ticker.sh) to `{{watch_dir}}/gabe-watch-ticker.sh` when missing or outdated and make it executable
-* start exactly one ticker with this exact command — plain foreground, no `setsid`, no `nohup`, no `&`, no `disown`, because the script self-detaches and `setsid` does not exist on macOS:
+* start exactly one ticker with this exact command, plain foreground, with no `setsid`, `nohup`, `&`, or `disown`:
 
 ```bash
 {{watch_dir}}/gabe-watch-ticker.sh \
@@ -80,12 +82,13 @@ description: >-
   "/mdscript-exec {{watch_mdscript}}#resume-watch"
 ```
 
-* expect that command to return immediately with status `0` — the copy you invoked is only a launcher and exits once the detached ticker is running
-* never wrap the arming command in `setsid`, `nohup`, `&`, or `disown`, and never add a shell-specific detach branch — a wrapper that is missing on macOS silently leaves the ticker as a reapable background job of the agent shell
-* read `{{ticker_pid}}` from `{{ticker_pid_file}}` (or the spool `armed` record) once the file appears; never take it from `$!`, which returns the launcher and not the ticker
+* expect that command to return immediately with status `0`
+* never wrap the arming command in `setsid`, `nohup`, `&`, or `disown`, and never add a shell-specific detach branch
+* read `{{ticker_pid}}` from `{{ticker_pid_file}}` (or the spool `armed` record) once the file appears
+* never take `{{ticker_pid}}` from `$!`
 * set `{{ticker_pgid}}` from `ps -o pgid= -p {{ticker_pid}}`
 * confirm the ticker is detached: `ps -o ppid= -p {{ticker_pid}}` is `1` (or a reparenting supervisor) and `{{ticker_pgid}}` is not this agent shell's process group
-* do not require a new session id — on hosts without `setsid` the ticker gets its own process group but keeps the launching session id, and process-group kills are what session cleanup uses
+* do not require a new session id
 * set front matter on `{{watch_mdscript}}` with `watch_active: true`, `status: active`, `resume_heading: resume-watch`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `owner_pid`, `ticker_pid`, `ticker_pgid`, `tick_spool`, `ticker_pid_file`, `stop_file`, `skill_root`, `easy_model`, `hard_model`, and `armed_at`
 * [Reattach Tick Listener](#reattach-tick-listener)
 
@@ -97,40 +100,22 @@ description: >-
 * record `watch_grant` and `grant_excludes` in `{{watch_mdscript}}` front matter
 * a finding inside `{{watch_grant}}` is work to perform this tick, never a proposal to raise
 * only an item in `{{grant_excludes}}`, a genuine product-judgment question, or a reviewer disagreement may become a question for the user
-* when in doubt about scope, authority, or the right call, run `/mdscript-exec {{repo_root}}/skills/gabe/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe/SKILL.md`, and decide as Gabe would from current evidence
+* when in doubt about scope, authority, or the right call
+  * run `/mdscript-exec {{repo_root}}/skills/gabe/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe/SKILL.md`
+  * decide as Gabe would from current evidence
 * asking the user is the last resort after the `gabe` skill, the repo, and the PR evidence still leave the call genuinely undecidable
 
 ## Resolve Owner Process
 
-* set `{{owner_pid}}` to the long-lived process the watch should outlive turns with, but not outlive entirely: the editor, IDE, harness, or agent-session process that owns this chat
-* find it by walking the parent chain of the current shell and taking the outermost ancestor that is still the harness or editor process, not the transient tool shell that runs this command
-* if the harness exposes its own session or supervisor PID, prefer that value
-* if no owner process can be identified, set `{{owner_pid}}` to `0` to disable the owner check and rely on the idle guard alone
-* set `{{max_idle_seconds}}` to at least six times `{{interval_seconds}}` so a ticker whose agent never returns eventually self-cleans
+* run [Resolve Owner Process](workflows/ticker-process.md#resolve-owner-process)
 
 ## Check Ticker Liveness
 
-* set `{{ticker_alive}}` to `true` when `{{ticker_pid_file}}` holds a PID that is running and whose command line still contains `{{sentinel}}`
-* otherwise scan for any running process whose command line contains `{{sentinel}}`
-  * discard any match whose parent is not `1` (or a reparenting supervisor) — that is the short-lived launcher copy mid-detach, not a ticker
-  * if exactly one remains, adopt it as `{{ticker_pid}}`, refresh `{{ticker_pid_file}}`, and set `{{ticker_alive}}` to `true`
-  * if more than one remains, keep the oldest, kill the rest, and record the duplicate cleanup in the ledger
-* otherwise set `{{ticker_alive}}` to `false`
+* run [Check Ticker Liveness](workflows/ticker-process.md#check-ticker-liveness)
 
 ## Reattach Tick Listener
 
-* the listener is disposable: it only relays ticks to this agent, so a harness that kills it must not stop the watch
-* start one background shell that follows the spool and wakes this agent on each tick:
-
-```bash
-tail -n0 -F {{tick_spool}}
-```
-
-* set `notify_on_output` on that shell with pattern `^{{sentinel}}` so a tick line resumes `/mdscript-exec {{watch_mdscript}}#resume-watch`
-* if the harness offers a durable native scheduler or wakeup that survives session cleanup, use it instead of this listener and record which wake path is in use
-* do not treat a dead listener as a dead watch — the ticker owns the schedule and the spool holds every tick until it is processed
-* run the first [Watch Tick](#watch-tick) immediately after arming
-* end the turn after the tick — the detached ticker owns the next wake; do not sleep, do not re-arm, do not schedule a one-shot fallback
+* run [Reattach Tick Listener](workflows/ticker-process.md#reattach-tick-listener)
 
 ## Resume Watch
 
@@ -160,8 +145,10 @@ tail -n0 -F {{tick_spool}}
 ## Watch Tick
 
 * touch `{{agent_heartbeat}}` at the start of every tick so the ticker's idle guard stays satisfied
-* increment `{{tick_count}}` and set it in `{{watch_mdscript}}` front matter with `last_head_sha`, `last_tick_at`, and `last_processed_seq`
-* run [Refresh PR State](workflows/watch-tick.md#refresh-pr-state)
+* increment `{{tick_count}}` and set it in `{{watch_mdscript}}` front matter with `last_head_sha`, `last_tick_at`, `last_seen_at`, and `last_processed_seq`
+* run [Refresh PR State](workflows/watch-tick.md#refresh-pr-state), which re-reads checks, review threads, and conversation comments from GitHub on every tick
+* if [Refresh PR State](workflows/watch-tick.md#refresh-pr-state) set `{{blocker}}`
+  * [Report Blocker](#report-blocker)
 * if `{{pr_state}}` is `MERGED` or `CLOSED`
   * set `{{stop_reason}}` to PR `{{pr_state}}`
   * run [Stop Watch Loop](../gabe-unwatch/SKILL.md#stop-watch-loop)
@@ -181,7 +168,9 @@ tail -n0 -F {{tick_spool}}
   * report merge-ready status for `{{pr_url}}` — keep watching until `/gabe-unwatch`
 * report the tick as work already done: fixes applied, commits pushed, threads resolved, checks requeued, and what remains outside the grant
 * do not end a tick with a proposal, a permission request, or work deferred to the next tick when the action was inside `{{watch_grant}}`
-* if the tick surfaced an ambiguous call, resolve it through the `gabe` skill and act; do not park it as a question
+* if the tick surfaced an ambiguous call
+  * resolve it through the `gabe` skill and act
+  * do not park it as a question
 * append one ledger line under `~/.agents/projects/{{project_name}}/lane-ledger.jsonl` with tick, head SHA, CI summary, unresolved thread count, `ticker_pid`, wake path, and that the detached ticker remains armed
 * never kill, reap, or clean up the ticker, its process group, its spool, or its pid file from a tick, a resume, a subagent, a thread-cleanup pass, or an end-of-turn tidy; only `/gabe-unwatch`, a terminal PR state, or owner-process death may stop it
 * end the turn without re-arming, without `sleep`, and without a one-shot wake — the detached ticker owns the next tick
