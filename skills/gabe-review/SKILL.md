@@ -85,7 +85,7 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
 
 ## Check Indirection
 
-* run [Check Indirection](checks/indirection.md#check-indirection)
+* run [Check Indirection](checks/indirection.mdscript.md#check-indirection)
 
 ## Check Ownership And Permission
 
