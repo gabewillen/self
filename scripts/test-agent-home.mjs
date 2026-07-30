@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const GOAL_LIB = join(here, "..", "skills", "gabe-goal", "adapters", "cursor", "goal-lib.ts");
+const GOAL_LIB = join(here, "..", "skills", "gabe-goal", "hooks", "goal-lib.ts");
 
 const nodeMajor = Number(process.versions.node.split(".")[0]);
 if (nodeMajor < 23) {
