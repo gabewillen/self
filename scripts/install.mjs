@@ -698,9 +698,23 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
     : [];
   const replaceNeedles = [
     ...legacy,
-    `skills/${manifest.skill}/adapters/cursor/`,
+    `skills/${manifest.skill}/adapters/`,
+    // Hook scripts live under the skill, not under an adapter. Without this the
+    // needles stop matching the moment a script moves, and re-installing appends
+    // a second copy of every hook instead of replacing the first.
+    `skills/${manifest.skill}/hooks/`,
     "skills/goal/scripts/",
   ];
+
+  // Ids this run is about to write. An existing entry claiming one of them is
+  // ours regardless of where its command points.
+  const incomingIds = new Set();
+  for (const entries of Object.values(manifest.hooks || {})) {
+    if (!Array.isArray(entries)) continue;
+    for (const entry of entries) {
+      if (entry.id) incomingIds.add(entry.id);
+    }
+  }
 
   const managedPrefix = `gabe-agents:${manifest.skill}:`;
   let added = 0;
@@ -716,6 +730,10 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
       const cmd = entry?.command || "";
       const id = hookEntryId(entry);
       if (id && String(id).startsWith(managedPrefix)) {
+        replaced += 1;
+        return false;
+      }
+      if (id && incomingIds.has(String(id))) {
         replaced += 1;
         return false;
       }
