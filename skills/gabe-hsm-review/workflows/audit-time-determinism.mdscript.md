@@ -2,12 +2,16 @@
 
 ## Audit Time And Determinism
 
-* scan entry/exit/effect/guard for sleeps, ambient timers, wall-clock reads, blocking waits (`BH-02`, `BH-05`, `TM-01`, `TM-03`) — `P0`/`P1`
-* require **machine-owned time events** (after/every/at or UML time events) rather than ad-hoc sleeps in behaviors (`TM-01`) — `P0`
-* require async completion to re-enter as **events**; activities may run long work but must not branch outcomes in-code (`TM-02`, `CF-02`) — `P0`
-* flag long-running/async work placed in entry/exit/effect/guard instead of activity (`BH-03`, `BH-04`) — `P0`
-* flag activities that cannot be canceled/interrupted on state exit when the platform supports it — `P1`
-* flag short pure sync work incorrectly forced into activities when entry/effect would suffice — `P2` (style)
-* flag random/env/FS/network in guards or pure behaviors without injection (`TM-03`) — `P1`
-* append findings with UML ids first; framework timer API names only as `framework_note`
+Read only the behaviors listed in `{{out_dir}}/graph.json`.
+
+* for each sleep, timer, or ticker created inside a behavior, record `TM-01` — `P0`; time belongs to
+  the model as an after, every, or at trigger
+* for each blocking wait inside a guard, effect, entry, or exit, record `BH-05` — `P0`
+* for each ambient clock, random, filesystem, network, or environment read in a guard, effect,
+  entry, or exit, record `TM-03` — `P1`; require injection or event-carried data
+* for each async completion that returns by any route other than an event, record `TM-02` — `P0`
+* for each activity that ignores cancellation, record `BH-03` — `P1`
+* for short synchronous work placed in an activity where entry or effect would do, record `BH-03` — `P2`
+* boundary loops and tests outside machine behavior may use platform timers; do not report those
+* append findings to `{{findings_log}}`
 * return to the caller

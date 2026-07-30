@@ -2,65 +2,99 @@
 name: gabe-hsm-review
 description: >-
   Adversarially review hierarchical state machines against UML 2.5 semantics
-  (framework-agnostic): explicit guards/choice control flow, side-effect-free
-  guards/entry/exit/effects, activities for long-running/async work, and
-  hierarchy to eliminate duplicate same-event transitions. Use for
-  /gabe-hsm-review, statechart design review, or before merge when HSM control
-  flow must stay in the graph rather than in behavior code.
+  (library-agnostic): the ownership gate that decides whether a machine should
+  exist, actor/RTC data boundaries, explicit guards and choice control flow,
+  side-effect-free guards and behaviors, activities for long-running work,
+  actors instead of orthogonal regions, and hierarchy to eliminate duplicate
+  same-event transitions. Use for /gabe-hsm-review, statechart design review, or
+  before merge when HSM control flow must stay in the graph rather than in
+  behavior code.
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
-## Parse Review Request
+Gated ladder. Each gate stops the review when it finds anything — do not run
+later gates to "be thorough". Every rule blocks; the only escape is an explicit
+waiver naming rule ids. Set `{{full_sweep}}` to `true` only when the user asks
+for a complete review.
+
+## Triage
 
 * set `{{skill_root}}` to this skill directory
-* set `{{repo_root}}` to the working repository root (or the path the user named)
-* set `{{review_scope}}` from the user request (paths, packages, PR, or “whole tree”)
-* if `{{review_scope}}` is empty
-  * ask the user which paths or packages to review as `{{review_scope}}`
-  * [Parse Review Request](#parse-review-request)
-* set `{{findings}}` to an empty list
-* set `{{blocking_severities}}` to `P0,P1,P2` unless the user narrowed severity
-* set `{{semantic_standard}}` to `UML 2.5`
-* set `{{framework_agnostic}}` to `true`
-* run [Identify Scope](workflows/identify-scope.mdscript.md#identify-scope)
-* run [Load Rule Packs](workflows/load-rule-packs.mdscript.md#load-rule-packs)
-* [Inventory Machines](#inventory-machines)
+* set `{{repo_root}}` to the working repository root, or the path the user named
+* set `{{review_scope}}` from the user request; if empty, default to the working diff
+* set `{{full_sweep}}` to `true` only if the user asked for a complete or whole-tree review
+* read [anti-patterns.md](references/anti-patterns.md) and hold it for every gate
+* run [Triage](workflows/triage.mdscript.md#triage)
+* if `{{machine_inventory}}` is empty and no changed component qualifies under the ownership gate
+  * stop and report `n/a`: nothing in scope owns state
+* if `{{full_sweep}}` is not `true`
+  * narrow `{{machine_inventory}}` to machines the change touches
+* [Gate 0 Ownership](#gate-0-ownership)
 
-## Inventory Machines
+## Gate 0 Ownership
 
-* run [Inventory Machines](workflows/inventory-machines.mdscript.md#inventory-machines)
+Whether a machine should exist is decided before anything about how it is built.
+This gate runs on machines in scope **and** on changed components that own
+synchronization, a lifecycle, or message production without being a machine.
+
+* run [Audit Ownership](workflows/audit-ownership.mdscript.md#audit-ownership)
+* if any finding was recorded
+  * [Verify](#verify)
 * if `{{machine_inventory}}` is empty
-  * record a `P1` finding: no state machines / statecharts found in scope (or scope missed)
-  * [Emit Findings](#emit-findings)
-* [Run Audits](#run-audits)
+  * stop and report `n/a`: no machine changed
+* [Gate 1 Graph](#gate-1-graph)
 
-## Run Audits
+## Gate 1 Graph
 
+* run [Extract Model](workflows/extract-model.mdscript.md#extract-model)
 * run [Audit Structure](workflows/audit-structure.mdscript.md#audit-structure)
+* run [Audit Reachability](workflows/audit-reachability.mdscript.md#audit-reachability)
+* if any finding was recorded
+  * [Verify](#verify)
+* [Gate 2 Actor Boundary](#gate-2-actor-boundary)
+
+## Gate 2 Actor Boundary
+
+* run [Audit Actor Boundary](workflows/audit-actor-boundary.mdscript.md#audit-actor-boundary)
+* if any finding was recorded
+  * [Verify](#verify)
+* [Gate 3 Behavior](#gate-3-behavior)
+
+## Gate 3 Behavior
+
 * run [Audit Control Flow](workflows/audit-control-flow.mdscript.md#audit-control-flow)
-* run [Audit Concurrency](workflows/audit-concurrency.mdscript.md#audit-concurrency)
-* run [Audit Data Boundaries](workflows/audit-data-boundaries.mdscript.md#audit-data-boundaries)
-* run [Audit Time And Determinism](workflows/audit-time-determinism.mdscript.md#audit-time-determinism)
-* run [Audit Tests And Deps](workflows/audit-tests-and-deps.mdscript.md#audit-tests-and-deps)
+* run [Audit Time And Determinism](workflows/audit-time-determinism.mdscript.md#audit-time-and-determinism)
+* if any finding was recorded
+  * [Verify](#verify)
+* [Gate 4 Design](#gate-4-design)
+
+## Gate 4 Design
+
+* run [Audit Hierarchy](workflows/audit-hierarchy.mdscript.md#audit-hierarchy)
+* run [Audit Tests](workflows/audit-tests.mdscript.md#audit-tests)
+* [Verify](#verify)
+
+## Verify
+
+No finding reaches the report without surviving an attempt to kill it.
+
+* run [Verify Findings](workflows/verify-findings.mdscript.md#verify-findings)
 * [Emit Findings](#emit-findings)
 
 ## Emit Findings
 
 * run [Emit Findings](workflows/emit-findings.mdscript.md#emit-findings)
-* prefer UML rule ids (`CF/BH/HI/ST*`) on every finding; framework notes are secondary only
-* if any finding severity is in `{{blocking_severities}}`
+* if `{{blocking_count}}` is greater than zero and `{{waiver_requested}}` is not `true`
+  * [Request Waiver](#request-waiver)
+* if `{{blocking_count}}` is greater than zero
   * set `{{verdict}}` to `fail`
-  * stop and report `fail`, blocking counts by severity, top findings, and `{{findings_path}}`
+  * stop and report `fail`, the gate that stopped, counts by severity, top findings, waivers, and `{{findings_path}}`
 * set `{{verdict}}` to `pass`
-* stop and report `pass`, residual `P3` if any, and `{{findings_path}}`
+* stop and report `pass`, the last gate reached, refuted findings, waivers, and `{{findings_path}}`
 
-## Anti Patterns
+## Request Waiver
 
-* do not treat docs or SUMMARY files as proof the machine is correct
-* do not waive P0–P2 without an explicit user waiver naming rule ids
-* do not prioritize framework style over UML 2.5 control-flow semantics
-* do not allow conditionals in entry/exit/effect/activity to choose control-flow outcomes
-* do not accept duplicated same-event transitions on siblings when hierarchy can own them
-* do not require long-running work in entry/exit/effect — activities only
-* do not rewrite machines in this skill — findings and remediation only
+* set `{{waiver_requested}}` to `true`
+* if the user already named waived rule ids, set `{{waived_rule_ids}}` and [Emit Findings](#emit-findings)
+* run [Request Waiver](workflows/request-waiver.mdscript.md#request-waiver)

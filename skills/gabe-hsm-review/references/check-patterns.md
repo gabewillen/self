@@ -1,28 +1,36 @@
-# check-patterns (UML-first)
+# check-patterns
 
-Heuristics only — confirm before filing. Prefer UML rule ids.
+Heuristics only — confirm before filing. Graph rules (ST, RC, HI) come from `graph.json`, not from
+these scans. Substitute the scope path for `{{scope}}`.
 
-## Control-flow smells in behaviors
+## Actor boundary (AC)
 
 ```bash
-# conditionals that often hide graph decisions (confirm in entry/exit/effect/activity/guard)
+# machine data touched from outside a behavior; getters over machine-owned fields
+rg -n 'func \([a-z]+ \*?[A-Z][A-Za-z]*\) (Get|Current|State|Attributes?)\b' {{scope}}
+# locks on a machine type — evidence of out-of-step access
+rg -n 'sync\.(Mutex|RWMutex|Map)|std::mutex|lock\(' {{scope}}
+# reading another actor's state to decide something
+rg -n '(Snapshot|State)\s*\([^)]*\)[^;\n]*(==|switch|if |Contains|HasPrefix)' {{scope}}
+```
+
+## Control flow hidden in behaviors (CF)
+
+```bash
 rg -n 'if\s*\(|else if|switch\s*\(|\?[^\n]*:' {{scope}}
-
-# success/fail dispatch pairs inside behaviors
-rg -n 'dispatch|process_event|send\(' {{scope}}
+rg -n 'dispatch|process_event|send\(' {{scope}}   # branch → dispatch pairs
 ```
 
-## Hierarchy duplication
+## Time and async (TM, BH)
 
 ```bash
-# repeated event names — manually cluster by sibling states
-rg -n 'On\(|on:|event<|after\(|when\(' {{scope}}
+rg -n 'Sleep\(|setTimeout|setInterval|time\.After|NewTicker|AfterFunc|std::this_thread::sleep' {{scope}}
 ```
 
-## Time / async
+## Concurrency (CN)
 
 ```bash
-rg -n 'Sleep\(|setTimeout|setInterval|time\.After|time\.Sleep|NewTicker' {{scope}}
+rg -n 'orthogonal|parallel region|Region\(|Parallel\(' {{scope}}
 ```
 
 ## Finding template
@@ -30,12 +38,12 @@ rg -n 'Sleep\(|setTimeout|setInterval|time\.After|time\.Sleep|NewTicker' {{scope
 ```json
 {
   "severity": "P0",
-  "rule_id": "CF-02",
-  "dialect": "generic",
+  "rule_id": "AC-02",
+  "overlay_id": "optional project rule id",
   "location": "path:line",
-  "summary": "Effect branches success vs failure with if",
-  "evidence": "if ok { ... } else { ... }",
-  "remediation": "Model outcomes as choice/guarded transitions; keep effect side-effect free",
-  "framework_note": "optional local API hint"
+  "summary": "Router reads the conversation actor's state to pick the next event",
+  "evidence": "if snap.State == \"/awaiting\" { dispatch(next) }",
+  "remediation": "Request the decision with an event; let the machine own the branch",
+  "binding_note": "optional API hint, version-checked"
 }
 ```
