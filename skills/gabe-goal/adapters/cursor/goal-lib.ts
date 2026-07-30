@@ -7,7 +7,8 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve as resolvePath } from "node:path";
+import { basename, dirname, join, resolve as resolvePath } from "node:path";
+import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 
 export interface GoalState {
@@ -200,8 +201,31 @@ export function agentProjectHome(root: string): string {
   return join(home, "projects", projectSlug(root));
 }
 
+/**
+ * Same derivation as scripts/agent-home.mjs: a worktree resolves to its main
+ * repository, so every worktree of a project shares one home. Keep the two in
+ * step — a hook that looks somewhere the skill did not write finds nothing.
+ */
+function mainRepoRoot(root: string): string {
+  for (const argv of [
+    ["-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+    ["-C", root, "rev-parse", "--git-common-dir"],
+  ]) {
+    try {
+      const out = execFileSync("git", argv, {
+        encoding: "utf-8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (out) return dirname(resolvePath(root, out));
+    } catch {
+      // Older git, or not a repository.
+    }
+  }
+  return resolvePath(root);
+}
+
 function projectSlug(root: string): string {
-  const base = root.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || "project";
+  const base = basename(mainRepoRoot(root)) || "project";
   return base.replace(/[^A-Za-z0-9._-]+/g, "-") || "project";
 }
 
