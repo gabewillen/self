@@ -81,18 +81,3 @@ description: >-
 * refresh `{{goal_mdscript}}` with `status: stopped` or `blocked`, the blocker summary, and `resume_heading: manual-stop`
 * append `goal_stopped` with the blocker summary to `{{run_dir}}/progress.jsonl` and both append-only logs
 * stop and report progress, `{{run_dir}}`, `{{goal_mdscript}}`, and the blocker
-
-## Anti Patterns
-
-* do not start on a vague goal — clarify first
-* do not write shared `.cursor/goal.json` — use `{{session_dir}}` / `{{run_dir}}` only
-* do not write `goal.json`, `review-verdict.json`, or `signoff-reviewer-*.json` for new runs — the matching `.mdscript.md` front matter is the sole source
-* do not track the active goal only in prose — keep `{{run_dir}}/goal.mdscript.md` executable and current
-* do not answer a stop-hook follow-up without `mdscript-exec` into the run MDScript heading it names
-* do not invent a custom reviewer protocol outside `gabe-review` — compose its triple adversarial blind lanes
-* do not accept completion without all three blind lane sign-offs (rules, security, completeness)
-* do not self-author `review-verdict.mdscript.md` Proven-for grades — only persist what gabe-review decided
-* do not claim completion without on-disk artifacts and a gabe-review Proven-for verdict
-* do not work solo-serially when parallel subagents can run
-* do not truncate or rewrite append-only logs or overwrite artifact files
-* do not reuse or delete prior `runs/<run_id>/` directories

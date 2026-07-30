@@ -1545,16 +1545,6 @@ export function signoffRejectionReason(
   return `${label} sign-off rejected: invalid or incomplete response.`;
 }
 
-export function hasSplitReviewerVerdict(
-  ...signoffs: Array<GoalSignoff | null>
-): boolean {
-  const present = signoffs.filter((signoff): signoff is GoalSignoff => Boolean(signoff));
-  if (present.length < 2) {
-    return false;
-  }
-  return present.some((signoff) => signoff.signed_off !== present[0].signed_off);
-}
-
 export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
   for (const signoffPath of [
     paths.signoffReviewerA,
@@ -1574,38 +1564,6 @@ export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
     }
   }
 }
-
-export function splitVerdictReasons(
-  ...signoffs: GoalSignoff[]
-): string[] {
-  const failing = signoffs.filter((signoff) => !signoff.signed_off);
-  const passing = signoffs.filter((signoff) => signoff.signed_off);
-  const reasons = [
-    "Split verdict — full consensus required. At least one reviewer failed while another passed; all three sign-offs were cleared and all three reviewers must re-review.",
-    `Passing reviewers (${passing.map((s) => s.reviewer_id?.toUpperCase() ?? "?").join(", ") || "none"}) do not count alone.`,
-  ];
-
-  for (const fail of failing) {
-    const pCount = countPFindings(fail.p_findings);
-    const gaps =
-      fail.remaining_gaps?.filter((item) => item.trim().length > 0) ?? [];
-    const id = fail.reviewer_id?.toUpperCase() ?? "?";
-    if (pCount > 0) {
-      reasons.push(`Reviewer ${id}: ${pCount} P-level finding(s) remain.`);
-    }
-    if (gaps.length > 0) {
-      reasons.push(`Reviewer ${id} gaps: ${gaps.join("; ")}`);
-    } else if (fail.verifier_summary?.trim()) {
-      reasons.push(`Reviewer ${id}: ${fail.verifier_summary.trim()}`);
-    }
-  }
-
-  reasons.push(
-    "Fix every P-level finding and gap, refresh artifacts/manifest if proof changed, delete any stale sign-offs, then spawn the rules, security, and completeness blind lanes again in parallel, each on a model and effort level chosen for the review task.",
-  );
-  return reasons;
-}
-
 
 export function isProvenGrade(grade: string | undefined): boolean {
   const text = grade?.trim() ?? "";
