@@ -2,7 +2,14 @@
 
 Gabe-shaped **MDScript** agent skills.
 
-The `mdscript-exec` and `mdscript-write` skills are not shipped here — install them from the [mdscript](https://github.com/gabewillen/mdscript) repo.
+The `mdscript-exec` and `mdscript-write` skills live in the [mdscript](https://github.com/gabewillen/mdscript) repo, which owns them. Install clones that repo to `~/.agents/repos/gabewillen-mdscript` and installs both alongside these skills, so every execution header here resolves.
+
+Skip or redirect the companion install:
+
+```bash
+node ./scripts/install.mjs --no-mdscript              # or GABE_AGENTS_MDSCRIPT=0
+node ./scripts/install.mjs --mdscript-root ~/src/mdscript
+```
 
 This package ships Agent Skills (`SKILL.md` + workflows) so they can be installed with npm and discovered by `npx skills`, `skills-npm`, and similar tools.
 

@@ -47,6 +47,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
 const DEFAULT_REPO_URL = "https://github.com/gabewillen/agents.git";
 const DEFAULT_LIVE_ROOT = join(homedir(), ".agents", "repos", "gabewillen-agents");
+// mdscript-exec / mdscript-write are owned by the mdscript repo, not this one,
+// but every skill here executes through them — so install them alongside.
+const MDSCRIPT_REPO_URL = "https://github.com/gabewillen/mdscript.git";
+const DEFAULT_MDSCRIPT_ROOT = join(homedir(), ".agents", "repos", "gabewillen-mdscript");
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
@@ -56,6 +60,13 @@ const targetIdx = args.indexOf("--target");
 const explicitTarget = targetIdx >= 0 ? resolve(args[targetIdx + 1]) : null;
 const liveRootIdx = args.indexOf("--live-root");
 const explicitLiveRoot = liveRootIdx >= 0 ? resolve(args[liveRootIdx + 1]) : null;
+const mdscriptRootIdx = args.indexOf("--mdscript-root");
+const explicitMdscriptRoot =
+  mdscriptRootIdx >= 0 ? resolve(args[mdscriptRootIdx + 1]) : null;
+const skipMdscript =
+  args.includes("--no-mdscript") ||
+  process.env.GABE_AGENTS_MDSCRIPT === "0" ||
+  process.env.GABE_AGENTS_MDSCRIPT === "false";
 
 const modeEnv = (process.env.GABE_AGENTS_MODE || "").toLowerCase();
 const mode = args.includes("--copy") || modeEnv === "copy"
@@ -215,6 +226,61 @@ function ensureLiveCheckout(liveRoot) {
   console.log(`[gabe-agents] cloning ${repoUrl} -> ${liveRoot}`);
   sh("git", ["clone", repoUrl, liveRoot], { stdio: ["ignore", "inherit", "inherit"] });
   return { liveRoot, repoUrl, action: "clone" };
+}
+
+/**
+ * Ensure a checkout of the mdscript repo and return its skills root.
+ * Never fatal: the pack still installs if this repo is unreachable, so an
+ * offline install degrades to "mdscript skills not refreshed" instead of
+ * failing outright.
+ */
+function ensureMdscriptSkillsRoot() {
+  if (skipMdscript) return null;
+  const root =
+    explicitMdscriptRoot ||
+    (process.env.GABE_AGENTS_MDSCRIPT_ROOT
+      ? resolve(process.env.GABE_AGENTS_MDSCRIPT_ROOT)
+      : DEFAULT_MDSCRIPT_ROOT);
+  const repoUrl = process.env.GABE_AGENTS_MDSCRIPT_REPO_URL || MDSCRIPT_REPO_URL;
+  const skillsRoot = join(root, "skills");
+
+  if (dryRun) {
+    console.log(
+      `[dry-run] ensure mdscript checkout at ${root} from ${repoUrl}`,
+    );
+    return existsSync(skillsRoot) ? skillsRoot : null;
+  }
+
+  if (existsSync(root) && isGitRepo(root)) {
+    if (doPull || process.env.GABE_AGENTS_PULL === "1") {
+      const r = trySh("git", ["-C", root, "pull", "--ff-only"]);
+      if (!r.ok) {
+        console.warn(`[gabe-agents] mdscript pull failed (using local tree)`);
+      }
+    }
+  } else if (existsSync(root)) {
+    console.warn(
+      `[gabe-agents] mdscript root exists but is not a git repo: ${root}`,
+    );
+  } else {
+    ensureDir(dirname(root));
+    console.log(`[gabe-agents] cloning ${repoUrl} -> ${root}`);
+    const r = trySh("git", ["clone", "--depth", "1", repoUrl, root]);
+    if (!r.ok) {
+      console.warn(
+        `[gabe-agents] could not clone mdscript (${repoUrl}); ` +
+          `mdscript-exec/mdscript-write not installed. ` +
+          `Install them manually or re-run with network access.`,
+      );
+      return null;
+    }
+  }
+
+  if (!existsSync(skillsRoot)) {
+    console.warn(`[gabe-agents] no skills/ directory in ${root}`);
+    return null;
+  }
+  return skillsRoot;
 }
 
 function skillsRootForMode(liveRoot) {
@@ -608,6 +674,18 @@ for (const target of targets) {
   results[target] = installInto(target, skills, skillsRoot);
 }
 
+// Companion install: the mdscript executor/writer this pack's headers require.
+const mdscriptSkillsRoot = ensureMdscriptSkillsRoot();
+const mdscriptSkills = mdscriptSkillsRoot ? listSkillDirs(mdscriptSkillsRoot) : [];
+if (mdscriptSkills.length && !dryRun) {
+  for (const target of targets) {
+    results[target] = [
+      ...results[target],
+      ...installInto(target, mdscriptSkills, mdscriptSkillsRoot),
+    ];
+  }
+}
+
 const adapterReport = installAdapters(skills, [...targets], skillsRoot);
 
 let markerPath = null;
@@ -622,6 +700,8 @@ const receipt = {
   live: liveMeta,
   skills_root: skillsRoot,
   skills,
+  mdscript_skills_root: mdscriptSkillsRoot,
+  mdscript_skills: mdscriptSkills,
   targets: results,
   adapters: adapterReport,
   marker_path: markerPath,
@@ -636,8 +716,18 @@ if (!dryRun) {
   }
 }
 
+if (mdscriptSkills.length) {
+  console.log(
+    `[gabe-agents] + ${mdscriptSkills.length} mdscript skills from ${mdscriptSkillsRoot}`,
+  );
+} else if (!skipMdscript) {
+  console.warn(
+    `[gabe-agents] mdscript-exec/mdscript-write not installed — every skill header requires mdscript-exec`,
+  );
+}
+
 console.log(
-  `[gabe-agents] mode=${mode} installed ${skills.length} skills into ${Object.keys(results).length} target(s)`,
+  `[gabe-agents] mode=${mode} installed ${skills.length + mdscriptSkills.length} skills into ${Object.keys(results).length} target(s)`,
 );
 if (mode === "live") {
   console.log(`[gabe-agents] live root: ${liveRoot}`);
