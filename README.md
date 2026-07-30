@@ -29,6 +29,19 @@ This package ships Agent Skills (`SKILL.md` + workflows) so they can be installe
 
 All coordination artifacts for Gabe work are **MDScript** (tasks, comments, plans, goals, instructions) under `~/.agents/projects/<project>/`.
 
+## Validate
+
+```bash
+node ./scripts/validate-mdscript.mjs            # whole pack
+node ./scripts/validate-mdscript.mjs skills/gabe --json
+```
+
+Checks frontmatter, the execution header, `##`-only states, duplicate anchors,
+dead links, `mdscript-exec` re-entry headings that match no state, `{{variables}}`
+that build a path or command with nothing setting them, narration outside
+bullets, rationale inside bullets, and the 200/500-line budgets. Exits non-zero
+on errors.
+
 ## Install
 
 ### Living install (default)

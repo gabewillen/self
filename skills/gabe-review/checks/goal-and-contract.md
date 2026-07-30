@@ -33,6 +33,16 @@
 * add a finding for any bullet that explains why a rule exists rather than naming an action
 * require that rationale live in a linked reference file rather than a state body
 
+* if the change touches MDScript files
+  * run `node scripts/validate-mdscript.mjs <changed paths>` from the pack root when the script is available
+  * add a finding for every error it reports, quoting the file, line, and rule
+  * treat its warnings as findings when the change introduced them
+  * do not re-derive by reading what the validator already decides
+
+* add a finding for any `{{variable}}` that builds a path, command, or re-entry when no state sets it and no caller supplies it
+* add a finding for any conditional branch that neither jumps to an explicit `[State](#anchor)` nor stops
+* add a finding for a state that continues into the next state after routing or dispatching, when it should have terminated
+
 * if the artifact creates, resumes, reviews, or depends on a `gabe-orchestrate`, `gabe-implement`, or `gabe-review` role agent
   * require an explicit `model`, `reasoning`, and `model_selection_basis` chosen for that role's exact task and proof scope
   * add a finding when the selection is missing, unsupported by the task, silently substituted, carried over from another lane, or clearly insufficient for the role contract
