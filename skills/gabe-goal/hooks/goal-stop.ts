@@ -7,22 +7,21 @@ import {
   formatGoalFollowupMessage,
   loadGoalState,
   nextGoalIteration,
-  readStdinJson,
+  continueWorkingPayload,
+  readHookInput,
   reopenGoalRun,
   resolveActiveGoalPaths,
   resolveGoalPathsIgnoringActive,
 } from "./goal-lib.ts";
 
-interface StopHookInput {
-  conversation_id?: string;
-  status: "completed" | "aborted" | "error";
-  loop_count: number;
-  workspace_roots?: string[];
-}
+const input = readHookInput();
+const root = input.root;
+const conversationId = input.conversationId;
 
-const input = readStdinJson<StopHookInput>();
-const root = input.workspace_roots?.filter(Boolean)[0] ?? process.cwd();
-const conversationId = input.conversation_id?.trim();
+// grok also fires Stop at session end; only a real turn end can be continued.
+if (input.dialect === "grok" && input.reason && input.reason !== "end_turn") {
+  finishHook();
+}
 
 if (!conversationId) {
   finishHook();
@@ -60,25 +59,28 @@ if (!state.active) {
     finishHook();
   }
   reopenGoalRun(root, paths, state);
-  const reopenIteration = nextGoalIteration(input.loop_count, paths);
+  const reopenIteration = nextGoalIteration(input.loopCount, paths);
   appendProgressLog(paths, {
     event: "completion_rejected",
     iteration: reopenIteration,
-    loop_count: input.loop_count,
+    loop_count: input.loopCount,
     reasons: closed.reasons,
   });
-  finishHook({
-    followup_message: formatGoalFollowupMessage(
-      root,
-      paths,
-      { ...state, active: true, resume_heading: "pursue-goal" },
-      reopenIteration,
-      [
-        "This goal was marked complete without a gabe-review verdict; the run has been re-opened.",
-        ...closed.reasons,
-      ],
+  finishHook(
+    continueWorkingPayload(
+      input.dialect,
+      formatGoalFollowupMessage(
+        root,
+        paths,
+        { ...state, active: true, resume_heading: "pursue-goal" },
+        reopenIteration,
+        [
+          "This goal was marked complete without a gabe-review verdict; the run has been re-opened.",
+          ...closed.reasons,
+        ],
+      ),
     ),
-  });
+  );
 }
 
 if (input.status === "aborted" || input.status === "error") {
@@ -97,11 +99,11 @@ if (completion.complete) {
   finishHook();
 }
 
-const iteration = nextGoalIteration(input.loop_count, paths);
+const iteration = nextGoalIteration(input.loopCount, paths);
 appendProgressLog(paths, {
   event: "iteration_blocked",
   iteration,
-  loop_count: input.loop_count,
+  loop_count: input.loopCount,
   reasons: completion.reasons,
 });
 
@@ -113,4 +115,4 @@ const followupMessage = formatGoalFollowupMessage(
   completion.reasons,
 );
 
-finishHook({ followup_message: followupMessage });
+finishHook(continueWorkingPayload(input.dialect, followupMessage));

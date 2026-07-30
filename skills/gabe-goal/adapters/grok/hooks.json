@@ -1,26 +1,27 @@
 {
   "version": 1,
-  "adapter": "cursor",
+  "adapter": "grok",
   "skill": "gabe-goal",
+  "target": "grok-hooks",
   "runtime": "bun",
   "runtimeFallbacks": [
     "bun",
     "node"
   ],
   "hooks": {
-    "sessionStart": [
+    "SessionStart": [
       {
         "id": "gabe-goal-session-start",
         "script": "../../hooks/goal-session-start.ts"
       }
     ],
-    "beforeSubmitPrompt": [
+    "UserPromptSubmit": [
       {
         "id": "gabe-goal-session-touch",
         "script": "../../hooks/goal-session-touch.ts"
       }
     ],
-    "stop": [
+    "Stop": [
       {
         "id": "gabe-goal-stop",
         "script": "../../hooks/goal-stop.ts",

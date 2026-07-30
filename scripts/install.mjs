@@ -561,6 +561,93 @@ function writeJson(path, data) {
   writeFileSync(path, body);
 }
 
+/**
+ * Where each non-Cursor harness keeps its hook config.
+ *
+ * Claude Code, Codex, and grok all read the same nested shape
+ * (`hooks.<Event>[].hooks[]`) and all take `{"decision":"block"}` to keep the
+ * agent working, so one writer serves the three. Cursor's flat array and
+ * `followup_message` stay on their own path.
+ */
+const NESTED_HOOK_TARGETS = {
+  "claude-settings": { home: ".claude", file: () => "settings.json" },
+  "codex-hooks": { home: ".codex", file: () => "hooks.json" },
+  "grok-hooks": { home: ".grok", file: (skill) => join("hooks", `${skill}.json`) },
+};
+
+function mergeNestedHooks({ skillInstallDir, manifest, runtime, targetPath }) {
+  const existing = readJson(targetPath, null) || {};
+  if (!existing.hooks || typeof existing.hooks !== "object") existing.hooks = {};
+
+  const needles = [
+    ...(Array.isArray(manifest.replaceLegacyCommands)
+      ? manifest.replaceLegacyCommands
+      : []),
+    `skills/${manifest.skill}/hooks/`,
+    `skills/${manifest.skill}/adapters/`,
+  ];
+
+  let added = 0;
+  let replaced = 0;
+
+  for (const [eventName, entries] of Object.entries(manifest.hooks || {})) {
+    if (!Array.isArray(entries)) continue;
+    const groups = Array.isArray(existing.hooks[eventName])
+      ? existing.hooks[eventName]
+      : [];
+
+    const kept = [];
+    for (const group of groups) {
+      const handlers = Array.isArray(group?.hooks) ? group.hooks : [];
+      const survivors = handlers.filter((handler) => {
+        if (commandMatchesLegacy(handler?.command, needles)) {
+          replaced += 1;
+          return false;
+        }
+        return true;
+      });
+      if (survivors.length) kept.push({ ...group, hooks: survivors });
+    }
+
+    const handlers = [];
+    for (const entry of entries) {
+      const scriptRel = entry.script || entry.command;
+      if (!scriptRel) continue;
+      // Resolve through the symlink so every harness gets the same real path —
+      // grok merges Cursor and Claude configs alongside its own and dedupes
+      // identical commands, so matching strings prevent a triple fire.
+      let scriptAbs = join(skillInstallDir, "adapters", manifest.adapter, scriptRel);
+      try {
+        if (existsSync(scriptAbs)) scriptAbs = realpathSync(scriptAbs);
+      } catch {
+        // keep join path
+      }
+      const handler = { type: "command", command: `${runtime.path} ${scriptAbs}` };
+      if (entry.timeout) handler.timeout = entry.timeout;
+      handlers.push(handler);
+      added += 1;
+      if (dryRun) console.log(`[dry-run] ${manifest.adapter} hook ${eventName}: ${handler.command}`);
+    }
+    if (handlers.length) kept.push({ hooks: handlers });
+    existing.hooks[eventName] = kept;
+  }
+
+  existing.metadata = existing.metadata || {};
+  existing.metadata["gabe-agents"] = {
+    ...(existing.metadata["gabe-agents"] || {}),
+    [manifest.skill]: {
+      updated_at: new Date().toISOString(),
+      adapter: manifest.adapter,
+      skill_dir: skillInstallDir,
+      runtime: runtime.path,
+      mode,
+    },
+  };
+
+  writeJson(targetPath, existing);
+  return { hooksPath: targetPath, added, replaced };
+}
+
 function listAdapterNames(skillSrc) {
   const adaptersRoot = join(skillSrc, "adapters");
   if (!existsSync(adaptersRoot)) return [];
@@ -778,6 +865,35 @@ function installAdapters(skills, skillRoots, skillsRoot) {
       entry.actions.push({ type: "cursor-hooks", runtime, ...result });
       console.log(
         `[gabe-agents] cursor hooks for ${skill}: +${result.added} replaced~${result.replaced} -> ${result.hooksPath} (runtime ${runtime.path})`,
+      );
+    } else if (manifestPath && NESTED_HOOK_TARGETS[readJson(manifestPath, {})?.target]) {
+      const manifest = { ...readJson(manifestPath, {}), skill, adapter };
+      const target = NESTED_HOOK_TARGETS[manifest.target];
+      const harnessHome = join(homedir(), target.home);
+      if (!existsSync(harnessHome)) {
+        entry.actions.push({ type: "skipped", note: `${target.home} not installed` });
+        console.log(`[gabe-agents] adapter ${skill}/${adapter}: skipped, no ${target.home}`);
+        report.push(entry);
+        continue;
+      }
+      const runtime = resolveRuntime(
+        manifest.runtime || "bun",
+        manifest.runtimeFallbacks || ["bun", "node"],
+      );
+      const harnessSkillRoot = join(harnessHome, "skills");
+      if (!dryRun && !existsSync(join(harnessSkillRoot, skill, "SKILL.md"))) {
+        installInto(harnessSkillRoot, [skill], skillsRoot);
+      }
+      const targetPath = join(harnessHome, target.file(skill));
+      const result = mergeNestedHooks({
+        skillInstallDir: join(harnessSkillRoot, skill),
+        manifest,
+        runtime,
+        targetPath,
+      });
+      entry.actions.push({ type: `${adapter}-hooks`, runtime, ...result });
+      console.log(
+        `[gabe-agents] ${adapter} hooks for ${skill}: +${result.added} replaced~${result.replaced} -> ${result.hooksPath} (runtime ${runtime.path})`,
       );
     } else if (adapter !== "cursor") {
       entry.actions.push({

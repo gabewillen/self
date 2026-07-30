@@ -2062,6 +2062,105 @@ export function readStdinJson<T>(): T {
   return JSON.parse(text) as T;
 }
 
+/**
+ * Which harness is calling.
+ *
+ * Cursor takes `followup_message` to keep the agent working; Claude Code,
+ * Codex, and grok all take `{"decision":"block","reason":...}`. Cursor and
+ * Claude/Codex send snake_case input, grok sends camelCase. One normalizer
+ * beats four near-identical hook scripts.
+ */
+export type HookDialect = "cursor" | "claude" | "codex" | "grok";
+
+export interface HookInput {
+  dialect: HookDialect;
+  conversationId: string;
+  root: string;
+  /** completed | aborted | error — synthesized for harnesses that only fire on completion. */
+  status: "completed" | "aborted" | "error";
+  loopCount: number;
+  stopHookActive: boolean;
+  /** grok only: "end_turn" for a real turn end, else a session-end observe fire. */
+  reason?: string;
+  /** Orchestrator model when the harness reports one. */
+  model?: string;
+}
+
+function detectDialect(raw: Record<string, unknown>): HookDialect {
+  if (process.env.GROK_HOOK_EVENT) return "grok";
+  if (raw.hookEventName !== undefined || raw.sessionId !== undefined) return "grok";
+  if (raw.conversation_id !== undefined || raw.workspace_roots !== undefined) {
+    return "cursor";
+  }
+  if (raw.turn_id !== undefined) return "codex";
+  return "claude";
+}
+
+function firstString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+export function readHookInput(): HookInput {
+  const raw = readStdinJson<Record<string, unknown>>();
+  const dialect = detectDialect(raw);
+  const roots = Array.isArray(raw.workspace_roots)
+    ? (raw.workspace_roots as unknown[]).filter(
+        (r): r is string => typeof r === "string" && r.length > 0,
+      )
+    : [];
+  const status = firstString(raw.status);
+  return {
+    dialect,
+    conversationId: firstString(raw.conversation_id, raw.session_id, raw.sessionId),
+    root: firstString(
+      roots[0],
+      raw.workspaceRoot,
+      raw.cwd,
+      process.env.GROK_WORKSPACE_ROOT,
+      process.env.CLAUDE_PROJECT_DIR,
+    ) || process.cwd(),
+    // Only Cursor reports a status; the others fire the gate only on a real end.
+    status:
+      status === "aborted" || status === "error"
+        ? (status as "aborted" | "error")
+        : "completed",
+    loopCount: typeof raw.loop_count === "number" ? raw.loop_count : 0,
+    stopHookActive: Boolean(raw.stop_hook_active ?? raw.stopHookActive),
+    reason: firstString(raw.reason) || undefined,
+    model: firstString(raw.model) || undefined,
+  };
+}
+
+/**
+ * Inject context in the calling harness's vocabulary. Cursor reads a top-level
+ * `additional_context`; Claude Code, Codex, and grok read
+ * `hookSpecificOutput.additionalContext`.
+ */
+export function additionalContextPayload(
+  dialect: HookDialect,
+  hookEventName: string,
+  context: string,
+): Record<string, unknown> {
+  if (dialect === "cursor") {
+    return { continue: true, additional_context: context };
+  }
+  return { hookSpecificOutput: { hookEventName, additionalContext: context } };
+}
+
+/** Translate one keep-working instruction into the calling harness's vocabulary. */
+export function continueWorkingPayload(
+  dialect: HookDialect,
+  message: string,
+): Record<string, unknown> {
+  if (dialect === "cursor") {
+    return { followup_message: message };
+  }
+  return { decision: "block", reason: message };
+}
+
 export function respond(payload: Record<string, unknown>): void {
   process.stdout.write(JSON.stringify(payload) + "\n");
 }

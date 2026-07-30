@@ -4,20 +4,15 @@ import {
   ensureSessionDirectory,
   finishHook,
   PROJECT_GOAL_LOG_PATH,
-  readStdinJson,
+  additionalContextPayload,
+  readHookInput,
   safeSessionId,
   SESSIONS_DIR,
-  workspaceRootFromInput,
 } from "./goal-lib.ts";
 
-interface SessionStartInput {
-  session_id: string;
-  workspace_roots?: string[];
-}
-
-const input = readStdinJson<SessionStartInput>();
-const conversationId = input.session_id?.trim();
-const root = workspaceRootFromInput(input.workspace_roots);
+const input = readHookInput();
+const conversationId = input.conversationId;
+const root = input.root;
 
 if (!conversationId) {
   finishHook();
@@ -46,6 +41,6 @@ if (activeGoalContext) {
   contextLines.push("", activeGoalContext);
 }
 
-finishHook({
-  additional_context: contextLines.join("\n"),
-});
+finishHook(
+  additionalContextPayload(input.dialect, "SessionStart", contextLines.join("\n")),
+);
