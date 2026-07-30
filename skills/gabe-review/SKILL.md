@@ -1,6 +1,6 @@
 ---
 name: gabe-review
-description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and documentation changes, instructions, automations, publications, and final reports using a task-appropriate gpt-5.6-family model and reasoning level. Use for diminishing-severity recursive code review, single-pass non-code review, content-addressed review baselines, final cumulative blind review, DBC proof decisions, scoped verdicts, executable MDScript contracts, evidence and authority boundaries, UI proof, runtime/provider equivalence, source-owner sync, permissions, provenance drift, proof inflation, stale assumptions, state-machine gaps, model/data/eval source-currentness, coordinator control, current review state, and publication hygiene. Treat MDScripts exactly like documentation for review."
+description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and documentation changes, instructions, automations, publications, and final reports using a task-appropriate gpt-5.6-family model and reasoning level. Terminal readiness requires triple adversarial blind subagents (rules, security, completeness), each executing its own review MDScript and writing an independent sign-off. Use for diminishing-severity recursive code review, single-pass non-code review, content-addressed review baselines, final cumulative blind triple review, DBC proof decisions, scoped verdicts, executable MDScript contracts, evidence and authority boundaries, UI proof, runtime/provider equivalence, source-owner sync, permissions, provenance drift, proof inflation, stale assumptions, state-machine gaps, model/data/eval source-currentness, coordinator control, current review state, and publication hygiene. Treat MDScripts exactly like documentation for review."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [mdscript.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/README.md) -->
@@ -147,6 +147,20 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
   * reject silent fallback from a requested local model, hosted model, adapter, navigator, driver, or helper agent to a more convenient substitute
   * require setup failures, missing credentials, hidden or ineligible agents, unavailable adapters, stale cursors, and normal-stop handoffs to fail closed or route through the same owner-input path a human would use
 
+* if this review is a **terminal readiness / goal-completion / merge-readiness / live-proof / release-readiness** gate (or the caller requested triple blind)
+  * run [Triple Adversarial Blind Review](workflows/triple-adversarial-blind-review.mdscript.md#triple-adversarial-blind-review)
+  * do not self-author a Proven-for grade without all three lane sign-offs
+  * each blind subagent must `mdscript-exec` its own lane MDScript:
+    * rules → `workflows/blind-reviewers/rules.mdscript.md#rules-blind-review` (AGENTS/CLAUDE/GEMINI + Cursor/VS Code/Windsurf rules)
+    * security → `workflows/blind-reviewers/security.mdscript.md#security-blind-review` (penetration and security)
+    * completeness → `workflows/blind-reviewers/completeness.mdscript.md#completeness-blind-review` (goal-literal completeness)
+  * union lane findings into `{{blocking_findings}}` when any lane fails
+  * only when all three lanes `signed_off: true` with empty `p_findings` may `{{grade}}` become `Proven for {{proof_scope}}`
+  * [Determine Grade](#determine-grade)
+
+* if this is a non-terminal intermediate rolling repair pass and the caller did not request triple blind
+  * the lead reviewer may continue single-pass checks below, but the **final cumulative** readiness gate still requires [Triple Adversarial Blind Review](workflows/triple-adversarial-blind-review.mdscript.md#triple-adversarial-blind-review)
+
 * [Determine Grade](#determine-grade)
 
 ## Check Goal And Contract
@@ -211,9 +225,14 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
   * keep any narrower supported result as a scoped finding such as `Proven for source-health only`
   * [Report Verdict](#report-verdict)
 
-* if no `{{blocking_findings}}` remain for `{{proof_scope}}`, all `{{contract_preconditions}}` were available, no invariant failure at `{{blocking_severities}}` remains, and `{{proof_path}}` passed with current proof
+* if this is a terminal readiness gate and triple blind sign-offs are missing or incomplete
+  * set `{{grade}}` to `Not ready for {{proof_scope}}`
+  * set `{{proof_decision}}` to `Not accepted: triple adversarial blind gabe-review (rules + security + completeness) required`
+  * [Report Verdict](#report-verdict)
+
+* if no `{{blocking_findings}}` remain for `{{proof_scope}}`, all `{{contract_preconditions}}` were available, no invariant failure at `{{blocking_severities}}` remains, `{{proof_path}}` passed with current proof, and (for terminal readiness) all three blind lanes signed off with empty `p_findings`
   * set `{{grade}}` to `Proven for {{proof_scope}}`
-  * set `{{proof_decision}}` to `Proven for {{proof_scope}} at {{blocking_severities}} threshold`
+  * set `{{proof_decision}}` to `Proven for {{proof_scope}} at {{blocking_severities}} threshold via triple adversarial blind gabe-review` when triple blind ran; otherwise `Proven for {{proof_scope}} at {{blocking_severities}} threshold` only for explicitly non-terminal intermediate passes
   * [Report Verdict](#report-verdict)
 
 ## Report Verdict

@@ -22,6 +22,10 @@ description: "Compatibility router for project-scoped Gabe MDScript operating-mo
   * read `{{repo_root}}/skills/gabe-unwatch/SKILL.md` when present, otherwise `~/.agents/skills/gabe-unwatch/SKILL.md`
   * execute as `gabe-unwatch`
 
+* if the request is HSM/SML hard-rule review, hierarchical state machine audit, or `/gabe-hsm-review`
+  * read `{{repo_root}}/skills/gabe-hsm-review/SKILL.md` when present, otherwise `~/.agents/skills/gabe-hsm-review/SKILL.md`
+  * execute as `gabe-hsm-review`
+
 * if the request is a goal-driven proof loop until artifacts and triple adversarial blind review (`/gabe-goal`, `/goal`, deprecated `/grind`, or stricter goal-until-signoff work)
   * read `{{repo_root}}/skills/gabe-goal/SKILL.md` when present, otherwise `~/.agents/skills/gabe-goal/SKILL.md`
   * execute as `gabe-goal`

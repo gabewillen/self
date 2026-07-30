@@ -23,12 +23,20 @@ export interface GoalState {
    * at least one live-tier artifact that exercises the primary user/runtime path.
    */
   live_proof?: "required" | "optional";
+  /** End-to-end user/runtime path required when live proof is on. */
+  primary_user_action?: string;
+  /** Durable MDScript tracking file for this run (relative or absolute). */
+  goal_mdscript?: string;
+  /** Heading slug the stop hook / resume should enter next. */
+  resume_heading?: string;
+  /** Last stop-hook iteration written into the run MDScript. */
+  iteration?: number;
 }
 
 export type ProofKind = "tui" | "ui" | "default";
 export type ProofTier = "unit" | "integration" | "live";
 
-export type GoalReviewerId = "a" | "b" | "c";
+export type GoalReviewerId = "a" | "b" | "c" | "rules" | "security" | "completeness";
 
 export interface GoalPFinding {
   severity?: string;
@@ -92,10 +100,17 @@ export interface GoalSessionPaths {
   sessionLog: string;
   runsDirectory: string;
   goal: string;
+  /** Executable MDScript run tracker — stop hook resumes here. */
+  goalMdscript: string;
+  reviewVerdict: string;
+  reviewPacket: string;
   signoff: string;
   signoffReviewerA: string;
   signoffReviewerB: string;
   signoffReviewerC: string;
+  signoffReviewerRules: string;
+  signoffReviewerSecurity: string;
+  signoffReviewerCompleteness: string;
   artifacts: string;
   artifactsManifest: string;
   progressLog: string;
@@ -108,11 +123,37 @@ export interface ActiveRunPointer {
   run_id: string;
   conversation_id: string;
   started_at: string;
+  /** Relative path to the authoritative run MDScript tracker. */
+  goal_mdscript?: string;
+  active?: boolean;
 }
 
 export interface GoalCompletionStatus {
   complete: boolean;
   reasons: string[];
+}
+
+/** Durable completion record produced by composing gabe-review. */
+export interface GoalReviewVerdict {
+  goal: string;
+  conversation_id: string;
+  run_id?: string;
+  reviewer_skill?: string;
+  proof_scope?: string;
+  grade?: string;
+  proof_decision?: string;
+  blocking_severities?: string;
+  blocking_findings?: Array<string | GoalPFinding>;
+  residual_findings?: Array<string | GoalPFinding>;
+  proof_supplied?: string[];
+  proof_not_claimed?: string[];
+  artifact_paths?: string[];
+  commands_run?: string[];
+  review_round?: number;
+  reviewed_at?: string;
+  triple_blind?: boolean;
+  lanes?: string[];
+  signoff_paths?: string[];
 }
 
 export const MIN_SUMMARY_LENGTH = 40;
@@ -124,7 +165,13 @@ export const ARTIFACTS_MANIFEST_FILE = "manifest.json";
 export const ACTIVE_RUN_FILE = "active-run.json";
 export const SESSION_LOG_FILE = "session-log.jsonl";
 export const PROGRESS_LOG_FILE = "progress.jsonl";
+export const GOAL_MDSCRIPT_FILE = "goal.mdscript.md";
+export const REVIEW_VERDICT_FILE = "review-verdict.json";
+export const REVIEW_PACKET_FILE = "review-packet.md";
 export const RUNS_DIR_NAME = "runs";
+export const DEFAULT_RESUME_HEADING = "pursue-goal";
+export const MDSCRIPT_EXEC_HEADER =
+  "<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->";
 export const PROJECT_GOAL_LOG_PATH = ".cursor/goal/goal-log.jsonl";
 export const LEGACY_GOAL_PATH = ".cursor/goal.json";
 export const LEGACY_SIGNOFF_PATH = ".cursor/goal-signoff.json";
@@ -167,10 +214,16 @@ function extendRunPaths(
     sessionLog: join(sessionDirectoryPath, SESSION_LOG_FILE),
     runsDirectory: join(sessionDirectoryPath, RUNS_DIR_NAME),
     goal: goalFile,
+    goalMdscript: join(runDirectoryPath, GOAL_MDSCRIPT_FILE),
+    reviewVerdict: join(runDirectoryPath, REVIEW_VERDICT_FILE),
+    reviewPacket: join(runDirectoryPath, REVIEW_PACKET_FILE),
     signoff: join(runDirectoryPath, "signoff.json"),
     signoffReviewerA: join(runDirectoryPath, SIGNOFF_REVIEWER_A_FILE),
     signoffReviewerB: join(runDirectoryPath, SIGNOFF_REVIEWER_B_FILE),
     signoffReviewerC: join(runDirectoryPath, SIGNOFF_REVIEWER_C_FILE),
+    signoffReviewerRules: join(runDirectoryPath, "signoff-reviewer-rules.json"),
+    signoffReviewerSecurity: join(runDirectoryPath, "signoff-reviewer-security.json"),
+    signoffReviewerCompleteness: join(runDirectoryPath, "signoff-reviewer-completeness.json"),
     artifacts: artifactsDirectory,
     artifactsManifest: join(artifactsDirectory, ARTIFACTS_MANIFEST_FILE),
     progressLog: join(runDirectoryPath, PROGRESS_LOG_FILE),
@@ -278,6 +331,11 @@ function legacyRootPaths(root: string, kind: "goal" | "grind"): GoalSessionPaths
 }
 
 export function usesStrictGoalCompletion(paths: GoalSessionPaths): boolean {
+  // New runs use goal.mdscript.md. Legacy goal.json runs stay strict.
+  // Grind single-verifier sessions use grind.json / legacy=true and stay non-strict.
+  if (existsSync(paths.goalMdscript)) {
+    return true;
+  }
   return paths.goal.endsWith("goal.json");
 }
 
@@ -294,6 +352,198 @@ export function loadJson<T>(path: string): T | null {
 
 export function writeJson(path: string, value: unknown): void {
   writeFileSync(path, JSON.stringify(value, null, 2) + "\n", "utf-8");
+}
+
+function parseYamlScalar(raw: string): string | number | boolean | null {
+  const value = raw.trim();
+  if (value === "" || value === "null" || value === "~") {
+    return null;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  if (/^-?\d+(\.\d+)?$/.test(value)) {
+    return Number(value);
+  }
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    try {
+      return JSON.parse(value.replace(/^'/, '"').replace(/'$/, '"')) as string;
+    } catch {
+      return value.slice(1, -1);
+    }
+  }
+  return value;
+}
+
+/** Minimal front-matter reader for the scalars/lists emitted by writeGoalMdscript. */
+export function parseMdscriptFrontMatter(
+  text: string,
+): Record<string, unknown> | null {
+  const normalized = text.replace(/^\uFEFF/, "");
+  if (!normalized.startsWith("---")) {
+    return null;
+  }
+  const end = normalized.indexOf("\n---", 3);
+  if (end < 0) {
+    return null;
+  }
+  const block = normalized.slice(4, end).replace(/^\n/, "");
+  const result: Record<string, unknown> = {};
+  const lines = block.split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim() || line.trimStart().startsWith("#")) {
+      i += 1;
+      continue;
+    }
+    const match = /^(?: {0,2})([A-Za-z0-9_]+):\s*(.*)$/.exec(line);
+    if (!match) {
+      i += 1;
+      continue;
+    }
+    const key = match[1];
+    const rest = match[2];
+    if (rest === "|" || rest === ">" || rest === "|-") {
+      const collected: string[] = [];
+      i += 1;
+      while (i < lines.length) {
+        const next = lines[i];
+        if (next === "" || next.startsWith("  ") || next.startsWith("\t")) {
+          collected.push(next.replace(/^  /, ""));
+          i += 1;
+          continue;
+        }
+        break;
+      }
+      result[key] = collected.join("\n").replace(/\n$/, "");
+      continue;
+    }
+    if (rest === "" || rest === "[]") {
+      // Either empty scalar, empty list marker, or a following list/block.
+      if (rest === "[]") {
+        result[key] = [];
+        i += 1;
+        continue;
+      }
+      const listItems: string[] = [];
+      let j = i + 1;
+      while (j < lines.length) {
+        const next = lines[j];
+        const item = /^ {2}-\s+(.*)$/.exec(next);
+        if (!item) {
+          break;
+        }
+        listItems.push(String(parseYamlScalar(item[1]) ?? ""));
+        j += 1;
+      }
+      if (listItems.length > 0) {
+        result[key] = listItems;
+        i = j;
+        continue;
+      }
+      result[key] = "";
+      i += 1;
+      continue;
+    }
+    result[key] = parseYamlScalar(rest);
+    i += 1;
+  }
+  return result;
+}
+
+export function goalStateFromFrontMatter(
+  fm: Record<string, unknown>,
+): GoalState | null {
+  const goalRaw = fm.goal;
+  const goal =
+    typeof goalRaw === "string"
+      ? goalRaw.trim()
+      : goalRaw == null
+        ? ""
+        : String(goalRaw).trim();
+  const conversationId =
+    typeof fm.conversation_id === "string" ? fm.conversation_id.trim() : "";
+  if (!goal && !conversationId) {
+    return null;
+  }
+
+  const status = typeof fm.status === "string" ? fm.status : undefined;
+  const activeExplicit = fm.active;
+  const active =
+    typeof activeExplicit === "boolean"
+      ? activeExplicit
+      : status
+        ? status === "active"
+        : true;
+
+  const proofKind =
+    fm.proof_kind === "tui" || fm.proof_kind === "ui" || fm.proof_kind === "default"
+      ? fm.proof_kind
+      : undefined;
+  const liveProof =
+    fm.live_proof === "required" || fm.live_proof === "optional"
+      ? fm.live_proof
+      : undefined;
+
+  return {
+    active,
+    goal: goal || "(unspecified goal)",
+    conversation_id: conversationId,
+    run_id: typeof fm.run_id === "string" ? fm.run_id : undefined,
+    started_at: typeof fm.started_at === "string" ? fm.started_at : undefined,
+    ended_at: typeof fm.ended_at === "string" ? fm.ended_at : undefined,
+    proof_kind: proofKind,
+    live_proof: liveProof,
+    primary_user_action:
+      typeof fm.primary_user_action === "string" ? fm.primary_user_action : undefined,
+    goal_mdscript:
+      typeof fm.goal_mdscript === "string" ? fm.goal_mdscript : undefined,
+    resume_heading:
+      typeof fm.resume_heading === "string" ? fm.resume_heading : undefined,
+    iteration:
+      typeof fm.iteration === "number"
+        ? fm.iteration
+        : typeof fm.iteration === "string" && /^-?\d+$/.test(fm.iteration)
+          ? Number(fm.iteration)
+          : undefined,
+  };
+}
+
+export function loadGoalState(paths: GoalSessionPaths): GoalState | null {
+  if (existsSync(paths.goalMdscript)) {
+    try {
+      const text = readFileSync(paths.goalMdscript, "utf-8");
+      const fm = parseMdscriptFrontMatter(text);
+      if (fm) {
+        const state = goalStateFromFrontMatter(fm);
+        if (state) {
+          if (!state.goal_mdscript) {
+            state.goal_mdscript = paths.goalMdscript;
+          }
+          if (!state.run_id && paths.runId) {
+            state.run_id = paths.runId;
+          }
+          return state;
+        }
+      }
+    } catch {
+      // Fall through to legacy JSON.
+    }
+  }
+
+  // Legacy read-only fallback for pre-cutover runs / grind.
+  return loadJson<GoalState>(paths.goal);
+}
+
+export function runStateExists(paths: GoalSessionPaths): boolean {
+  return existsSync(paths.goalMdscript) || existsSync(paths.goal);
 }
 
 export function ensureSessionDirectory(
@@ -336,15 +586,16 @@ export function startGoalRun(
   const sessionRoot = sessionDirectory(root, conversationId);
 
   const priorPaths = resolveActiveGoalPaths(root, conversationId);
-  if (priorPaths && existsSync(priorPaths.goal)) {
-    const priorState = loadJson<GoalState>(priorPaths.goal);
+  if (priorPaths && runStateExists(priorPaths)) {
+    const priorState = loadGoalState(priorPaths);
     // Supersede only a still-active run. Completed runs are left as-is — the next goal is unrelated.
     if (priorState?.active) {
-      deactivateGoal(priorPaths.goal, priorState);
+      deactivateGoal(root, priorPaths, priorState);
       recordGoalEvent(root, conversationId, "goal_superseded", {
         run_id: priorPaths.runId,
         goal: priorState.goal,
         reason: "replaced_by_new_goal",
+        goal_mdscript: relativePath(root, priorPaths.goalMdscript),
       });
     }
   }
@@ -354,24 +605,40 @@ export function startGoalRun(
   mkdirSync(paths.runDirectory, { recursive: true });
   ensureRunArtifactDirectories(paths);
 
+  const startedAt = state.started_at ?? new Date().toISOString();
   const runState: GoalState = {
     ...state,
     conversation_id: conversationId,
     run_id: runId,
-    started_at: state.started_at ?? new Date().toISOString(),
+    started_at: startedAt,
     active: true,
+    resume_heading: normalizeResumeHeading(
+      state.resume_heading ?? DEFAULT_RESUME_HEADING,
+    ),
+    iteration: 0,
   };
-  writeJson(paths.goal, runState);
+  const goalMdscript = writeGoalMdscript(root, paths, runState, {
+    iteration: 0,
+    resumeHeading: runState.resume_heading,
+    status: "active",
+  });
+  // Never write goal.json for new runs — MDScript front matter is authoritative.
+  if (existsSync(paths.goal)) {
+    unlinkSync(paths.goal);
+  }
   writeJson(paths.activeRun, {
     run_id: runId,
     conversation_id: conversationId,
-    started_at: runState.started_at,
+    started_at: startedAt,
+    goal_mdscript: goalMdscript,
+    active: true,
   } satisfies ActiveRunPointer);
 
   recordGoalEvent(root, conversationId, "goal_started", {
     run_id: runId,
     goal: runState.goal,
     proof_kind: resolveProofKind(runState),
+    goal_mdscript: goalMdscript,
   });
 
   return paths;
@@ -390,11 +657,18 @@ function resolveRunPathsFromSession(
   const activeRun = loadJson<ActiveRunPointer>(join(sessionRoot, ACTIVE_RUN_FILE));
   if (activeRun?.run_id) {
     const paths = buildRunPaths(sessionRoot, activeRun.run_id, legacy);
-    if (existsSync(paths.goal)) {
+    if (runStateExists(paths)) {
       return paths;
     }
   }
 
+  // Prefer MDScript tracker at session root if present.
+  const flatMdscript = join(sessionRoot, GOAL_MDSCRIPT_FILE);
+  if (existsSync(flatMdscript)) {
+    return extendSessionPaths(sessionRoot, join(sessionRoot, "goal.json"), legacy);
+  }
+
+  // Legacy pre-cutover flat goal.json.
   const flatGoal = join(sessionRoot, "goal.json");
   if (existsSync(flatGoal)) {
     return extendSessionPaths(sessionRoot, flatGoal, legacy);
@@ -407,7 +681,7 @@ function activeSessionPaths(
   paths: GoalSessionPaths,
   conversationId: string,
 ): GoalSessionPaths | null {
-  const state = loadJson<GoalState>(paths.goal);
+  const state = loadGoalState(paths);
   if (!state?.active) {
     return null;
   }
@@ -440,7 +714,7 @@ export function resolveActiveGoalPaths(
     legacyRootPaths(root, "goal"),
     legacyRootPaths(root, "grind"),
   ]) {
-    const state = loadJson<GoalState>(paths.goal);
+    const state = loadGoalState(paths);
     if (state?.active) {
       return paths;
     }
@@ -542,7 +816,18 @@ export function isValidSignoff(
     if (rulesReviewed.length < 1) {
       return false;
     }
-    if (root && existsSync(join(root, "AGENTS.md")) && !citesAgentsMd(rulesReviewed)) {
+    const requiresAgentsCitation =
+      !expectedReviewerId ||
+      expectedReviewerId === "rules" ||
+      expectedReviewerId === "a" ||
+      expectedReviewerId === "b" ||
+      expectedReviewerId === "c";
+    if (
+      requiresAgentsCitation &&
+      root &&
+      existsSync(join(root, "AGENTS.md")) &&
+      !citesAgentsMd(rulesReviewed)
+    ) {
       return false;
     }
 
@@ -607,6 +892,213 @@ export function nextGoalIteration(
   return Math.max(loopCount + 1, countBlockedIterations(paths) + 1);
 }
 
+function yamlScalar(value: string | number | boolean | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "\"\"";
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  const text = String(value);
+  if (text === "") {
+    return "\"\"";
+  }
+  if (/^[A-Za-z0-9_./:@+-]+$/.test(text) && !/^[-?]/.test(text)) {
+    return text;
+  }
+  return JSON.stringify(text);
+}
+
+function yamlBlockScalar(value: string): string {
+  const lines = value.replace(/\r\n/g, "\n").split("\n");
+  return ["|", ...lines.map((line) => `  ${line}`)].join("\n");
+}
+
+function normalizeResumeHeading(heading?: string): string {
+  const trimmed = heading?.trim() ?? "";
+  if (!trimmed) {
+    return DEFAULT_RESUME_HEADING;
+  }
+  return trimmed
+    .replace(/^#+\s*/, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || DEFAULT_RESUME_HEADING;
+}
+
+function resumeHeadingTitle(heading: string): string {
+  return normalizeResumeHeading(heading)
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export function mdscriptResumeCommand(
+  root: string,
+  paths: GoalSessionPaths,
+  resumeHeading = DEFAULT_RESUME_HEADING,
+): string {
+  const scriptPath = relativePath(root, paths.goalMdscript);
+  const heading = normalizeResumeHeading(resumeHeading);
+  return `mdscript-exec ${scriptPath}#${heading}`;
+}
+
+export function writeGoalMdscript(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+  options: {
+    iteration?: number;
+    reasons?: string[];
+    resumeHeading?: string;
+    status?: "active" | "blocked" | "completed" | "stopped";
+  } = {},
+): string {
+  const goal = state.goal.trim() || "(unspecified goal)";
+  const runRelative = relativePath(root, paths.runDirectory);
+  const sessionRelative = relativePath(root, paths.directory);
+  const scriptRelative = relativePath(root, paths.goalMdscript);
+  const resumeHeading = normalizeResumeHeading(
+    options.resumeHeading ?? state.resume_heading ?? DEFAULT_RESUME_HEADING,
+  );
+  const resumeTitle = resumeHeadingTitle(resumeHeading);
+  const iteration = options.iteration ?? state.iteration ?? 0;
+  const status =
+    options.status ??
+    (state.active === false ? "stopped" : "active");
+  const proofKind = resolveProofKind(state);
+  const liveProof = isLiveProofRequired(state) ? "required" : "optional";
+  const primaryAction = state.primary_user_action?.trim() ?? "";
+  const reasons = options.reasons ?? [];
+  const resumeCommand = mdscriptResumeCommand(root, paths, resumeHeading);
+  const reasonsYaml =
+    reasons.length > 0
+      ? reasons.map((reason) => `  - ${yamlScalar(reason)}`).join("\n")
+      : "  []";
+  const reasonsBullets =
+    reasons.length > 0
+      ? reasons.map((reason) => `* completion gate: ${reason}`).join("\n")
+      : "* completion gate: none recorded yet — evaluate artifacts and triple sign-off before stopping";
+
+  const body = `---
+id: ${yamlScalar(paths.runId ?? "legacy-run")}
+conversation_id: ${yamlScalar(state.conversation_id)}
+run_id: ${yamlScalar(paths.runId ?? "")}
+session_dir: ${yamlScalar(sessionRelative)}
+run_dir: ${yamlScalar(runRelative)}
+goal_mdscript: ${yamlScalar(scriptRelative)}
+status: ${yamlScalar(status)}
+active: ${yamlScalar(Boolean(state.active))}
+iteration: ${yamlScalar(iteration)}
+resume_heading: ${yamlScalar(resumeHeading)}
+proof_kind: ${yamlScalar(proofKind)}
+live_proof: ${yamlScalar(state.live_proof ?? liveProof)}
+primary_user_action: ${yamlScalar(primaryAction)}
+reviewer_skill: gabe-review
+goal: ${yamlBlockScalar(goal)}
+completion_gate:
+${reasonsYaml}
+started_at: ${yamlScalar(state.started_at ?? new Date().toISOString())}
+ended_at: ${yamlScalar(state.ended_at ?? "")}
+updated_at: ${yamlScalar(new Date().toISOString())}
+---
+
+${MDSCRIPT_EXEC_HEADER}
+
+## Goal Contract
+
+* goal text is exactly:
+  > ${goal.replace(/\n/g, " ")}
+* conversation_id is \`${state.conversation_id}\`
+* run_dir is \`${runRelative}\`
+* goal_mdscript is \`${scriptRelative}\` — this file is the durable tracker and stop-hook resume target
+* proof_kind is \`${proofKind}\`; live_proof is \`${state.live_proof ?? liveProof}\`
+* primary_user_action is \`${primaryAction || "(unset)"}\`
+* append-only surfaces: \`${runRelative}/progress.jsonl\`, session-log.jsonl, and .cursor/goal/goal-log.jsonl
+* immutable run rule: never reuse or delete prior runs/<run_id>/ directories
+* review rule: compose gabe-review for completion; orchestrator never self-authors a Proven verdict
+* completion requires on-disk artifacts/manifest matching proof_kind/live_proof and a durable gabe-review verdict with empty blocking_findings
+
+## Resume Goal
+
+* treat this file as the active goal tracker — restore variables from front matter before acting
+* set \`{{goal_text}}\` from front-matter \`goal\`
+* set \`{{conversation_id}}\` from front-matter \`conversation_id\`
+* set \`{{run_id}}\` from front-matter \`run_id\`
+* set \`{{session_dir}}\` from front-matter \`session_dir\` (resolve under repo root)
+* set \`{{run_dir}}\` from front-matter \`run_dir\`
+* set \`{{goal_mdscript}}\` from front-matter \`goal_mdscript\`
+* set \`{{proof_kind}}\` / \`{{live_proof}}\` / \`{{primary_user_action}}\` from front matter
+* set \`{{orchestrator_model}}\` to this chat's model slug
+* set \`{{iteration}}\` from front-matter \`iteration\`
+* read this file's front matter as authoritative run state, latest \`progress.jsonl\` lines, artifacts/manifest.json, and any gabe-review findings / remaining blockers
+* if front-matter \`active\` is false and status is completed/stopped, stop and report the terminal state — do not resume work
+* otherwise continue at [Resume Heading](#${resumeHeading})
+
+## ${resumeTitle}
+
+* this is a stop-hook / tracker resume into heading \`${resumeHeading}\` — not a completion report
+* do real work this turn: artifacts, tests, fixes, or reviews — never summary-only stop
+${reasonsBullets}
+* append one JSON line to \`{{run_dir}}/progress.jsonl\` with commands run, new artifact paths, and pass/fail evidence
+* add new timestamped artifact files under \`{{run_dir}}/artifacts/\` when proof changes; never overwrite prior artifact files
+* when proof is ready, write neutral \`{{run_dir}}/review-packet.md\` and compose gabe-review triple adversarial blind via mdscript-exec (rules + security + completeness lanes)
+* persist gabe-review's decision to \`{{run_dir}}/review-verdict.json\` — only triple blind Proven-for (all three lane sign-offs + empty blocking_findings) completes the goal
+* resolve every blocking finding before re-review
+* wait for all background subagents / reviewer work to finish before attempting to stop
+* do not ask the user to re-prompt — the stop hook loops by re-execing this MDScript until gabe-review proves the goal or you set active:false with a real blocker
+* if still incomplete after this wave, keep front-matter active:true and leave this MDScript current
+* if complete, jump to [Complete Goal](#complete-goal)
+* if blocked by a missing external resource that cannot be stood up, jump to [Manual Stop](#manual-stop)
+
+## Complete Goal
+
+* verify \`{{run_dir}}/review-verdict.json\` exists from gabe-review with matching goal/conversation_id, grade starting with Proven for, empty blocking_findings, and proof_supplied referencing run artifacts
+* set front-matter active:false / status:completed on this MDScript
+* update \`{{session_dir}}/active-run.json\` to mark the run inactive when applicable
+* append goal_completed / run_completed to the append-only logs
+* stop and report the completed goal, \`{{run_dir}}\`, artifact summary, and that A/B/C signed off with empty p_findings
+
+## Manual Stop
+
+* set front-matter active:false and status stopped/blocked on this MDScript when the user stops the goal or an external blocker cannot be cleared
+* append goal_stopped with the blocker summary to progress.jsonl and both append-only logs
+* stop and report progress, \`{{run_dir}}\`, and the blocker
+
+## Stop Hook Resume Command
+
+* exact resume command for this tracker:
+  \`${resumeCommand}\`
+`;
+
+  mkdirSync(paths.runDirectory, { recursive: true });
+  writeFileSync(paths.goalMdscript, `${body.trimEnd()}\n`, "utf-8");
+  // MDScript front matter is the sole run-state write path. Remove stale goal.json if present.
+  if (existsSync(paths.goal) && paths.goal.endsWith("goal.json")) {
+    unlinkSync(paths.goal);
+  }
+  return scriptRelative;
+}
+
+export function ensureGoalMdscript(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+  options: {
+    iteration?: number;
+    reasons?: string[];
+    resumeHeading?: string;
+    status?: "active" | "blocked" | "completed" | "stopped";
+  } = {},
+): string {
+  if (!existsSync(paths.goalMdscript) || options.reasons || options.iteration !== undefined) {
+    return writeGoalMdscript(root, paths, state, options);
+  }
+  return relativePath(root, paths.goalMdscript);
+}
+
 export function formatGoalFollowupMessage(
   root: string,
   paths: GoalSessionPaths,
@@ -614,26 +1106,36 @@ export function formatGoalFollowupMessage(
   iteration: number,
   reasons: string[],
 ): string {
+  const resumeHeading = normalizeResumeHeading(
+    state.resume_heading ?? DEFAULT_RESUME_HEADING,
+  );
+  const scriptRelative = writeGoalMdscript(root, paths, state, {
+    iteration,
+    reasons,
+    resumeHeading,
+    status: "active",
+  });
+  const resumeCommand = mdscriptResumeCommand(root, paths, resumeHeading);
   const goal = state.goal.trim() || "(unspecified goal)";
   const runRelative = relativePath(root, paths.runDirectory);
 
   return [
-    `[Goal iteration ${iteration}] Goal not signed off yet — **continue working now**. This is a stop-hook resume, not a completion report.`,
-    ``,
-    `**Goal:** ${goal}`,
-    `**Run:** \`${runRelative}\``,
-    paths.runId ? `**Run ID:** \`${paths.runId}\`` : "",
-    ``,
-    `**Completion gate:**`,
-    ...reasons.map((reason) => `- ${reason}`),
-    ``,
-    `**Required this iteration (do not stop until done or blocked):**`,
-    `1. Do real work — artifacts, tests, fixes — not a summary-only turn.`,
-    `2. Append \`progress.jsonl\`; add new timestamped artifact files under this run.`,
-    `3. When proof is ready, write review-packet.md and spawn reviewers A, B, and C in parallel (readonly, model="${REVIEWER_MODEL_SLUG}") to write sign-off files under the run directory.`,
-    `4. Resolve every P0–P3 finding before re-review — p_findings must be empty on all three sign-offs.`,
-    `5. Wait for all background subagents to finish before attempting to stop (stop-hook followups can fail while background tasks are pending).`,
-    `6. Do not ask the user to re-prompt — the stop hook loops until all three reviewers pass or you set \`active: false\` with a real blocker.`,
+    MDSCRIPT_EXEC_HEADER,
+    "",
+    "## Stop Hook Resume",
+    "",
+    `* hard continue — goal iteration ${iteration} is not signed off; this is a stop-hook resume, not a completion report`,
+    `* goal text: ${goal}`,
+    `* run_dir: \`${runRelative}\``,
+    paths.runId ? `* run_id: \`${paths.runId}\`` : "",
+    `* goal_mdscript: \`${scriptRelative}\``,
+    `* resume_heading: \`${resumeHeading}\``,
+    ...reasons.map((reason) => `* completion gate: ${reason}`),
+    "* do real work this turn — never summary-only stop",
+    `* restore variables from \`${scriptRelative}\` front matter, then execute the resume heading`,
+    `* continue by executing [Resume Goal](${scriptRelative}#resume-goal) which jumps to [\`${resumeHeading}\`](${scriptRelative}#${resumeHeading})`,
+    "",
+    resumeCommand,
   ]
     .filter(Boolean)
     .join("\n");
@@ -649,7 +1151,7 @@ export function buildActiveGoalContext(
     return null;
   }
 
-  const state = loadJson<GoalState>(paths.goal);
+  const state = loadGoalState(paths);
   if (!state?.active) {
     return null;
   }
@@ -660,26 +1162,40 @@ export function buildActiveGoalContext(
   }
 
   const nextIteration = nextGoalIteration(0, paths);
+  const resumeHeading = normalizeResumeHeading(
+    state.resume_heading ?? DEFAULT_RESUME_HEADING,
+  );
+  const scriptRelative = ensureGoalMdscript(root, paths, state, {
+    reasons: completion.reasons,
+    resumeHeading,
+    status: "active",
+  });
+  const resumeCommand = mdscriptResumeCommand(root, paths, resumeHeading);
   const runRelative = relativePath(root, paths.runDirectory);
 
   return [
-    "Active goal session (incomplete — stop hook will block early exit):",
-    `- goal: ${state.goal.trim() || "(unspecified)"}`,
-    `- run: ${runRelative}`,
-    paths.runId ? `- run_id: ${paths.runId}` : "",
-    `- blocked_iterations: ${countBlockedIterations(paths)}`,
-    `- next_iteration_if_stopped: ${nextIteration}`,
-    orchestratorModel?.trim()
-      ? `- orchestrator_model: ${orchestratorModel.trim()} — pass model="${orchestratorModel.trim()}" on worker Task subagents (implementation, proof, explore, shell, CI).`
-      : "",
-    `- reviewer_model: ${REVIEWER_MODEL_SLUG} — spawn exactly three adversarial blind reviewers with model="${REVIEWER_MODEL_SLUG}" (or equivalent if unavailable).`,
-    `- completion_gate:`,
-    ...completion.reasons.map((reason) => `  - ${reason}`),
+    MDSCRIPT_EXEC_HEADER,
     "",
-    "While active: produce artifacts, spawn three composer-2.5 adversarial blind reviewers before stopping, append progress.jsonl only.",
-    "All P0–P3 findings must be resolved (p_findings: []) before sign-off counts.",
-    "Worker Task subagents use the orchestrator model; reviewers use composer-2.5-fast (or equivalent).",
-    "If the user message is [Goal iteration N], treat it as mandatory continue — not done.",
+    "## Active Goal Session",
+    "",
+    "* active goal session is incomplete — stop hook will block early exit",
+    `* goal: ${state.goal.trim() || "(unspecified)"}`,
+    `* run: ${runRelative}`,
+    paths.runId ? `* run_id: ${paths.runId}` : "",
+    `* goal_mdscript: ${scriptRelative}`,
+    `* resume_heading: ${resumeHeading}`,
+    `* blocked_iterations: ${countBlockedIterations(paths)}`,
+    `* next_iteration_if_stopped: ${nextIteration}`,
+    orchestratorModel?.trim()
+      ? `* orchestrator_model: ${orchestratorModel.trim()} — pass model="${orchestratorModel.trim()}" on worker Task subagents (implementation, proof, explore, shell, CI)`
+      : "",
+    "* reviewer_skill: gabe-review — compose via mdscript-exec; persist review-verdict.json (do not invent parallel sign-off protocol)",
+    ...completion.reasons.map((reason) => `* completion_gate: ${reason}`),
+    "* while active: produce artifacts, compose gabe-review before stopping, append progress.jsonl only",
+    "* only a gabe-review Proven-for verdict with empty blocking_findings completes the goal",
+    "* worker Task subagents use the orchestrator model; completion review is gabe-review composition",
+    "* treat any stop-hook MDScript message or incomplete active run as mandatory continue — not done",
+    `* exact resume command: ${resumeCommand}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -929,7 +1445,7 @@ export function signoffRejectionReason(
     : "Verifier";
 
   if (!signoff) {
-    return `No sign-off at \`${signoffPath}\`. Spawn three adversarial blind readonly ${REVIEWER_MODEL_SLUG} reviewer subagents for this conversation.`;
+    return `No sign-off at \`${signoffPath}\`. Compose gabe-review triple adversarial blind lanes (rules + security + completeness); each subagent mdscript-execs its own blind-reviewer MDScript.`;
   }
   if (!signoff.signed_off) {
     const pCount = countPFindings(signoff.p_findings);
@@ -969,7 +1485,14 @@ export function signoffRejectionReason(
     if ((signoff.rules_reviewed?.filter((item) => item.trim()).length ?? 0) < 1) {
       return `${label} sign-off rejected: rules_reviewed must cite AGENTS.md (when present) and project rules checked.`;
     }
+    const requiresAgentsCitation =
+      !expectedReviewerId ||
+      expectedReviewerId === "rules" ||
+      expectedReviewerId === "a" ||
+      expectedReviewerId === "b" ||
+      expectedReviewerId === "c";
     if (
+      requiresAgentsCitation &&
       root &&
       existsSync(join(root, "AGENTS.md")) &&
       !citesAgentsMd(signoff.rules_reviewed ?? [])
@@ -1001,6 +1524,10 @@ export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
     paths.signoffReviewerA,
     paths.signoffReviewerB,
     paths.signoffReviewerC,
+    paths.signoffReviewerRules,
+    paths.signoffReviewerSecurity,
+    paths.signoffReviewerCompleteness,
+    paths.reviewVerdict,
   ]) {
     if (existsSync(signoffPath)) {
       unlinkSync(signoffPath);
@@ -1039,18 +1566,187 @@ export function splitVerdictReasons(
   return reasons;
 }
 
+
+export function isProvenGrade(grade: string | undefined): boolean {
+  const text = grade?.trim() ?? "";
+  return /^proven for\b/i.test(text);
+}
+
+export function countBlockingFindings(
+  findings: Array<string | GoalPFinding> | undefined,
+): number {
+  if (!findings) {
+    return -1;
+  }
+  return findings.filter((item) => {
+    if (typeof item === "string") {
+      return item.trim().length > 0;
+    }
+    if (!item || typeof item !== "object") {
+      return false;
+    }
+    const summary =
+      typeof item.summary === "string"
+        ? item.summary
+        : typeof item.severity === "string"
+          ? item.severity
+          : "";
+    return summary.trim().length > 0 || Object.keys(item).length > 0;
+  }).length;
+}
+
+export function isValidGabeReviewVerdict(
+  verdict: GoalReviewVerdict,
+  goal: string,
+  conversationId: string,
+): boolean {
+  if (!isProvenGrade(verdict.grade) && !isProvenGrade(verdict.proof_decision)) {
+    return false;
+  }
+  if (verdict.goal.trim() !== goal.trim()) {
+    return false;
+  }
+  if (verdict.conversation_id.trim() !== conversationId.trim()) {
+    return false;
+  }
+  if ((verdict.reviewer_skill?.trim() || "gabe-review") !== "gabe-review") {
+    return false;
+  }
+  if (verdict.triple_blind !== true) {
+    return false;
+  }
+  const lanes = verdict.lanes ?? [];
+  const required = ["rules", "security", "completeness"];
+  if (!required.every((lane) => lanes.includes(lane))) {
+    return false;
+  }
+  if (countBlockingFindings(verdict.blocking_findings) !== 0) {
+    return false;
+  }
+  const supplied =
+    verdict.proof_supplied?.filter((item) => item.trim().length > 0) ??
+    verdict.artifact_paths?.filter((item) => item.trim().length > 0) ??
+    [];
+  if (supplied.length < 1) {
+    return false;
+  }
+  return true;
+}
+
+export function gabeReviewRejectionReason(
+  verdict: GoalReviewVerdict | null,
+  goal: string,
+  conversationId: string,
+  verdictPath: string,
+): string {
+  if (!verdict) {
+    return `No gabe-review verdict at \`${verdictPath}\`. Compose gabe-review triple adversarial blind (rules + security + completeness) and persist review-verdict.json with triple_blind:true.`;
+  }
+  if (verdict.goal.trim() !== goal.trim()) {
+    return "gabe-review verdict goal does not match this run's goal.";
+  }
+  if (verdict.conversation_id.trim() !== conversationId.trim()) {
+    return "gabe-review verdict conversation_id does not match this chat.";
+  }
+  const grade = verdict.grade?.trim() || verdict.proof_decision?.trim() || "";
+  if (/^blocked for\b/i.test(grade)) {
+    return `gabe-review blocked completion: ${grade}`;
+  }
+  if (/^not ready for\b/i.test(grade)) {
+    const count = countBlockingFindings(verdict.blocking_findings);
+    return `gabe-review not ready: ${grade}${count > 0 ? ` (${count} blocking finding(s))` : ""}`;
+  }
+  if (!isProvenGrade(grade)) {
+    return `gabe-review verdict is not Proven-for (grade=${grade || "missing"}).`;
+  }
+  if (countBlockingFindings(verdict.blocking_findings) !== 0) {
+    return "gabe-review verdict still has blocking_findings — resolve and re-compose gabe-review.";
+  }
+  const supplied =
+    verdict.proof_supplied?.filter((item) => item.trim().length > 0) ??
+    verdict.artifact_paths?.filter((item) => item.trim().length > 0) ??
+    [];
+  if (supplied.length < 1) {
+    return "gabe-review verdict missing proof_supplied/artifact_paths.";
+  }
+  return "gabe-review verdict rejected: invalid or incomplete response.";
+}
+
+
+export function validateTripleBlindSignoffs(
+  root: string,
+  paths: GoalSessionPaths,
+  goal: string,
+  conversationId: string,
+): GoalCompletionStatus {
+  const lanes: Array<{ id: GoalReviewerId; path: string }> = [
+    { id: "rules", path: paths.signoffReviewerRules },
+    { id: "security", path: paths.signoffReviewerSecurity },
+    { id: "completeness", path: paths.signoffReviewerCompleteness },
+  ];
+  const reasons: string[] = [];
+  const signoffs: GoalSignoff[] = [];
+
+  for (const lane of lanes) {
+    const signoff = loadJson<GoalSignoff>(lane.path);
+    if (!signoff || !isValidSignoff(signoff, goal, conversationId, lane.id, root)) {
+      reasons.push(
+        signoffRejectionReason(
+          signoff,
+          goal,
+          conversationId,
+          relativePath(root, lane.path),
+          lane.id,
+          root,
+        ),
+      );
+      continue;
+    }
+    signoffs.push(signoff);
+  }
+
+  if (reasons.length > 0) {
+    return { complete: false, reasons };
+  }
+
+  if (signoffs.length === 3) {
+    const summaries = signoffs.map((s) => s.verifier_summary?.trim() ?? "");
+    const identicalPair =
+      (summaries[0].length > 0 && summaries[0] === summaries[1]) ||
+      (summaries[0].length > 0 && summaries[0] === summaries[2]) ||
+      (summaries[1].length > 0 && summaries[1] === summaries[2]);
+    if (identicalPair) {
+      invalidateReviewerSignoffs(paths);
+      return {
+        complete: false,
+        reasons: [
+          "Two or more blind lane summaries are identical — rules/security/completeness reviewers must scrutinize independently. Cleared sign-offs; re-run triple adversarial blind gabe-review.",
+        ],
+      };
+    }
+  }
+
+  return { complete: true, reasons: [] };
+}
+
 export function evaluateGoalCompletion(
   root: string,
   paths: GoalSessionPaths,
   conversationId: string,
 ): GoalCompletionStatus {
-  const state = loadJson<GoalState>(paths.goal);
+  const state = loadGoalState(paths);
   if (!state) {
-    return { complete: false, reasons: ["Missing goal.json for the active run."] };
+    return {
+      complete: false,
+      reasons: [
+        `Missing run tracker at \`${relativePath(root, paths.goalMdscript)}\` (legacy goal.json also absent).`,
+      ],
+    };
   }
 
   const goal = state.goal.trim() || "(unspecified goal)";
 
+  // Legacy grind / single-verifier sessions.
   if (!usesStrictGoalCompletion(paths)) {
     const legacySignoff = loadJson<GoalSignoff>(paths.signoff);
     if (legacySignoff && isValidSignoff(legacySignoff, goal, conversationId)) {
@@ -1076,78 +1772,52 @@ export function evaluateGoalCompletion(
     reasons.push(...artifactsStatus.reasons);
   }
 
-  const signoffA = loadJson<GoalSignoff>(paths.signoffReviewerA);
-  const signoffB = loadJson<GoalSignoff>(paths.signoffReviewerB);
-  const signoffC = loadJson<GoalSignoff>(paths.signoffReviewerC);
+  const triple = validateTripleBlindSignoffs(root, paths, goal, conversationId);
+  if (!triple.complete) {
+    reasons.push(...triple.reasons);
+  }
 
-  if (
-    signoffA &&
-    signoffB &&
-    signoffC &&
-    hasSplitReviewerVerdict(signoffA, signoffB, signoffC)
-  ) {
-    reasons.push(...splitVerdictReasons(signoffA, signoffB, signoffC));
-    invalidateReviewerSignoffs(paths);
-  } else {
-    if (!signoffA || !isValidSignoff(signoffA, goal, conversationId, "a", root)) {
-      reasons.push(
-        signoffRejectionReason(
-          signoffA,
-          goal,
-          conversationId,
-          relativePath(root, paths.signoffReviewerA),
-          "a",
-          root,
-        ),
-      );
-    }
-    if (!signoffB || !isValidSignoff(signoffB, goal, conversationId, "b", root)) {
-      reasons.push(
-        signoffRejectionReason(
-          signoffB,
-          goal,
-          conversationId,
-          relativePath(root, paths.signoffReviewerB),
-          "b",
-          root,
-        ),
-      );
-    }
-    if (!signoffC || !isValidSignoff(signoffC, goal, conversationId, "c", root)) {
-      reasons.push(
-        signoffRejectionReason(
-          signoffC,
-          goal,
-          conversationId,
-          relativePath(root, paths.signoffReviewerC),
-          "c",
-          root,
-        ),
-      );
-    }
-
-    if (signoffA?.signed_off && signoffB?.signed_off && signoffC?.signed_off) {
-      const summaryA = signoffA.verifier_summary?.trim() ?? "";
-      const summaryB = signoffB.verifier_summary?.trim() ?? "";
-      const summaryC = signoffC.verifier_summary?.trim() ?? "";
-      const identicalPair =
-        (summaryA.length > 0 && summaryA === summaryB) ||
-        (summaryA.length > 0 && summaryA === summaryC) ||
-        (summaryB.length > 0 && summaryB === summaryC);
-      if (identicalPair) {
-        reasons.push(
-          "Two or more reviewer sign-off summaries are identical — reviewers must scrutinize independently. Clear all three sign-offs and re-review with composer-2.5-fast.",
-        );
-        invalidateReviewerSignoffs(paths);
-      }
-    }
+  const verdict = loadJson<GoalReviewVerdict>(paths.reviewVerdict);
+  if (!verdict || !isValidGabeReviewVerdict(verdict, goal, conversationId)) {
+    reasons.push(
+      gabeReviewRejectionReason(
+        verdict,
+        goal,
+        conversationId,
+        relativePath(root, paths.reviewVerdict),
+      ),
+    );
   }
 
   return { complete: reasons.length === 0, reasons };
 }
 
-export function deactivateGoal(goalPath: string, state: GoalState): void {
-  writeJson(goalPath, { ...state, active: false, ended_at: new Date().toISOString() });
+export function deactivateGoal(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+): void {
+  const deactivated: GoalState = {
+    ...state,
+    active: false,
+    ended_at: new Date().toISOString(),
+  };
+  if (existsSync(paths.goalMdscript) || !paths.legacy) {
+    writeGoalMdscript(root, paths, deactivated, {
+      status: "stopped",
+      resumeHeading: state.resume_heading ?? "manual-stop",
+    });
+  } else if (existsSync(paths.goal)) {
+    // Pure legacy grind/root JSON sessions.
+    writeJson(paths.goal, deactivated);
+  }
+
+  if (existsSync(paths.activeRun)) {
+    const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
+    if (pointer) {
+      writeJson(paths.activeRun, { ...pointer, active: false });
+    }
+  }
 }
 
 export function completeGoalRun(
@@ -1155,10 +1825,30 @@ export function completeGoalRun(
   paths: GoalSessionPaths,
   state: GoalState,
 ): void {
-  deactivateGoal(paths.goal, state);
+  const completed: GoalState = {
+    ...state,
+    active: false,
+    ended_at: new Date().toISOString(),
+  };
+  writeGoalMdscript(root, paths, completed, {
+    status: "completed",
+    resumeHeading: "complete-goal",
+    reasons: [],
+  });
+  if (existsSync(paths.activeRun)) {
+    const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
+    if (pointer) {
+      writeJson(paths.activeRun, {
+        ...pointer,
+        active: false,
+        goal_mdscript: relativePath(root, paths.goalMdscript),
+      });
+    }
+  }
   recordGoalEvent(root, state.conversation_id, "goal_completed", {
     run_id: paths.runId,
     goal: state.goal,
+    goal_mdscript: relativePath(root, paths.goalMdscript),
   });
 }
 
@@ -1168,10 +1858,30 @@ export function abortGoalRun(
   state: GoalState,
   reason: "aborted" | "error" | "stopped",
 ): void {
-  deactivateGoal(paths.goal, state);
+  const stopped: GoalState = {
+    ...state,
+    active: false,
+    ended_at: new Date().toISOString(),
+  };
+  writeGoalMdscript(root, paths, stopped, {
+    status: reason === "stopped" ? "stopped" : "blocked",
+    resumeHeading: "manual-stop",
+    reasons: [`goal_${reason}`],
+  });
+  if (existsSync(paths.activeRun)) {
+    const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
+    if (pointer) {
+      writeJson(paths.activeRun, {
+        ...pointer,
+        active: false,
+        goal_mdscript: relativePath(root, paths.goalMdscript),
+      });
+    }
+  }
   recordGoalEvent(root, state.conversation_id, `goal_${reason}`, {
     run_id: paths.runId,
     goal: state.goal,
+    goal_mdscript: relativePath(root, paths.goalMdscript),
   });
 }
 

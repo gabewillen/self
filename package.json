@@ -20,7 +20,8 @@
     "ai-agent-skill",
     "mdscript",
     "gabe",
-    "skills"
+    "skills",
+    "hsm"
   ],
   "files": [
     "skills",
@@ -33,9 +34,12 @@
     "gabe-agents": "./scripts/install.mjs"
   },
   "scripts": {
-    "postinstall": "node ./scripts/install.mjs",
-    "install-skills": "node ./scripts/install.mjs",
-    "install-skills:no-adapters": "node ./scripts/install.mjs --no-adapters",
+    "postinstall": "node ./scripts/install.mjs --live",
+    "install-skills": "node ./scripts/install.mjs --live",
+    "install-skills:live": "node ./scripts/install.mjs --live",
+    "install-skills:copy": "node ./scripts/install.mjs --copy",
+    "install-skills:pull": "node ./scripts/install.mjs --live --pull",
+    "install-skills:no-adapters": "node ./scripts/install.mjs --live --no-adapters",
     "pack:check": "npm pack --dry-run"
   },
   "engines": {
@@ -58,6 +62,10 @@
       {
         "name": "gabe-goal",
         "path": "./skills/gabe-goal"
+      },
+      {
+        "name": "gabe-hsm-review",
+        "path": "./skills/gabe-hsm-review"
       },
       {
         "name": "gabe-implement",
@@ -112,6 +120,10 @@
         "path": "./skills/gabe-goal"
       },
       {
+        "name": "gabe-hsm-review",
+        "path": "./skills/gabe-hsm-review"
+      },
+      {
         "name": "gabe-implement",
         "path": "./skills/gabe-implement"
       },
@@ -146,16 +158,17 @@
     ]
   },
   "aiAgentSkill": [
-    "skills/gabe/SKILL.md",
     "skills/gabe-automate/SKILL.md",
     "skills/gabe-common/SKILL.md",
     "skills/gabe-goal/SKILL.md",
+    "skills/gabe-hsm-review/SKILL.md",
     "skills/gabe-implement/SKILL.md",
     "skills/gabe-orchestrate/SKILL.md",
     "skills/gabe-review/SKILL.md",
     "skills/gabe-unwatch/SKILL.md",
     "skills/gabe-voice/SKILL.md",
     "skills/gabe-watch/SKILL.md",
+    "skills/gabe/SKILL.md",
     "skills/mdscript-exec/SKILL.md",
     "skills/mdscript-write/SKILL.md"
   ]

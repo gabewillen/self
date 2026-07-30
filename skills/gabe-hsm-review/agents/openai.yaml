@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gabe HSM Review"
+  short_description: "Adversarial HSM/SML hard-rule review"
+  default_prompt: "Run /gabe-hsm-review on the current changes and report P0–P3 findings with rule ids."

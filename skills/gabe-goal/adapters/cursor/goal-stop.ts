@@ -5,11 +5,10 @@ import {
   evaluateGoalCompletion,
   finishHook,
   formatGoalFollowupMessage,
-  loadJson,
+  loadGoalState,
   nextGoalIteration,
   readStdinJson,
   resolveActiveGoalPaths,
-  type GoalState,
 } from "./goal-lib";
 
 interface StopHookInput {
@@ -32,7 +31,7 @@ if (!paths) {
   finishHook();
 }
 
-const state = loadJson<GoalState>(paths.goal);
+const state = loadGoalState(paths);
 if (!state?.active) {
   finishHook();
 }

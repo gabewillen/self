@@ -9,15 +9,18 @@
 * if `{{session_dir}}/session.json` is missing, write it with `conversation_id` and `created_at`
 * read `{{session_dir}}/active-run.json` when present
 * if a prior run is still `active: true`
-  * set that prior run's `goal.json` `"active"` to `false`
+  * set that prior run MDScript front matter `active: false` / terminal status
   * append `goal_superseded` to `{{session_dir}}/session-log.jsonl` and `{{repo_root}}/.cursor/goal/goal-log.jsonl`
 * if a prior run already completed, do not log `goal_superseded`
 * set `{{run_id}}` to a new unique id (`YYYYMMDDTHHMMSSZ` plus a short random suffix)
 * set `{{run_dir}}` to `{{session_dir}}/runs/{{run_id}}`
+* set `{{goal_mdscript}}` to `{{run_dir}}/goal.mdscript.md`
 * create `{{run_dir}}/artifacts/logs`, `captures`, `images`, `screenshots`, and `live`
-* write `{{run_dir}}/goal.json` with `active: true`, `goal: {{goal_text}}`, `conversation_id`, `run_id`, `proof_kind`, `live_proof`, `primary_user_action` when set, and `started_at` ISO-8601
-* write `{{session_dir}}/active-run.json` pointing at `{{run_id}}` and `{{run_dir}}`
-* append `goal_started` to `{{session_dir}}/session-log.jsonl` and `{{repo_root}}/.cursor/goal/goal-log.jsonl`
-* append `{"event":"run_started","goal":"{{goal_text}}","proof_kind":"{{proof_kind}}","live_proof":"{{live_proof}}"}` to `{{run_dir}}/progress.jsonl`
+* write executable `{{goal_mdscript}}` as the sole durable run tracker with YAML front matter (`active`, `status`, `goal`, paths, proof fields, `resume_heading`, `iteration`, `started_at`) plus MDScript header and headings `Goal Contract`, `Resume Goal`, `Pursue Goal`, `Complete Goal`, `Manual Stop`, and `Stop Hook Resume Command`
+* do not write `goal.json` for new runs — front matter is authoritative (legacy `goal.json` is read-only fallback only)
+* put the exact stop-hook resume command `mdscript-exec {{goal_mdscript}}#pursue-goal` in `Stop Hook Resume Command`
+* write `{{session_dir}}/active-run.json` pointing at `{{run_id}}`, `{{run_dir}}`, and `{{goal_mdscript}}`
+* append `goal_started` (include `goal_mdscript`) to `{{session_dir}}/session-log.jsonl` and `{{repo_root}}/.cursor/goal/goal-log.jsonl`
+* append `{"event":"run_started","goal":"{{goal_text}}","proof_kind":"{{proof_kind}}","live_proof":"{{live_proof}}","goal_mdscript":"{{goal_mdscript}}"}` to `{{run_dir}}/progress.jsonl`
 * never overwrite prior runs, logs, or artifact files
 * return to the caller

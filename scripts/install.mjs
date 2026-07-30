@@ -2,48 +2,91 @@
 /**
  * Install @gabewillen/agents skills + per-adapter scripts/hooks.
  *
- * Skills land in agent skill dirs (default ~/.agents/skills and detected homes).
- * When a skill has adapters/<adapter>/, those scripts are installed and wired:
+ * Modes:
+ *   live (default)  Clone/update a living git checkout and symlink each skill
+ *                   into agent skill dirs. Edits are real repo files — commit/push.
+ *   copy            Snapshot-copy skills (immutable install; no shared git tree)
  *
- *   adapters/cursor/hooks.json  -> merges into ~/.cursor/hooks.json
- *   adapters/<name>/install.json -> optional extra copy targets
- *   adapters/<name>/            -> copied with the skill tree
+ * Living checkout default: ~/.agents/repos/gabewillen-agents
+ * Override: GABE_AGENTS_LIVE_ROOT, --live-root <path>
+ * Repo URL: GABE_AGENTS_REPO_URL (default github.com/gabewillen/agents.git)
  *
  * Usage:
  *   node scripts/install.mjs
+ *   node scripts/install.mjs --live
+ *   node scripts/install.mjs --copy
+ *   node scripts/install.mjs --live-root ~/src/agents
  *   node scripts/install.mjs --target ~/.agents/skills
  *   node scripts/install.mjs --dry-run
  *   node scripts/install.mjs --no-adapters
+ *   node scripts/install.mjs --pull
  *   GABE_AGENTS_INSTALL=0 npm i
+ *   GABE_AGENTS_MODE=copy npm i
  */
 import {
   cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
+  readlinkSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
   chmodSync,
+  realpathSync,
 } from "node:fs";
-import { dirname, join, resolve, delimiter } from "node:path";
+import { dirname, join, resolve, delimiter, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
+import { execFileSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
-const skillsRoot = join(pkgRoot, "skills");
+const DEFAULT_REPO_URL = "https://github.com/gabewillen/agents.git";
+const DEFAULT_LIVE_ROOT = join(homedir(), ".agents", "repos", "gabewillen-agents");
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const noAdapters = args.includes("--no-adapters");
+const doPull = args.includes("--pull");
 const targetIdx = args.indexOf("--target");
 const explicitTarget = targetIdx >= 0 ? resolve(args[targetIdx + 1]) : null;
+const liveRootIdx = args.indexOf("--live-root");
+const explicitLiveRoot = liveRootIdx >= 0 ? resolve(args[liveRootIdx + 1]) : null;
+
+const modeEnv = (process.env.GABE_AGENTS_MODE || "").toLowerCase();
+const mode = args.includes("--copy") || modeEnv === "copy"
+  ? "copy"
+  : args.includes("--live") || modeEnv === "live" || modeEnv === "" || modeEnv === "symlink"
+    ? "live"
+    : "live";
 
 if (process.env.GABE_AGENTS_INSTALL === "0" || process.env.GABE_AGENTS_INSTALL === "false") {
   console.log("[gabe-agents] skip install (GABE_AGENTS_INSTALL=0)");
   process.exit(0);
+}
+
+function sh(cmd, argv, opts = {}) {
+  return execFileSync(cmd, argv, {
+    encoding: "utf8",
+    stdio: opts.stdio || ["ignore", "pipe", "pipe"],
+    cwd: opts.cwd,
+  });
+}
+
+function trySh(cmd, argv, opts = {}) {
+  try {
+    return { ok: true, out: sh(cmd, argv, opts) };
+  } catch (err) {
+    return {
+      ok: false,
+      out: String(err?.stdout || ""),
+      err: String(err?.stderr || err?.message || err),
+    };
+  }
 }
 
 function listSkillDirs(root) {
@@ -55,6 +98,16 @@ function listSkillDirs(root) {
 
 function ensureDir(path) {
   if (!existsSync(path)) mkdirSync(path, { recursive: true });
+}
+
+function isGitRepo(dir) {
+  return existsSync(join(dir, ".git"));
+}
+
+function gitTopLevel(dir) {
+  const r = trySh("git", ["-C", dir, "rev-parse", "--show-toplevel"]);
+  if (!r.ok) return null;
+  return r.out.trim();
 }
 
 function chmodTreeExecutables(root) {
@@ -69,9 +122,8 @@ function chmodTreeExecutables(root) {
     }
     for (const ent of entries) {
       const p = join(cur, ent.name);
-      if (ent.isDirectory()) {
-        stack.push(p);
-      } else if (ent.isFile()) {
+      if (ent.isDirectory()) stack.push(p);
+      else if (ent.isFile()) {
         const looksExec =
           ent.name.endsWith(".sh") ||
           ent.name === "review-snapshot" ||
@@ -79,6 +131,7 @@ function chmodTreeExecutables(root) {
             !ent.name.endsWith(".ts") &&
             !ent.name.endsWith(".json") &&
             !ent.name.endsWith(".md") &&
+            !ent.name.endsWith(".mdscript.md") &&
             !ent.name.endsWith(".yaml") &&
             !ent.name.endsWith(".yml"));
         if (looksExec) {
@@ -93,21 +146,126 @@ function chmodTreeExecutables(root) {
   }
 }
 
-function installInto(targetRoot, skills) {
+function removePath(path) {
+  if (!existsSync(path) && !isSymlink(path)) return;
+  rmSync(path, { recursive: true, force: true });
+}
+
+function isSymlink(path) {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Prefer the package checkout when it is already a git work tree of this project.
+ * Else use GABE_AGENTS_LIVE_ROOT / --live-root / default clone path.
+ */
+function resolveLiveRoot() {
+  if (explicitLiveRoot) return explicitLiveRoot;
+  if (process.env.GABE_AGENTS_LIVE_ROOT) return resolve(process.env.GABE_AGENTS_LIVE_ROOT);
+
+  const pkgGit = gitTopLevel(pkgRoot);
+  if (pkgGit) {
+    // If this package is already a clone (dev or git dep), live there.
+    const hasSkills = existsSync(join(pkgGit, "skills"));
+    if (hasSkills) return pkgGit;
+  }
+  return DEFAULT_LIVE_ROOT;
+}
+
+function ensureLiveCheckout(liveRoot) {
+  const repoUrl =
+    process.env.GABE_AGENTS_REPO_URL ||
+    process.env.npm_package_repository_url?.replace(/^git\+/, "") ||
+    DEFAULT_REPO_URL;
+
+  if (dryRun) {
+    console.log(`[dry-run] ensure live checkout at ${liveRoot} from ${repoUrl}`);
+    return { liveRoot, repoUrl, action: existsSync(liveRoot) ? "exists" : "clone" };
+  }
+
+  ensureDir(dirname(liveRoot));
+
+  if (existsSync(liveRoot) && isGitRepo(liveRoot)) {
+    if (doPull || process.env.GABE_AGENTS_PULL === "1") {
+      console.log(`[gabe-agents] git pull --ff-only in ${liveRoot}`);
+      const r = trySh("git", ["-C", liveRoot, "pull", "--ff-only"]);
+      if (!r.ok) {
+        console.warn(`[gabe-agents] pull failed (continuing with local tree): ${r.err}`);
+      }
+    }
+    return { liveRoot, repoUrl, action: "reuse" };
+  }
+
+  if (existsSync(liveRoot) && !isGitRepo(liveRoot)) {
+    // If live root is the package itself without .git detection failure, still use it
+    if (resolve(liveRoot) === resolve(pkgRoot) && existsSync(join(liveRoot, "skills"))) {
+      return { liveRoot, repoUrl, action: "pkg-root" };
+    }
+    throw new Error(
+      `live root exists but is not a git repo: ${liveRoot}\n` +
+        `Remove it or pass --live-root <git-checkout>`,
+    );
+  }
+
+  // Clone fresh
+  console.log(`[gabe-agents] cloning ${repoUrl} -> ${liveRoot}`);
+  sh("git", ["clone", repoUrl, liveRoot], { stdio: ["ignore", "inherit", "inherit"] });
+  return { liveRoot, repoUrl, action: "clone" };
+}
+
+function skillsRootForMode(liveRoot) {
+  if (mode === "live") return join(liveRoot, "skills");
+  return join(pkgRoot, "skills");
+}
+
+function installSkillCopy(src, dest) {
+  if (dryRun) {
+    console.log(`[dry-run] copy ${src} -> ${dest}`);
+    return;
+  }
+  removePath(dest);
+  cpSync(src, dest, { recursive: true });
+  chmodTreeExecutables(dest);
+}
+
+function installSkillSymlink(src, dest) {
+  const absSrc = resolve(src);
+  if (dryRun) {
+    console.log(`[dry-run] symlink ${dest} -> ${absSrc}`);
+    return;
+  }
+  ensureDir(dirname(dest));
+  if (existsSync(dest) || isSymlink(dest)) {
+    // Replace previous managed install (dir or symlink)
+    removePath(dest);
+  }
+  // Relative symlink when possible for portability inside home
+  let linkTarget = absSrc;
+  try {
+    linkTarget = relative(dirname(dest), absSrc) || absSrc;
+  } catch {
+    linkTarget = absSrc;
+  }
+  symlinkSync(linkTarget, dest);
+}
+
+function installInto(targetRoot, skills, skillsRoot) {
   ensureDir(targetRoot);
   const installed = [];
   for (const skill of skills) {
     const src = join(skillsRoot, skill);
     const dest = join(targetRoot, skill);
-    if (dryRun) {
-      console.log(`[dry-run] skill ${src} -> ${dest}`);
-      installed.push(dest);
+    if (!existsSync(join(src, "SKILL.md"))) {
+      console.warn(`[gabe-agents] skip missing skill source ${src}`);
       continue;
     }
-    if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
-    cpSync(src, dest, { recursive: true });
-    chmodTreeExecutables(dest);
-    installed.push(dest);
+    if (mode === "live") installSkillSymlink(src, dest);
+    else installSkillCopy(src, dest);
+    installed.push({ skill, dest, src, mode });
   }
   return installed;
 }
@@ -180,7 +338,7 @@ function listAdapterNames(skillSrc) {
     .sort();
 }
 
-function discoverAdapters(skills) {
+function discoverAdapters(skills, skillsRoot) {
   const found = [];
   for (const skill of skills) {
     const skillSrc = join(skillsRoot, skill);
@@ -252,7 +410,13 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
     for (const entry of entries) {
       const scriptRel = entry.script || entry.command;
       if (!scriptRel) continue;
-      const scriptAbs = join(skillInstallDir, "adapters", "cursor", scriptRel);
+      // Resolve through symlink so bun gets a real path when possible
+      let scriptAbs = join(skillInstallDir, "adapters", "cursor", scriptRel);
+      try {
+        if (existsSync(scriptAbs)) scriptAbs = realpathSync(scriptAbs);
+      } catch {
+        // keep join path
+      }
       const id = entry.id || `${managedPrefix}${eventName}:${scriptRel}`;
       const command = `${runtime.path} ${scriptAbs}`;
       kept.push({ id, command });
@@ -271,6 +435,7 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
       adapter: "cursor",
       skill_dir: skillInstallDir,
       runtime: runtime.path,
+      mode,
     },
   };
 
@@ -320,20 +485,20 @@ function preferCursorSkillRoot(skillRoots) {
   return skillRoots[0];
 }
 
-function installAdapters(skills, skillRoots) {
+function installAdapters(skills, skillRoots, skillsRoot) {
   if (noAdapters) {
     console.log("[gabe-agents] skip adapters (--no-adapters)");
     return { adapters: [] };
   }
 
-  const discovered = discoverAdapters(skills);
+  const discovered = discoverAdapters(skills, skillsRoot);
   const report = [];
   const roots = [...skillRoots];
   const cursorSkillRoot = preferCursorSkillRoot(roots);
 
   if (discovered.some((d) => d.adapter === "cursor") && !roots.includes(cursorSkillRoot)) {
     if (!dryRun) {
-      installInto(cursorSkillRoot, skills);
+      installInto(cursorSkillRoot, skills, skillsRoot);
       roots.push(cursorSkillRoot);
     } else {
       console.log(`[dry-run] would also install skills into ${cursorSkillRoot} for cursor hooks`);
@@ -365,7 +530,7 @@ function installAdapters(skills, skillRoots) {
       );
       const skillInstallDir = join(cursorSkillRoot, skill);
       if (!dryRun && !existsSync(join(skillInstallDir, "SKILL.md"))) {
-        installInto(cursorSkillRoot, [skill]);
+        installInto(cursorSkillRoot, [skill], skillsRoot);
       }
       const result = mergeCursorHooks({
         skillInstallDir,
@@ -392,6 +557,45 @@ function installAdapters(skills, skillRoots) {
   return { adapters: report, cursorSkillRoot, skillRoots: roots };
 }
 
+function writeLiveMarker(liveRoot, skills) {
+  const marker = {
+    mode: "live",
+    live_root: liveRoot,
+    skills,
+    updated_at: new Date().toISOString(),
+    howto: {
+      edit: `edit files under ${liveRoot}/skills/<skill>/`,
+      commit: `git -C ${liveRoot} add -A && git -C ${liveRoot} commit && git -C ${liveRoot} push`,
+      update: `node ${join(pkgRoot, "scripts/install.mjs")} --pull`,
+      re_symlink: `node ${join(pkgRoot, "scripts/install.mjs")} --live`,
+    },
+  };
+  const markerPath = join(homedir(), ".agents", "gabe-agents-live.json");
+  writeJson(markerPath, marker);
+  return markerPath;
+}
+
+// --- main ---
+let liveRoot = pkgRoot;
+let liveMeta = null;
+if (mode === "live") {
+  liveRoot = resolveLiveRoot();
+  // Only clone when live root is the default external path and missing/not pkg
+  if (resolve(liveRoot) === resolve(pkgRoot) && existsSync(join(pkgRoot, "skills"))) {
+    liveMeta = { liveRoot, action: "pkg-root", repoUrl: "local-package" };
+    if (doPull && isGitRepo(pkgRoot)) {
+      console.log(`[gabe-agents] --pull on package root ${pkgRoot}`);
+      if (!dryRun) {
+        const r = trySh("git", ["-C", pkgRoot, "pull", "--ff-only"]);
+        if (!r.ok) console.warn(`[gabe-agents] pull failed: ${r.err}`);
+      }
+    }
+  } else {
+    liveMeta = ensureLiveCheckout(liveRoot);
+  }
+}
+
+const skillsRoot = skillsRootForMode(liveRoot);
 const skills = listSkillDirs(skillsRoot);
 if (skills.length === 0) {
   console.error(`[gabe-agents] no skills found under ${skillsRoot}`);
@@ -401,17 +605,26 @@ if (skills.length === 0) {
 const targets = explicitTarget ? [explicitTarget] : detectAgentSkillRoots();
 const results = {};
 for (const target of targets) {
-  results[target] = installInto(target, skills);
+  results[target] = installInto(target, skills, skillsRoot);
 }
 
-const adapterReport = installAdapters(skills, [...targets]);
+const adapterReport = installAdapters(skills, [...targets], skillsRoot);
+
+let markerPath = null;
+if (mode === "live") {
+  markerPath = writeLiveMarker(liveRoot, skills);
+}
 
 const receipt = {
   installed_at: new Date().toISOString(),
   package_root: pkgRoot,
+  mode,
+  live: liveMeta,
+  skills_root: skillsRoot,
   skills,
   targets: results,
   adapters: adapterReport,
+  marker_path: markerPath,
   dry_run: dryRun,
 };
 const receiptPath = join(pkgRoot, ".install-receipt.json");
@@ -423,10 +636,28 @@ if (!dryRun) {
   }
 }
 
-console.log(`[gabe-agents] installed ${skills.length} skills into ${Object.keys(results).length} target(s):`);
+console.log(
+  `[gabe-agents] mode=${mode} installed ${skills.length} skills into ${Object.keys(results).length} target(s)`,
+);
+if (mode === "live") {
+  console.log(`[gabe-agents] live root: ${liveRoot}`);
+  console.log(`[gabe-agents] edit skills in-place, then: git -C ${liveRoot} commit && git push`);
+  if (markerPath) console.log(`[gabe-agents] live marker: ${markerPath}`);
+}
 for (const [target, paths] of Object.entries(results)) {
   console.log(`  ${target}`);
-  for (const p of paths) console.log(`    - ${p}`);
+  for (const p of paths) {
+    const dest = typeof p === "string" ? p : p.dest;
+    let note = mode;
+    if (mode === "live" && isSymlink(dest)) {
+      try {
+        note = `symlink -> ${readlinkSync(dest)}`;
+      } catch {
+        note = "symlink";
+      }
+    }
+    console.log(`    - ${dest} (${note})`);
+  }
 }
 
 try {

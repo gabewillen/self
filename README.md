@@ -24,36 +24,63 @@ All coordination artifacts for Gabe work are **MDScript** (tasks, comments, plan
 
 ## Install
 
-### From a local checkout
+### Living install (default)
+
+By default install **clones or reuses a git checkout** and **symlinks** each skill into agent skill dirs. Agents edit the live tree, then commit/push upstream.
 
 ```bash
 cd /path/to/agents
 npm install
-# or explicit:
-node ./scripts/install.mjs
+# equivalent:
+node ./scripts/install.mjs --live
 ```
 
-`postinstall` copies every skill into:
+Live root resolution order:
 
-- `~/.agents/skills/<skill>` (always)
-- and into detected agent homes when present: `~/.claude/skills`, `~/.cursor/skills`, `~/.codex/skills`, `~/.copilot/skills`, `~/.qwen/skills`
+1. `--live-root <path>` / `GABE_AGENTS_LIVE_ROOT`
+2. This package’s git toplevel when it already contains `skills/` (local checkout / git dependency)
+3. `~/.agents/repos/gabewillen-agents` (cloned from `https://github.com/gabewillen/agents.git`)
 
-Skip auto-install:
+Symlink targets (when the agent home exists):
+
+- `~/.agents/skills/<skill>` → `<live-root>/skills/<skill>`
+- `~/.claude|cursor|codex|copilot|qwen/skills/<skill>` → same
+
+After install:
 
 ```bash
-GABE_AGENTS_INSTALL=0 npm install
+# edit a living skill
+$EDITOR ~/.agents/repos/gabewillen-agents/skills/gabe-hsm-review/SKILL.md
+# or, when installed from this checkout, edit here directly
+
+git -C ~/.agents/repos/gabewillen-agents add -A
+git -C ~/.agents/repos/gabewillen-agents commit -m "Update skill"
+git -C ~/.agents/repos/gabewillen-agents push
+
+# refresh from remote + re-symlink
+node ./scripts/install.mjs --live --pull
+# or: npm run install-skills:pull
 ```
 
-Dry run:
+Marker file: `~/.agents/gabe-agents-live.json`.
+
+### Snapshot copy install
+
+Immutable copies (no shared git tree):
 
 ```bash
+node ./scripts/install.mjs --copy
+# or: GABE_AGENTS_MODE=copy npm install
+```
+
+### Other flags
+
+```bash
+GABE_AGENTS_INSTALL=0 npm install          # skip postinstall
 node ./scripts/install.mjs --dry-run
-```
-
-Custom target only:
-
-```bash
 node ./scripts/install.mjs --target /path/to/skills
+node ./scripts/install.mjs --no-adapters
+GABE_AGENTS_REPO_URL=git@github.com:you/agents.git npm install
 ```
 
 ### Via the skills CLI (once published or from path)

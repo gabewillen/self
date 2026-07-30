@@ -11,27 +11,45 @@ Portable reference for the MDScript `gabe-goal` skill. Session layout matches th
 | `session-log.jsonl` | Session append-only log |
 | `active-run.json` | Pointer to current run |
 | `runs/<run_id>/` | Immutable run directory |
-| `runs/<run_id>/goal.json` | Active goal state |
+| `runs/<run_id>/goal.mdscript.md` | Sole run state (YAML front matter) + executable tracker + stop-hook resume target |
+| `runs/<run_id>/goal.json` | Legacy only — read fallback; not written for new runs |
 | `runs/<run_id>/progress.jsonl` | Append-only iteration log |
 | `runs/<run_id>/artifacts/**` | New timestamped files only |
 | `runs/<run_id>/artifacts/manifest.json` | Reproduce map |
-| `runs/<run_id>/review-packet.md` | Neutral blind packet |
-| `runs/<run_id>/signoff-reviewer-{a,b,c}.json` | Reviewer-only sign-offs |
+| `runs/<run_id>/review-packet.md` | Neutral packet for gabe-review |
+| `runs/<run_id>/review-verdict.json` | Durable gabe-review completion verdict |
+| `runs/<run_id>/signoff-reviewer-rules.json` | Blind rules lane (AGENTS/CLAUDE/GEMINI) |
+| `runs/<run_id>/signoff-reviewer-security.json` | Blind security/penetration lane |
+| `runs/<run_id>/signoff-reviewer-completeness.json` | Blind completeness lane |
 
-## goal.json
+## goal.mdscript.md front matter (authoritative run state)
 
-```json
-{
-  "active": true,
-  "goal": "<one-sentence goal>",
-  "conversation_id": "<chat id>",
-  "run_id": "<runs/<run_id> name>",
-  "proof_kind": "tui|ui|default",
-  "live_proof": "required|optional",
-  "primary_user_action": "<end-to-end path when live proof required>",
-  "started_at": "<ISO-8601>"
-}
+```yaml
+active: true
+status: active
+goal: |
+  <one-sentence goal>
+conversation_id: <chat id>
+run_id: <runs/<run_id> name>
+proof_kind: tui|ui|default
+live_proof: required|optional
+primary_user_action: <end-to-end path when live proof required>
+goal_mdscript: runs/<run_id>/goal.mdscript.md
+resume_heading: pursue-goal
+iteration: 0
+started_at: <ISO-8601>
+completion_gate: []
 ```
+
+Legacy `goal.json` is read-only fallback for pre-cutover runs. New runs never write it.
+
+Executable MDScript body is owned by the run. Stop hooks rewrite completion_gate / iteration and follow up with:
+
+```text
+mdscript-exec <run_dir>/goal.mdscript.md#pursue-goal
+```
+
+Required headings: `Goal Contract`, `Resume Goal`, `Pursue Goal` (or current `resume_heading`), `Complete Goal`, `Manual Stop`, `Stop Hook Resume Command`.
 
 ## proof_kind
 
@@ -53,47 +71,46 @@ Portable reference for the MDScript `gabe-goal` skill. Session layout matches th
 }
 ```
 
-## Sign-off schema
+## review-verdict.json (gabe-review composition)
 
 ```json
 {
   "goal": "<exact goal>",
   "conversation_id": "<exact id>",
-  "reviewer_id": "a|b|c",
-  "signed_off": true,
-  "verifier_summary": "≥40 chars covering attacks, rules, artifacts, empty p_findings",
-  "evidence": ["≥2 items"],
+  "run_id": "<run id>",
+  "reviewer_skill": "gabe-review",
+  "triple_blind": true,
+  "lanes": ["rules", "security", "completeness"],
+  "signoff_paths": [
+    "signoff-reviewer-rules.json",
+    "signoff-reviewer-security.json",
+    "signoff-reviewer-completeness.json"
+  ],
+  "proof_scope": "goal-completion|live-proof|…",
+  "grade": "Proven for <proof_scope>",
+  "proof_decision": "Proven for <proof_scope> at <threshold>",
+  "blocking_severities": "all findings|P1|…",
+  "blocking_findings": [],
+  "residual_findings": [],
+  "proof_supplied": ["artifacts/…"],
+  "proof_not_claimed": [],
+  "artifact_paths": ["artifacts/…"],
   "commands_run": ["…"],
-  "attack_attempts": ["≥2 items"],
-  "p_findings": [],
-  "rules_reviewed": ["AGENTS.md", "…"],
-  "artifact_paths": ["…"],
-  "objectives_checked": ["…"],
-  "remaining_gaps": [],
-  "signed_off_at": "<ISO-8601>"
+  "review_round": 1,
+  "reviewed_at": "<ISO-8601>"
 }
 ```
 
-### p_findings item
+Completion requires grade/proof_decision starting with `Proven for` and empty `blocking_findings`. `Not ready for …` re-enters pursue/fix. `Blocked for …` stops only when the missing precondition cannot be stood up locally.
 
-```json
-{
-  "severity": "P0|P1|P2|P3",
-  "location": "file:line",
-  "summary": "…",
-  "contract": "…",
-  "remediation": "…"
-}
-```
-
-All P-levels block completion. Full consensus required: any fail or P-level finding clears all three sign-offs and forces a fresh triple review.
+gabe-goal does not implement a parallel reviewer protocol — it execs `gabe-review` and persists that decision.
 
 ## Models
 
 | Role | Model |
 |------|-------|
 | Orchestrator / workers | chat `orchestrator_model` |
-| Reviewers A/B/C | `composer-2.5-fast` (composer-2.5) or closest equivalent |
+| Completion review | compose `gabe-review` (task-appropriate gpt-5.6-family per gabe-review) |
 
 ## Cursor hooks (adapter)
 
