@@ -2,10 +2,12 @@
 name: gabe-watch
 description: >-
   Watch a GitHub PR on a persistent fixed interval for unresolved review
-  comments, CI/CD failures, and base-branch drift. Arms one while-true loop once
-  and keeps ticking until /gabe-unwatch (or PR merged/closed). Spawns
-  composer-2.5 for routine fixes or grok-4.5 for hard repairs, marks valid
-  threads resolved, and keeps the branch in sync. Watch state is MDScript-only:
+  comments, CI/CD failures, and base-branch drift. Arms one detached ticker that
+  survives harness cleanup and keeps ticking until /gabe-unwatch (or PR
+  merged/closed). Arming is a standing grant: it fixes findings, pushes, and
+  resolves threads itself instead of asking per fix. Spawns composer-2.5 for
+  routine fixes or grok-4.5 for hard repairs, marks valid threads resolved, and
+  keeps the branch in sync. Watch state is MDScript-only:
   one goals/gabe-watch-<N>.mdscript.md whose YAML front matter is the sole
   authoritative state and whose body is the loop resume target. Use for
   /gabe-watch, interval+PR babysitting, review-comment watching, or CI repair
@@ -44,7 +46,8 @@ description: >-
   * read that legacy state once to recover `loop_pid`, `sentinel`, and contract fields
 * write `{{watch_mdscript}}` from [watch.mdscript.md](assets/watch.mdscript.md), filling every front-matter field with the resolved values for this watch
 * do not write `pr-{{pr_number}}.json` for new watches — `{{watch_mdscript}}` front matter is the sole watch-state source, and legacy JSON is a read-only fallback
-* tell the user the watch contract: PR, interval, models, `{{watch_mdscript}}`, and that the loop runs until `/gabe-unwatch`
+* run [Establish Watch Grant](#establish-watch-grant)
+* tell the user the watch contract: PR, interval, models, `{{watch_mdscript}}`, the standing grant, and that the loop runs until `/gabe-unwatch`
 * [Arm Persistent Interval Loop](#arm-persistent-interval-loop)
 
 ## Arm Persistent Interval Loop
@@ -52,7 +55,11 @@ description: >-
 * convert `{{interval}}` to `{{interval_seconds}}`
 * set `{{sentinel}}` to `AGENT_LOOP_TICK_gabe_watch_{{pr_number}}`
 * set `{{watch_dir}}` to `~/.agents/projects/{{project_name}}/gabe-watch`
-* set `{{tick_spool}}` to `{{watch_dir}}/tick-{{pr_number}}.jsonl`, `{{ticker_pid_file}}` to `{{watch_dir}}/tick-{{pr_number}}.pid`, `{{ticker_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.ticker-hb`, `{{agent_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.agent-hb`, and `{{stop_file}}` to `{{watch_dir}}/tick-{{pr_number}}.stop`
+* set `{{tick_spool}}` to `{{watch_dir}}/tick-{{pr_number}}.jsonl`
+* set `{{ticker_pid_file}}` to `{{watch_dir}}/tick-{{pr_number}}.pid`
+* set `{{ticker_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.ticker-hb`
+* set `{{agent_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.agent-hb`
+* set `{{stop_file}}` to `{{watch_dir}}/tick-{{pr_number}}.stop`
 * create `{{watch_dir}}` when missing and delete a stale `{{stop_file}}`
 * run [Resolve Owner Process](#resolve-owner-process)
 * run [Check Ticker Liveness](#check-ticker-liveness)
@@ -76,6 +83,17 @@ setsid nohup {{watch_dir}}/gabe-watch-ticker.sh \
 * confirm the ticker is detached: its parent is `1` (or a reparenting supervisor) and it is not in this agent shell's process group
 * set front matter on `{{watch_mdscript}}` with `watch_active: true`, `status: active`, `resume_heading: resume-watch`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `owner_pid`, `ticker_pid`, `ticker_pgid`, `tick_spool`, `ticker_pid_file`, `stop_file`, `skill_root`, `easy_model`, `hard_model`, and `armed_at`
 * [Reattach Tick Listener](#reattach-tick-listener)
+
+## Establish Watch Grant
+
+* treat arming this watch as the user's standing grant to do the watch's job on `{{head_ref}}` until `/gabe-unwatch`, without asking again per finding, per fix, or per tick
+* set `{{watch_grant}}` to `edit, commit, push, reply, resolve threads, rerun and requeue checks, sync with base`
+* set `{{grant_excludes}}` to `force-push, merge the PR, edit CI workflow definitions to make a check pass, changes outside this PR's scope, anything the user named as off-limits for this watch`
+* record `watch_grant` and `grant_excludes` in `{{watch_mdscript}}` front matter
+* a finding inside `{{watch_grant}}` is work to perform this tick, never a proposal to raise
+* only an item in `{{grant_excludes}}`, a genuine product-judgment question, or a reviewer disagreement may become a question for the user
+* when in doubt about scope, authority, or the right call, run `/mdscript-exec {{repo_root}}/skills/gabe/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe/SKILL.md`, and decide as Gabe would from current evidence
+* asking the user is the last resort after the `gabe` skill, the repo, and the PR evidence still leave the call genuinely undecidable
 
 ## Resolve Owner Process
 
@@ -155,14 +173,19 @@ tail -n0 -F {{tick_spool}}
 * run [Evaluate Merge Ready](workflows/watch-tick.md#evaluate-merge-ready)
 * if `{{merge_ready}}` is `true`
   * report merge-ready status for `{{pr_url}}` — keep watching until `/gabe-unwatch`
+* report the tick as work already done: fixes applied, commits pushed, threads resolved, checks requeued, and what remains outside the grant
+* do not end a tick with a proposal, a permission request, or work deferred to the next tick when the action was inside `{{watch_grant}}`
+* if the tick surfaced an ambiguous call, resolve it through the `gabe` skill and act; do not park it as a question
 * append one ledger line under `~/.agents/projects/{{project_name}}/lane-ledger.jsonl` with tick, head SHA, CI summary, unresolved thread count, `ticker_pid`, wake path, and that the detached ticker remains armed
 * never kill, reap, or clean up the ticker, its process group, its spool, or its pid file from a tick, a resume, a subagent, a thread-cleanup pass, or an end-of-turn tidy; only `/gabe-unwatch`, a terminal PR state, or owner-process death may stop it
 * end the turn without re-arming, without `sleep`, and without a one-shot wake — the detached ticker owns the next tick
 
 ## Report Blocker
 
+* before reporting any blocker, confirm the item is truly in `{{grant_excludes}}` or genuinely undecidable; if the `gabe` skill and current evidence can decide it, act instead of reporting
 * set front-matter `blocker` on `{{watch_mdscript}}` to the exact human decision needed
-* write a parent-visible note naming `{{blocker}}`, `{{pr_url}}`, current head, `loop_pid`, and `{{watch_mdscript}}`
+* write a parent-visible note naming `{{blocker}}`, `{{pr_url}}`, current head, `ticker_pid`, and `{{watch_mdscript}}`
 * keep front-matter `watch_active: true` and leave the persistent loop running unless the user runs `/gabe-unwatch`
-* ask the user how to proceed
+* keep repairing everything else inside the grant while the blocker waits — one blocked item never pauses the whole watch
+* ask the user only the specific decision that is blocked
 * end the turn without killing the loop and without re-arming

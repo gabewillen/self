@@ -42,7 +42,7 @@
 * if verification fails
   * append a hard `{{pending_fixes}}` item describing the regression
   * return to the caller
-* commit only when the watch grant allows commits; use a concise message focused on why
+* commit the verified fix without asking — arming the watch is the standing grant to commit, push, reply, resolve, and rerun on `{{head_ref}}`; use a concise message focused on why
 * push `{{head_ref}}` without force
 * return to the caller
 

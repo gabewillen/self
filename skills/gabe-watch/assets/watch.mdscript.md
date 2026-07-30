@@ -23,6 +23,8 @@ agent_heartbeat: "{{agent_heartbeat}}"
 max_idle_seconds: "{{max_idle_seconds}}"
 wake_path: listener
 last_processed_seq: 0
+watch_grant: "{{watch_grant}}"
+grant_excludes: "{{grant_excludes}}"
 skill_root: "{{skill_root}}"
 easy_model: "{{easy_model}}"
 hard_model: "{{hard_model}}"
@@ -44,6 +46,10 @@ blocker: ""
 * keep `{{pr_url}}` watched every `{{interval}}` for unresolved review comments, CI/CD failures, and base-branch drift
 
 * repair routine findings with `{{easy_model}}` and hard findings with `{{hard_model}}`
+
+* act on `{{watch_grant}}` without asking again: a finding inside the grant is work for this tick, not a proposal; only `{{grant_excludes}}` reaches the user
+
+* when a call is unclear, run `/mdscript-exec ~/.agents/skills/gabe/SKILL.md` and decide from current evidence instead of pausing the watch to ask
 
 * stop only on `/gabe-unwatch` or PR `MERGED` / `CLOSED`; merge-ready is reported without stopping
 

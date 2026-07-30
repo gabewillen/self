@@ -16,7 +16,8 @@
     * reply on the thread with a short evidence-based explanation
     * do not mark resolved unless the platform requires an explicit resolve after a documented decline and the user granted that behavior
     * continue to the next thread
-* for `question` threads that need human product judgment
+* if a thread's classification is unclear, run `/mdscript-exec ~/.agents/skills/gabe/SKILL.md` and decide from current code and PR evidence rather than escalating to the user
+* for `question` threads that need genuine human product judgment
   * reply with the blocking question
   * leave unresolved
   * continue

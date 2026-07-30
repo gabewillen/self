@@ -115,13 +115,26 @@ Workflows link here as `[Classify Difficulty](../reference.md#classify-difficult
 | Merge-ready | Report only; keep looping |
 | Soft blocker | Report; keep looping |
 
-## Authority boundaries
+## Standing grant (do the job; do not ask to do the job)
 
-- Do not force-push unless the user explicitly granted it for this watch
-- Do not edit CI workflows solely to greenwash failures
-- Do not resolve threads you disagree with without an evidence reply
-- Do not merge the PR unless the user explicitly asked this watch to merge
-- Prefer minimal scoped fixes over drive-by refactors
+Arming the watch **is** the grant. The watch exists to address review findings,
+resolve threads, keep the branch in sync, and keep CI green — so an in-scope
+finding is work for this tick, not a proposal for the user.
+
+Granted, no confirmation per finding/fix/tick: edit, commit, push (non-force),
+reply to threads, resolve threads, rerun or requeue checks, sync with base.
+
+Excluded, still needs the user: force-push, merging the PR, editing CI workflow
+definitions to make a check pass, changes outside this PR's scope, and anything
+the user named off-limits for this watch.
+
+- When in doubt about scope, authority, or the right call, use the `gabe` skill and decide as Gabe would from current evidence. Asking is the last resort, after `gabe`, the repo, and the PR evidence still leave it undecidable.
+- Fix in the tick that found it. "Want me to push that fix on the next tick?" is a bug: apply, verify, push, report.
+- Out-of-scope failures never gate in-scope repairs; fix what is in scope and report the rest as residue.
+- A blocked item never pauses the rest of the watch.
+- Report ticks as work done, not as a menu of options.
+- Do not resolve threads you disagree with — reply with evidence and leave them open.
+- Prefer minimal scoped fixes over drive-by refactors.
 
 ## Invocation
 
