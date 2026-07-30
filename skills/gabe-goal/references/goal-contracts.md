@@ -15,7 +15,7 @@ A pre-cutover `.cursor/goal/` tree is read as legacy and never written for new r
 | `<project_home>/goal/goal-log.jsonl` | Project-wide append-only events |
 | `<project_home>/goal/sessions/<conversation_id>/` | One chat session |
 | `session-log.jsonl` | Session append-only log |
-| `active-run.json` | Pointer to current run |
+| `runs/<run_id>/goal.mdscript.md` front matter | Current run — newest with `active: true` |
 | `runs/<run_id>/` | Immutable run directory |
 | `runs/<run_id>/goal.mdscript.md` | Sole run state (YAML front matter) + executable tracker + stop-hook resume target |
 | `runs/<run_id>/goal.json` | Legacy only — read fallback; not written for new runs |

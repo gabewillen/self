@@ -32,7 +32,7 @@ const contextLines = [
   `- conversation_id: ${conversationId}`,
   `- session_dir: ${sessionDir}`,
   `- runs/: ${sessionDir}/runs/<run_id>/ — one immutable directory per goal run`,
-  `- active-run.json: pointer to the current run only (never delete prior runs/)`,
+  `- current run: the newest runs/<run_id>/goal.mdscript.md with active: true in front matter`,
   `- session-log.jsonl: append-only per conversation — never truncate or overwrite`,
   `- ${PROJECT_GOAL_LOG_PATH}: append-only project audit log — never truncate or overwrite`,
   `- start each goal with startGoalRun → runs/<run_id>/goal.mdscript.md (front matter is run state; no goal.json)`,

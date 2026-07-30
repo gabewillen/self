@@ -88,19 +88,10 @@ export interface GoalArtifactsManifest {
   updated_at: string;
 }
 
-export interface GoalSessionMeta {
-  conversation_id: string;
-  session_dir: string;
-  workspace_root: string;
-  last_active_at: string;
-}
-
 export interface GoalSessionPaths {
   directory: string;
   runDirectory: string;
   runId: string | null;
-  meta: string;
-  activeRun: string;
   sessionLog: string;
   runsDirectory: string;
   goal: string;
@@ -127,6 +118,7 @@ export interface GoalSessionPaths {
   flatLayout: boolean;
 }
 
+/** @deprecated Pre-cutover pointer file; read only, never written. */
 export interface ActiveRunPointer {
   run_id: string;
   conversation_id: string;
@@ -175,6 +167,7 @@ export const SIGNOFF_SECURITY_MDSCRIPT = "signoff-reviewer-security.mdscript.md"
 export const SIGNOFF_COMPLETENESS_MDSCRIPT = "signoff-reviewer-completeness.mdscript.md";
 export const REVIEW_VERDICT_MDSCRIPT = "review-verdict.mdscript.md";
 export const ARTIFACTS_MANIFEST_FILE = "manifest.json";
+/** @deprecated Pre-cutover pointer file; read only. Run state is MDScript front matter. */
 export const ACTIVE_RUN_FILE = "active-run.json";
 export const SESSION_LOG_FILE = "session-log.jsonl";
 export const PROGRESS_LOG_FILE = "progress.jsonl";
@@ -336,8 +329,6 @@ function extendRunPaths(
     directory: sessionDirectoryPath,
     runDirectory: runDirectoryPath,
     runId,
-    meta: join(sessionDirectoryPath, "session.json"),
-    activeRun: join(sessionDirectoryPath, ACTIVE_RUN_FILE),
     sessionLog: join(sessionDirectoryPath, SESSION_LOG_FILE),
     runsDirectory: join(sessionDirectoryPath, RUNS_DIR_NAME),
     goal: goalFile,
@@ -716,14 +707,6 @@ export function ensureSessionDirectory(
     writeFileSync(projectGoalLogPath(root), "", "utf-8");
   }
 
-  const meta: GoalSessionMeta = {
-    conversation_id: conversationId,
-    session_dir: join(SESSIONS_DIR, safeSessionId(conversationId)),
-    workspace_root: root,
-    last_active_at: new Date().toISOString(),
-  };
-  writeJson(join(sessionRoot, "session.json"), meta);
-
   return extendSessionPaths(
     sessionRoot,
     join(sessionRoot, "goal.json"),
@@ -780,14 +763,6 @@ export function startGoalRun(
   if (existsSync(paths.goal)) {
     unlinkSync(paths.goal);
   }
-  writeJson(paths.activeRun, {
-    run_id: runId,
-    conversation_id: conversationId,
-    started_at: startedAt,
-    goal_mdscript: goalMdscript,
-    active: true,
-  } satisfies ActiveRunPointer);
-
   recordGoalEvent(root, conversationId, "goal_started", {
     run_id: runId,
     goal: runState.goal,
@@ -796,6 +771,43 @@ export function startGoalRun(
   });
 
   return paths;
+}
+
+/**
+ * Find the current run from run front matter.
+ *
+ * Run state lives in runs/<run_id>/goal.mdscript.md front matter, so a pointer
+ * file would be a second copy of run_id, active, and started_at that can
+ * disagree with it. Prefer an active run; otherwise take the newest, since run
+ * ids are timestamps and sort lexicographically.
+ */
+function findCurrentRun(
+  sessionRoot: string,
+  legacy: boolean,
+): GoalSessionPaths | null {
+  const runsRoot = join(sessionRoot, RUNS_DIR_NAME);
+  if (!existsSync(runsRoot)) {
+    return null;
+  }
+  const runIds = readdirSync(runsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+    .reverse();
+  let newest: GoalSessionPaths | null = null;
+  for (const runId of runIds) {
+    const paths = buildRunPaths(sessionRoot, runId, legacy);
+    if (!runStateExists(paths)) {
+      continue;
+    }
+    if (!newest) {
+      newest = paths;
+    }
+    if (loadGoalState(paths)?.active) {
+      return paths;
+    }
+  }
+  return newest;
 }
 
 function resolveRunPathsFromSession(
@@ -808,6 +820,13 @@ function resolveRunPathsFromSession(
     return null;
   }
 
+  const current = findCurrentRun(sessionRoot, legacy);
+  if (current) {
+    return current;
+  }
+
+  // Pre-cutover sessions still carry a pointer file; front matter wins when both
+  // exist, so a stale pointer cannot resurrect a superseded run.
   const activeRun = loadJson<ActiveRunPointer>(join(sessionRoot, ACTIVE_RUN_FILE));
   if (activeRun?.run_id) {
     const paths = buildRunPaths(sessionRoot, activeRun.run_id, legacy);
@@ -1962,13 +1981,6 @@ export function deactivateGoal(
     // Pure legacy grind/root JSON sessions.
     writeJson(paths.goal, deactivated);
   }
-
-  if (existsSync(paths.activeRun)) {
-    const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
-    if (pointer) {
-      writeJson(paths.activeRun, { ...pointer, active: false });
-    }
-  }
 }
 
 /**
@@ -1990,13 +2002,6 @@ export function reopenGoalRun(
     status: "active",
     resumeHeading: DEFAULT_RESUME_HEADING,
   });
-
-  if (existsSync(paths.activeRun)) {
-    const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
-    if (pointer) {
-      writeJson(paths.activeRun, { ...pointer, active: true });
-    }
-  }
 }
 
 export function completeGoalRun(
@@ -2014,16 +2019,6 @@ export function completeGoalRun(
     resumeHeading: "complete-goal",
     reasons: [],
   });
-  if (existsSync(paths.activeRun)) {
-    const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
-    if (pointer) {
-      writeJson(paths.activeRun, {
-        ...pointer,
-        active: false,
-        goal_mdscript: relativePath(root, paths.goalMdscript),
-      });
-    }
-  }
   recordGoalEvent(root, state.conversation_id, "goal_completed", {
     run_id: paths.runId,
     goal: state.goal,
@@ -2047,16 +2042,6 @@ export function abortGoalRun(
     resumeHeading: "manual-stop",
     reasons: [`goal_${reason}`],
   });
-  if (existsSync(paths.activeRun)) {
-    const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
-    if (pointer) {
-      writeJson(paths.activeRun, {
-        ...pointer,
-        active: false,
-        goal_mdscript: relativePath(root, paths.goalMdscript),
-      });
-    }
-  }
   recordGoalEvent(root, state.conversation_id, `goal_${reason}`, {
     run_id: paths.runId,
     goal: state.goal,

@@ -29,7 +29,7 @@ description: >-
   * run that MDScript via the `mdscript-exec` skill starting at the named heading
   * do not start a new run
 * else if an active run already exists for this conversation
-  * set `{{goal_mdscript}}` from `active-run.json` / `{{run_dir}}/goal.mdscript.md`
+  * set `{{goal_mdscript}}` to the newest `{{run_dir}}/goal.mdscript.md` whose front matter has `active: true`
   * execute `mdscript-exec {{goal_mdscript}}#resume-goal`
 * else
   * run [Start Goal Run](workflows/start-goal-run.md#start-goal-run)
@@ -65,7 +65,6 @@ description: >-
 * read a legacy `{{run_dir}}/review-verdict.json` only when the MDScript verdict is absent; never write the legacy file for new runs
 * set front-matter `active: false` on `{{goal_mdscript}}`
 * refresh `{{goal_mdscript}}` with `status: completed` and `resume_heading: complete-goal`
-* update `{{session_dir}}/active-run.json` to mark the run inactive
 * append `goal_completed` to `{{session_dir}}/session-log.jsonl` and `{{project_home}}/goal/goal-log.jsonl`
 * append `run_completed` to `{{run_dir}}/progress.jsonl`
 * stop and report the completed goal, `{{run_dir}}`, `{{goal_mdscript}}`, artifact summary, and the gabe-review Proven-for verdict
