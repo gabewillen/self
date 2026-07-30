@@ -1,13 +1,20 @@
 ---
 name: gabe
-description: "Compatibility router for project-scoped Gabe MDScript operating-model work with tasks, comments, plans, goals, and instructions stored under ~/.agents/projects/project-name/. Use when the user asks for Gabe-shaped judgment, delegation, prioritization, review, messaging, coordination, MR/PR watching, post-merge closure, implementation, or decision support but has not chosen a split role. Route standalone interval PR repair watches to gabe-watch, coordination to gabe-orchestrate, implementation to gabe-implement, and independent review to gabe-review. Select the best available model and effort level for each role and task."
+description: "Compatibility router for project-scoped Gabe MDScript operating-model work with tasks, comments, plans, goals, and instructions stored under ~/.agents/projects/project-name/. Use when the user asks for Gabe-shaped judgment, delegation, prioritization, review, messaging, coordination, MR/PR watching, post-merge closure, implementation, or decision support but has not chosen a split role. Routes by agent position: a subagent runs gabe-implement, a main agent that can spawn subagents runs gabe-orchestrate, a main agent that cannot runs gabe-implement, and any review request runs gabe-review. Explicit invocations route to gabe-watch, gabe-unwatch, gabe-goal, gabe-hsm-review, or gabe-automate first. Select the best available model and effort level for each role and task."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
-## Route Gabe Request
+## Detect Agent Position
 
-* infer `{{gabe_role}}` from the request, current thread role, and any handoff contract
+* set `{{agent_position}}` to `subagent` when this agent was spawned by another agent, carries a delegated contract, or has a `{{parent_agent}}` or `{{parent_reporting_path}}`
+* otherwise set `{{agent_position}}` to `main`
+* set `{{can_spawn_subagents}}` to `true` when this runtime exposes a subagent, task, or child-thread creation tool
+* otherwise set `{{can_spawn_subagents}}` to `false`
+* set `{{is_review_request}}` to `true` when the request is an independent readiness review, blind-review pass, plan, diff, handoff, MR/PR readiness, goal, final report, or publication hygiene review
+* [Route Gabe Request](#route-gabe-request)
+
+## Route Gabe Request
 
 * read [boundaries.md](references/boundaries.md) and hold every boundary it names for the routed role
 
@@ -32,32 +39,31 @@ description: "Compatibility router for project-scoped Gabe MDScript operating-mo
   * run `/mdscript-exec {{repo_root}}/skills/gabe-goal/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe-goal/SKILL.md`
   * execute as `gabe-goal`
 
-* if the request is creating, updating, reviewing, or handing off a recurring monitor, PR/MR watcher, blocker watcher, lane-management wakeup, or thread follow-up for project-scoped Gabe work
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-orchestrate/SKILL.md`
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/goal-mdscript.md#write-goal-mdscript`
-  * execute as `gabe-orchestrate`
-
 * if the user explicitly asks for an external automation tool or non-goal automation outside this repo-local skill copy
   * run `/mdscript-exec {{repo_root}}/skills/gabe-automate/SKILL.md`
   * execute as `gabe-automate`
 
-* if the request is root coordination, prioritization, delegation, lane setup, lane monitoring, MR/PR comment watching, permission-boundary decision, proof intake, post-merge ticket closure, publication decision, or decision-ready reporting
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-orchestrate/SKILL.md`
-  * execute as `gabe-orchestrate`
-
-* if the request is delegated implementation, issue execution, repo repair, MR/PR ownership, verification, review repair, or release-prep work
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-implement/SKILL.md`
-  * execute as `gabe-implement`
-
-* if the request is independent readiness review, blind-review pass, plan review, diff review, handoff review, MR/PR readiness review, goal review, final report review, or publication hygiene review
+* if `{{is_review_request}}` is `true`
   * run `/mdscript-exec {{repo_root}}/skills/gabe-review/SKILL.md`
   * execute as `gabe-review`
 
-* if the role is ambiguous
-  * default root or coordinating threads to `gabe-orchestrate`
-  * default worker threads with a delegated implementation contract to `gabe-implement`
-  * default explicit review requests to `gabe-review`
+* if `{{agent_position}}` is `subagent`
+  * run `/mdscript-exec {{repo_root}}/skills/gabe-implement/SKILL.md`
+  * execute as `gabe-implement`
 
+* if `{{agent_position}}` is `main` and `{{can_spawn_subagents}}` is `false`
+  * run `/mdscript-exec {{repo_root}}/skills/gabe-implement/SKILL.md`
+  * execute as `gabe-implement`
+  * own the work in this agent and do not promise delegated lanes this runtime cannot create
+
+* if `{{agent_position}}` is `main` and `{{can_spawn_subagents}}` is `true`
+  * run `/mdscript-exec {{repo_root}}/skills/gabe-orchestrate/SKILL.md`
+  * execute as `gabe-orchestrate`
+
+* if the request is creating, updating, reviewing, or handing off a recurring monitor, PR/MR watcher, blocker watcher, lane-management wakeup, or thread follow-up while acting as `gabe-orchestrate`
+  * run `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/goal-mdscript.md#write-goal-mdscript`
+
+* set `{{gabe_role}}` to the role selected above and carry it into the routed skill
 * before any Gabe orchestrator claims ongoing monitoring, resumed coordination, or watcher ownership
   * run `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/goal-mdscript.md#write-goal-mdscript`
   * do not claim the lane is resumable until the MDScript goal names the exact re-entry point and validation fields
