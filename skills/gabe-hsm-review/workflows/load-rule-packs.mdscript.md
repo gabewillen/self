@@ -2,16 +2,11 @@
 
 ## Load Rule Packs
 
-* always load [hsm-core-rules.md](../references/hsm-core-rules.md) into the active rule set
-* if `{{dialect}}` is `hsm.go` or `mixed` or `hsm.*`
-  * load [hsm-go-rules.md](../references/hsm-go-rules.md)
-* if `{{dialect}}` is `sml.cpp` or `mixed`
-  * load [sml-cpp-rules.md](../references/sml-cpp-rules.md)
-* if `grantt` is in `{{project_overlays}}`
-  * enable grantt overlays in hsm-go rules (version pin, NATS actor mandate, naming, completion policies)
-  * if `{{repo_root}}/.agents/rules/hsm.rules.md` or grantt `hsm.rules.md` exists, prefer that file’s HSM01–HSM98 text when it conflicts with the bundled summary
-* if `emel` is in `{{project_overlays}}`
-  * prefer `docs/rules/sml.rules.md` over `AGENTS.md` on conflict
-* load [check-patterns.md](../references/check-patterns.md) for automated scans
-* write `{{out_dir}}/rule-packs.json` listing loaded packs and overlay flags
+* always load [hsm-core-rules.md](../references/hsm-core-rules.md) as the **only** primary rule set (framework-agnostic / UML 2.5-oriented)
+* do not treat framework notes as additional hard standards
+* if remediation needs local API names and `{{dialect}}` is known
+  * optionally skim [hsm-go-rules.md](../references/hsm-go-rules.md) or [sml-cpp-rules.md](../references/sml-cpp-rules.md) for wording only
+* if a project overlay file exists (e.g. `.agents/rules/hsm.rules.md`), map extras onto core ids; never override CF/BH/HI
+* load [check-patterns.md](../references/check-patterns.md) for scans
+* write `{{out_dir}}/rule-packs.json` with primary=`hsm-core-rules` and optional dialect hint only
 * return to the caller

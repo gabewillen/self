@@ -1,11 +1,12 @@
 ---
 name: gabe-hsm-review
 description: >-
-  Adversarially review hierarchical state machine work against Gabe HSM/SML hard
-  rules (hsm.go DSL, grantt hsm.rules, emel stateforward.SML). Use for
-  /gabe-hsm-review, HSM/SML design review, completion/choice/timer/mutex
-  audits, or when checking machines for RTC, graph-owned control flow, and
-  dialect-correct structure before merge.
+  Adversarially review hierarchical state machines against UML 2.5 semantics
+  (framework-agnostic): explicit guards/choice control flow, side-effect-free
+  guards/entry/exit/effects, activities for long-running/async work, and
+  hierarchy to eliminate duplicate same-event transitions. Use for
+  /gabe-hsm-review, statechart design review, or before merge when HSM control
+  flow must stay in the graph rather than in behavior code.
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -20,7 +21,8 @@ description: >-
   * [Parse Review Request](#parse-review-request)
 * set `{{findings}}` to an empty list
 * set `{{blocking_severities}}` to `P0,P1,P2` unless the user narrowed severity
-* set `{{allow_completion_dispatch}}` to `true` (machine-owned `CompletionEventKind` / `ErrorEventKind` dispatch from entry/activity/effect is allowed; other side effects are not)
+* set `{{semantic_standard}}` to `UML 2.5`
+* set `{{framework_agnostic}}` to `true`
 * run [Identify Scope](workflows/identify-scope.mdscript.md#identify-scope)
 * run [Load Rule Packs](workflows/load-rule-packs.mdscript.md#load-rule-packs)
 * [Inventory Machines](#inventory-machines)
@@ -29,7 +31,7 @@ description: >-
 
 * run [Inventory Machines](workflows/inventory-machines.mdscript.md#inventory-machines)
 * if `{{machine_inventory}}` is empty
-  * record a `P1` finding: no HSM/SML machines found in scope (or scope missed)
+  * record a `P1` finding: no state machines / statecharts found in scope (or scope missed)
   * [Emit Findings](#emit-findings)
 * [Run Audits](#run-audits)
 
@@ -46,6 +48,7 @@ description: >-
 ## Emit Findings
 
 * run [Emit Findings](workflows/emit-findings.mdscript.md#emit-findings)
+* prefer UML rule ids (`CF/BH/HI/ST*`) on every finding; framework notes are secondary only
 * if any finding severity is in `{{blocking_severities}}`
   * set `{{verdict}}` to `fail`
   * stop and report `fail`, blocking counts by severity, top findings, and `{{findings_path}}`
@@ -56,7 +59,8 @@ description: >-
 
 * do not treat docs or SUMMARY files as proof the machine is correct
 * do not waive P0–P2 without an explicit user waiver naming rule ids
-* do not apply `sml.cpp` API rules to `hsm.go` sources or the reverse
-* do not flag pure stateless helpers for “missing HSM”
-* do not flag machine-owned completion/error event dispatch when `{{allow_completion_dispatch}}` is true
+* do not prioritize framework style over UML 2.5 control-flow semantics
+* do not allow conditionals in entry/exit/effect/activity to choose control-flow outcomes
+* do not accept duplicated same-event transitions on siblings when hierarchy can own them
+* do not require long-running work in entry/exit/effect — activities only
 * do not rewrite machines in this skill — findings and remediation only

@@ -2,21 +2,17 @@
 
 ## Audit Structure
 
-* for each machine in `{{machine_inventory}}` with kind `hsm`
-  * check top-level `hsm.Initial` exists (HSM01 / CORE)
-  * check composites that nest states have explicit `Initial` when auto-entry is intended (HSM02)
-  * check no entry/exit on the top-level machine (HSM03–04)
-  * check `hsm.Choice` nodes have outgoing transitions and a final unguarded fallback (HSM16–18 / DSL-04)
-  * check finals have no transitions/activities/entry/exit (HSM49 / DSL-06)
-  * check history only inside composites with default target when needed (HSM50–51 / DSL-05)
-  * check names lack `/` and new symbols avoid `hsm_` / `_hsm` when grantt overlay on (DSL-02 / G-NAME)
-  * check Target/Source paths resolve to declared vertices when statically obvious (HSM19)
-  * append findings for violations with rule id, path, evidence snippet
-* for each machine with kind `sml`
-  * check transition tables use destination-first `<=` form in new/changed code (SML-TT)
-  * check model exposed as `using sm = ...` / component `sm` pattern when emel overlay on
-  * check no macros in models
-  * append findings with rule id and path
-* for large single files with many states and few submachines
-  * consider `P2` state-explosion / missing decomposition (HSM47 / CORE-13)
+* for each machine in `{{machine_inventory}}`
+  * check each region that should auto-enter has an **initial** pseudostate / initial transition (`ST-01`) — `P0` if missing
+  * check **choice** nodes have outs and an unguarded else when guards are not exhaustive (`ST-02`) — `P0`/`P1`
+  * check **final** vertices are absorbing (`ST-03`) — `P1`
+  * check **history** only in composites with default when needed (`ST-04`) — `P1`
+  * check transition ends reference existing vertices when statically knowable (`ST-05`) — `P1`
+  * inventory events handled on multiple sibling leaves with duplicated transitions
+    * flag hierarchy factoring debt (`HI-01`..`04`) — `P0` if exact duplicates, else `P1`/`P2`
+  * check shared handlers already live on composite parents where appropriate (positive note, no finding)
+  * if orthogonal/parallel regions appear
+    * apply `OR-01`; if project overlay bans them, `OR-02` as `P1`
+* do **not** require framework-specific naming, file layout, or module versions in this audit
+* append findings with UML rule ids first
 * return to the caller

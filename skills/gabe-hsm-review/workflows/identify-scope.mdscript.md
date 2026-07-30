@@ -6,14 +6,14 @@
   * if missing, ask the user for a valid root and [Identify Scope](#identify-scope)
 * expand `{{review_scope}}` into concrete file/dir paths under `{{repo_root}}`
 * set `{{policy_files}}` to any of these present under the scope or repo root: `AGENTS.md`, `CLAUDE.md`, `.agents/rules/hsm.rules.md`, `docs/rules/sml.rules.md`, `hsm.go/rules.md`, `dsl.md`
-* detect `{{dialect}}`:
+* set `{{semantic_standard}}` to `UML 2.5` regardless of implementation framework
+* detect optional `{{dialect}}` only for remediation syntax (review stays UML-first):
   * `sml.cpp` if scope is dominated by `stateforward/sml`, `emel::`, `make_transition_table`, or `emel.cpp`
   * `hsm.go` if scope uses `github.com/stateforward/hsm.go` or `hsm.Define` in Go
-  * `hsm.*` if other language HSM ports following `hsm.Define` / PascalCase DSL
-  * if mixed, set `{{dialect}}` to `mixed` and list per-path dialects in `{{dialect_map}}`
-* if `{{dialect}}` is still ambiguous
-  * ask the user to choose `hsm.go`, `sml.cpp`, `hsm.*`, or `mixed`
-  * [Identify Scope](#identify-scope)
+  * `hsm.*` if other HSM DSLs with explicit states/transitions
+  * `generic` if statecharts exist without a known framework
+  * `mixed` with `{{dialect_map}}` when multiple appear
+* if no machines yet and dialect is unclear, set `{{dialect}}` to `generic` and continue (do not block on framework choice)
 * set `{{project_overlays}}` empty then add:
   * `grantt` when path or module looks like grantt-me/grantt or policy files pin `hsm.go` v1.3.1 / NATS actor rules
   * `emel` when under emel.cpp

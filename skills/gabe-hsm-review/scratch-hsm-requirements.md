@@ -338,3 +338,8 @@ No Cursor adapter planned unless you want stop-hook style enforcement later.
 ---
 
 *End of scratch. Next: you mark edits / answers to §7, then we write MDScript.*
+
+
+## Update (UML-first)
+
+Primary standard is now UML 2.5 via `references/hsm-core-rules.md`. Framework rules are secondary bindings only.

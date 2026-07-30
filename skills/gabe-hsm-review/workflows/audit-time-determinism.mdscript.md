@@ -2,13 +2,12 @@
 
 ## Audit Time And Determinism
 
-* scan behavior paths for `time.Sleep`, `time.After`, `time.NewTicker`, `time.Tick`, wall `time.Now` in dispatch-critical logic
-* flag those inside HSM entry/exit/effect/activity/guard as `P0`/`P1` (CORE-05 / G-TIME / HSM42 / G-DET)
-* require machine-owned `hsm.After` / `hsm.Every` / `hsm.At` (or SML tick events with injected time) instead
-* flag while/poll loops inside activities (CORE-04) as `P0`
-* flag activities used for short synchronous work (HSM44–45) as `P2`
-* flag long activities that ignore `ctx.Done()` (HSM46) as `P1`
-* flag random, env, FS, or network reads inside transition-driving logic without injection (CORE-26 / G-DET) as `P1`
-* for sml: flag wall-clock reads in guards/actions and actor-created threads/timers (SML-G1 / SML-T1) as `P0`
-* append findings to `{{findings}}`
+* scan entry/exit/effect/guard for sleeps, ambient timers, wall-clock reads, blocking waits (`BH-02`, `BH-05`, `TM-01`, `TM-03`) — `P0`/`P1`
+* require **machine-owned time events** (after/every/at or UML time events) rather than ad-hoc sleeps in behaviors (`TM-01`) — `P0`
+* require async completion to re-enter as **events**; activities may run long work but must not branch outcomes in-code (`TM-02`, `CF-02`) — `P0`
+* flag long-running/async work placed in entry/exit/effect/guard instead of activity (`BH-03`, `BH-04`) — `P0`
+* flag activities that cannot be canceled/interrupted on state exit when the platform supports it — `P1`
+* flag short pure sync work incorrectly forced into activities when entry/effect would suffice — `P2` (style)
+* flag random/env/FS/network in guards or pure behaviors without injection (`TM-03`) — `P1`
+* append findings with UML ids first; framework timer API names only as `framework_note`
 * return to the caller

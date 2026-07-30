@@ -1,40 +1,28 @@
-# check-patterns
+# check-patterns (UML-first)
 
-Heuristic scans. Every hit needs human/context confirmation before a finding.
+Heuristics only — confirm before filing. Prefer UML rule ids.
 
-## hsm.go / Go
+## Control-flow smells in behaviors
 
 ```bash
-# inventory
-rg -n 'hsm\.Define\(|hsm\.State\(|hsm\.Initial\(|hsm\.Choice\(' {{scope}}
+# conditionals that often hide graph decisions (confirm in entry/exit/effect/activity/guard)
+rg -n 'if\s*\(|else if|switch\s*\(|\?[^\n]*:' {{scope}}
 
-# timers outside machine-owned API
-rg -n 'time\.(Sleep|After|NewTicker|Tick)\(|time\.Now\(' {{scope}}
-
-# sync smells
-rg -n 'sync\.(Mutex|RWMutex)|atomic\.' {{scope}}
-
-# completion / error kinds
-rg -n 'CompletionEventKind|ErrorEventKind|Kind:\s*hsm\.' {{scope}}
-
-# naming
-rg -n 'hsm_[A-Za-z]|_hsm\b|type\s+\w*[Hh]sm\w+' {{scope}}
-
-# defer / after hooks misuse
-rg -n 'hsm\.After(Process|Dispatch|Entry|Exit|Executed)\(' {{scope}}
-
-# module pin (grantt)
-rg -n 'github.com/stateforward/hsm.go' **/go.mod
+# success/fail dispatch pairs inside behaviors
+rg -n 'dispatch|process_event|send\(' {{scope}}
 ```
 
-## sml.cpp / emel
+## Hierarchy duplication
 
 ```bash
-rg -n 'make_transition_table|sml::sm<|process_event\(' {{scope}}
-rg -n 'process_queue|defer_queue' {{scope}}
-rg -n 'sml::unexpected_event|event<sml::_>' {{scope}}
-# actions/detail branching — confirm file is actions/detail/member path
-rg -n '^\s*if\s*\(|^\s*switch\s*\(|\?[^\n]*:' {{scope}}/**/actions.hpp {{scope}}/**/detail.hpp {{scope}}/**/detail.cpp
+# repeated event names — manually cluster by sibling states
+rg -n 'On\(|on:|event<|after\(|when\(' {{scope}}
+```
+
+## Time / async
+
+```bash
+rg -n 'Sleep\(|setTimeout|setInterval|time\.After|time\.Sleep|NewTicker' {{scope}}
 ```
 
 ## Finding template
@@ -42,11 +30,12 @@ rg -n '^\s*if\s*\(|^\s*switch\s*\(|\?[^\n]*:' {{scope}}/**/actions.hpp {{scope}}
 ```json
 {
   "severity": "P0",
-  "rule_id": "G-TIME",
-  "dialect": "hsm.go",
-  "location": "path/file.go:123",
-  "summary": "time.Sleep inside activity",
-  "evidence": "time.Sleep(time.Second)",
-  "remediation": "Replace with hsm.After/Every on a transition from a real state"
+  "rule_id": "CF-02",
+  "dialect": "generic",
+  "location": "path:line",
+  "summary": "Effect branches success vs failure with if",
+  "evidence": "if ok { ... } else { ... }",
+  "remediation": "Model outcomes as choice/guarded transitions; keep effect side-effect free",
+  "framework_note": "optional local API hint"
 }
 ```
