@@ -464,8 +464,29 @@ function ensureRouterDirective() {
   return report;
 }
 
+/**
+ * Put agent-home.mjs where the skills say it is.
+ *
+ * gabe-common tells agents to run `{{skills_root}}/../scripts/agent-home.mjs`.
+ * Installed, {{skills_root}} is ~/.cursor/skills or similar, so the script has
+ * to exist at ~/.cursor/scripts — it never did, only in the checkout. The
+ * command failed, the agent fell back to deriving the slug by hand, and a
+ * worktree run landed under the worktree's name while the hooks looked under
+ * the main repository's. Nothing reported it: the stop hook finds no run and
+ * exits clean, which is indistinguishable from a finished goal.
+ */
+function installAgentHomeScript(targetRoot, skillsRoot) {
+  const src = join(dirname(skillsRoot), "scripts", "agent-home.mjs");
+  if (!existsSync(src)) return null;
+  const dest = join(dirname(targetRoot), "scripts", "agent-home.mjs");
+  if (mode === "live") installSkillSymlink(src, dest);
+  else installSkillCopy(src, dest);
+  return dest;
+}
+
 function installInto(targetRoot, skills, skillsRoot) {
   ensureDir(targetRoot);
+  installAgentHomeScript(targetRoot, skillsRoot);
   const installed = [];
   for (const skill of skills) {
     const src = join(skillsRoot, skill);

@@ -250,6 +250,56 @@ export function safeSessionId(conversationId: string): string {
   return sanitized.slice(0, 128) || "unknown";
 }
 
+/**
+ * Find this conversation's session under a different project slug.
+ *
+ * The slug comes from the repository name, so it moves when a repo is renamed,
+ * when an older install resolved a worktree to its own directory instead of the
+ * main repository, or when an agent derived it by hand. A conversation id is
+ * unique, so a session filed under the wrong slug is still unambiguously this
+ * run — adopt it rather than starting over somewhere the writer will not look.
+ */
+export function findSessionElsewhere(
+  root: string,
+  conversationId: string,
+): string | null {
+  if (process.env.GABE_AGENTS_LOCAL === "1") {
+    return null;
+  }
+  const home = agentProjectHome(root);
+  const projectsRoot = dirname(home);
+  if (!existsSync(projectsRoot)) {
+    return null;
+  }
+  const mine = basename(home);
+  const id = safeSessionId(conversationId);
+  let found: string | null = null;
+  for (const entry of readdirSync(projectsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name === mine) {
+      continue;
+    }
+    const candidate = join(projectsRoot, entry.name, SESSIONS_DIR, id);
+    if (!existsSync(candidate)) {
+      continue;
+    }
+    if (found) {
+      // Two homes hold the same conversation; picking one silently would hide
+      // the split. Report and let the caller start clean at the correct home.
+      console.error(
+        `[gabe-goal] conversation ${id} exists under multiple project homes; ignoring both: ${found}, ${candidate}`,
+      );
+      return null;
+    }
+    found = candidate;
+  }
+  if (found) {
+    console.error(
+      `[gabe-goal] adopting session from ${found}; expected it under ${join(home, SESSIONS_DIR, id)}`,
+    );
+  }
+  return found;
+}
+
 export function sessionDirectory(root: string, conversationId: string): string {
   const id = safeSessionId(conversationId);
   const home = join(agentProjectHome(root), SESSIONS_DIR, id);
@@ -260,6 +310,11 @@ export function sessionDirectory(root: string, conversationId: string): string {
   const legacy = join(root, LEGACY_REPO_SESSIONS_DIR, id);
   if (existsSync(legacy)) {
     return legacy;
+  }
+  // A run filed under a slug this process does not derive is still this run.
+  const elsewhere = findSessionElsewhere(root, conversationId);
+  if (elsewhere) {
+    return elsewhere;
   }
   return home;
 }
