@@ -1,0 +1,7 @@
+node_modules/
+.install-receipt.json
+*.tgz
+.DS_Store
+.npm-cache/
+dist/
+coverage/

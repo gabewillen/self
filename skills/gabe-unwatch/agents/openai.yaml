@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gabe Unwatch"
+  short_description: "Stop a persistent gabe-watch PR loop"
+  default_prompt: "Use $gabe-unwatch to stop a persistent gabe-watch interval loop for a PR. Kill the while-true sentinel process, mark watch state inactive, and confirm no further ticks will fire."

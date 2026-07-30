@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gabe Orchestrate"
+  short_description: "Root Gabe orchestration"
+  default_prompt: "Use $gabe-orchestrate on gpt-5.6 Sol with medium reasoning to coordinate Gabe-shaped work from installed skill context and live evidence, create child orchestrators for subticket-owning scopes, delegate bounded execution and review ownership with a task-appropriate gpt-5.6-family model and reasoning level, write tasks, comments, plans, goals, durable instructions, handoffs, and continuations as executable MDScript under ~/.agents/projects/project-name/ with stable headings and exact re-entry commands, never put that control plane in the working repository, preserve scoped DBC proof decisions, reject untested infrastructure blockers, use hot-path MDScript events, write return scripts before authority prompts, require every lane to report before stopping, and report decision-ready status."

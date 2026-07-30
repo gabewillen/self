@@ -1,0 +1,39 @@
+<!-- mdscript: use the mdscript-exec skill or read [mdscript.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/README.md) -->
+
+## Check Goal And Contract
+
+* verify the artifact preserves objective, done state, blockers, accepted input, promised output, ownership, failure behavior, and required evidence
+
+* for PR/MR work, require a Design by Contract proof contract:
+  * inputs and preconditions: what must exist before `{{proof_claim}}` can be tested
+  * outputs and postconditions: what the MR promises to produce
+  * invariants: what must remain true across the change
+  * proof path: exact tests, screenshots, traces, resources, artifacts, public review, or live checks that prove the claim
+
+* if work started from a patch instead of a contract, changed hidden scope, or lacks a done state
+  * add a finding with consequence and evidence pointer
+
+* if a PR/MR lacks inputs/preconditions, outputs/postconditions, invariants, or proof path
+  * add a finding requiring the author to define the contract before acceptance review
+
+* for async, lifecycle, retry, timeout, command-surface, target-scope, coordination, or user-visible behavior
+  * require explicit states, events, guards, typed inputs, typed outputs, failures, metrics, ownership, rollback, and teardown
+
+* if model judgment reconstructs facts already known through structured data, typed state, product contracts, telemetry, or events
+  * add a finding
+
+* for MDScript workflows that prompt for user or authority input
+  * require the contract to name the pending decision, return script path, exact resume command, saved context, and caller heading that resumes after the answer
+
+* if a Gabe-shaped task, comment, plan, durable instruction, handoff, or continuation artifact is prose-only
+  * add a finding
+
+* require each Gabe-shaped task, comment, plan, durable instruction, handoff, and continuation artifact to include an MDScript execution header, stable state headings, one discrete executable action per step, explicit failure and recovery branches, and an exact re-entry command when work can continue
+
+* if the artifact creates, resumes, reviews, or depends on a `gabe-orchestrate` role agent
+  * require an explicit `model: gpt-5.6 Sol` with `reasoning: medium`
+  * add a finding if the orchestrator agent, thread, goal, handoff, lane ledger, or review record uses another model or reasoning level, or omits the configuration while claiming the role is correctly configured
+
+* if the artifact creates, resumes, reviews, or depends on a `gabe-implement` or `gabe-review` role agent
+  * require an explicit `gpt-5.6`-family `model`, `reasoning`, and `model_selection_basis` tied to the exact task and proof scope
+  * add a finding when the selection is missing, unsupported by the task, silently substituted, or clearly insufficient for the role contract

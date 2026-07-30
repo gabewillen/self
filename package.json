@@ -1,0 +1,89 @@
+{
+  "name": "@gabewillen/agents",
+  "version": "0.1.0",
+  "description": "Gabe MDScript agent skills pack (gabe-*, mdscript-exec/write, gabe-common) installable via npm and npx skills",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "author": "Gabe Willen",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabewillen/agents.git"
+  },
+  "homepage": "https://github.com/gabewillen/agents#readme",
+  "bugs": {
+    "url": "https://github.com/gabewillen/agents/issues"
+  },
+  "keywords": [
+    "agent-skills",
+    "agentskills",
+    "ai-agent-skill",
+    "mdscript",
+    "gabe",
+    "skills"
+  ],
+  "files": [
+    "skills",
+    "scripts",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "gabe-agents": "./scripts/install.mjs"
+  },
+  "scripts": {
+    "postinstall": "node ./scripts/install.mjs",
+    "install-skills": "node ./scripts/install.mjs",
+    "pack:check": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "agents": {
+    "skills": [
+      { "name": "gabe", "path": "./skills/gabe" },
+      { "name": "gabe-automate", "path": "./skills/gabe-automate" },
+      { "name": "gabe-common", "path": "./skills/gabe-common" },
+      { "name": "gabe-goal", "path": "./skills/gabe-goal" },
+      { "name": "gabe-implement", "path": "./skills/gabe-implement" },
+      { "name": "gabe-orchestrate", "path": "./skills/gabe-orchestrate" },
+      { "name": "gabe-review", "path": "./skills/gabe-review" },
+      { "name": "gabe-unwatch", "path": "./skills/gabe-unwatch" },
+      { "name": "gabe-voice", "path": "./skills/gabe-voice" },
+      { "name": "gabe-watch", "path": "./skills/gabe-watch" },
+      { "name": "mdscript-exec", "path": "./skills/mdscript-exec" },
+      { "name": "mdscript-write", "path": "./skills/mdscript-write" }
+    ]
+  },
+  "agentskills": {
+    "skills": [
+      { "name": "gabe", "path": "./skills/gabe" },
+      { "name": "gabe-automate", "path": "./skills/gabe-automate" },
+      { "name": "gabe-common", "path": "./skills/gabe-common" },
+      { "name": "gabe-goal", "path": "./skills/gabe-goal" },
+      { "name": "gabe-implement", "path": "./skills/gabe-implement" },
+      { "name": "gabe-orchestrate", "path": "./skills/gabe-orchestrate" },
+      { "name": "gabe-review", "path": "./skills/gabe-review" },
+      { "name": "gabe-unwatch", "path": "./skills/gabe-unwatch" },
+      { "name": "gabe-voice", "path": "./skills/gabe-voice" },
+      { "name": "gabe-watch", "path": "./skills/gabe-watch" },
+      { "name": "mdscript-exec", "path": "./skills/mdscript-exec" },
+      { "name": "mdscript-write", "path": "./skills/mdscript-write" }
+    ]
+  },
+  "aiAgentSkill": [
+    "skills/gabe/SKILL.md",
+    "skills/gabe-automate/SKILL.md",
+    "skills/gabe-common/SKILL.md",
+    "skills/gabe-goal/SKILL.md",
+    "skills/gabe-implement/SKILL.md",
+    "skills/gabe-orchestrate/SKILL.md",
+    "skills/gabe-review/SKILL.md",
+    "skills/gabe-unwatch/SKILL.md",
+    "skills/gabe-voice/SKILL.md",
+    "skills/gabe-watch/SKILL.md",
+    "skills/mdscript-exec/SKILL.md",
+    "skills/mdscript-write/SKILL.md"
+  ]
+}
