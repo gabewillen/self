@@ -326,6 +326,50 @@ function installSkillSymlink(src, dest) {
   symlinkSync(linkTarget, dest);
 }
 
+/**
+ * A skill directory with no readable SKILL.md is a broken install: the entry
+ * exists so tools list it, but it has no body. Report every one, including
+ * stale entries left by a previous run whose source has since moved.
+ */
+function reportBrokenSkillDirs(targetRoots, managedSkills) {
+  const broken = [];
+  for (const root of targetRoots) {
+    if (!existsSync(root)) continue;
+    let entries = [];
+    try {
+      entries = readdirSync(root);
+    } catch {
+      continue;
+    }
+    for (const name of entries) {
+      const dest = join(root, name);
+      // Check every symlinked entry (we are the ones that symlink) plus any
+      // skill this run manages. A resolvable link to a body-less directory is
+      // just as broken as a dangling one.
+      const link = isSymlink(dest);
+      if (!link && !managedSkills.includes(name)) continue;
+      if (existsSync(join(dest, "SKILL.md"))) continue;
+      const dangling = link && !existsSync(dest);
+      broken.push(
+        dangling
+          ? `${dest} (dangling symlink -> ${readlinkSync(dest)})`
+          : link
+            ? `${dest} (symlink -> ${readlinkSync(dest)}, no SKILL.md)`
+            : `${dest} (no SKILL.md)`,
+      );
+    }
+  }
+  if (!broken.length) return;
+  console.error(
+    `[gabe-agents] BROKEN: ${broken.length} skill dir(s) have no readable SKILL.md:`,
+  );
+  for (const b of broken) console.error(`    - ${b}`);
+  console.error(
+    "[gabe-agents] a symlinked skill needs its live root present on THIS machine; re-run install after fixing the source",
+  );
+  return broken;
+}
+
 function installInto(targetRoot, skills, skillsRoot) {
   ensureDir(targetRoot);
   const installed = [];
@@ -537,11 +581,17 @@ function installGenericAdapterFiles({ skill, adapter, dir, primarySkillRoot }) {
       targets.push(to);
       continue;
     }
+    // Check the source FIRST: creating the destination for a missing source
+    // leaves an empty skill directory that looks installed but has no SKILL.md.
+    if (!existsSync(from)) {
+      console.warn(`[gabe-agents] adapter source missing, skipping: ${from}`);
+      continue;
+    }
     ensureDir(dirname(to));
-    if (existsSync(from) && statSync(from).isDirectory()) {
+    if (statSync(from).isDirectory()) {
       ensureDir(to);
       cpSync(from, to, { recursive: true });
-    } else if (existsSync(from)) {
+    } else {
       cpSync(from, to);
     }
     targets.push(to);
@@ -672,6 +722,8 @@ const skillsRoot = skillsRootForMode(liveRoot);
 const skills = listSkillDirs(skillsRoot);
 if (skills.length === 0) {
   console.error(`[gabe-agents] no skills found under ${skillsRoot}`);
+  const staleRoots = explicitTarget ? [explicitTarget] : detectAgentSkillRoots();
+  reportBrokenSkillDirs(staleRoots, []);
   process.exit(1);
 }
 
@@ -694,6 +746,8 @@ if (mdscriptSkills.length && !dryRun) {
 }
 
 const adapterReport = installAdapters(skills, [...targets], skillsRoot);
+
+if (!dryRun) reportBrokenSkillDirs(targets, skills);
 
 let markerPath = null;
 if (mode === "live") {
