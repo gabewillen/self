@@ -11,6 +11,8 @@ import { join } from "node:path";
 
 export interface GoalState {
   active: boolean;
+  /** Front-matter status: active | completed | stopped | blocked. */
+  status?: string;
   goal: string;
   conversation_id: string;
   started_at?: string;
@@ -541,6 +543,7 @@ export function goalStateFromFrontMatter(
       typeof fm.primary_user_action === "string" ? fm.primary_user_action : undefined,
     goal_mdscript:
       typeof fm.goal_mdscript === "string" ? fm.goal_mdscript : undefined,
+    status: typeof fm.status === "string" ? fm.status : undefined,
     resume_heading:
       typeof fm.resume_heading === "string" ? fm.resume_heading : undefined,
     iteration:
@@ -725,6 +728,21 @@ function activeSessionPaths(
     return null;
   }
   return paths;
+}
+
+/**
+ * Resolve this conversation's current run WITHOUT requiring it to be active.
+ * The stop hook needs it so a run deactivated in its own front matter is still
+ * checked against the gabe-review gate instead of silently ending the loop.
+ */
+export function resolveGoalPathsIgnoringActive(
+  root: string,
+  conversationId: string,
+): GoalSessionPaths | null {
+  return (
+    resolveRunPathsFromSession(root, conversationId, false) ??
+    legacyGrindSessionPaths(root, conversationId)
+  );
 }
 
 export function resolveActiveGoalPaths(
@@ -1081,21 +1099,21 @@ ${reasonsBullets}
 * append one JSON line to \`{{run_dir}}/progress.jsonl\` with commands run, new artifact paths, and pass/fail evidence
 * add new timestamped artifact files under \`{{run_dir}}/artifacts/\` when proof changes; never overwrite prior artifact files
 * when proof is ready, write neutral \`{{run_dir}}/review-packet.md\` and compose gabe-review triple adversarial blind via mdscript-exec (rules + security + completeness lanes)
-* persist gabe-review's decision to \`{{run_dir}}/review-verdict.json\` — only triple blind Proven-for (all three lane sign-offs + empty blocking_findings) completes the goal
+* persist gabe-review's decision to \`{{run_dir}}/review-verdict.mdscript.md\` — only triple blind Proven-for (all three lane sign-offs + empty blocking_findings) completes the goal
 * resolve every blocking finding before re-review
 * wait for all background subagents / reviewer work to finish before attempting to stop
-* do not ask the user to re-prompt — the stop hook loops by re-execing this MDScript until gabe-review proves the goal or you set active:false with a real blocker
+* do not ask the user to re-prompt — the stop hook loops by re-execing this MDScript until gabe-review proves the goal; setting active:false without a gabe-review verdict re-opens the run
 * if still incomplete after this wave, keep front-matter active:true and leave this MDScript current
 * if complete, jump to [Complete Goal](#complete-goal)
 * if blocked by a missing external resource that cannot be stood up, jump to [Manual Stop](#manual-stop)
 
 ## Complete Goal
 
-* verify \`{{run_dir}}/review-verdict.json\` exists from gabe-review with matching goal/conversation_id, grade starting with Proven for, empty blocking_findings, and proof_supplied referencing run artifacts
+* verify \`{{run_dir}}/review-verdict.mdscript.md\` front matter exists from gabe-review with matching goal/conversation_id, grade starting with Proven for, empty blocking_findings, and proof_supplied referencing run artifacts
 * set front-matter active:false / status:completed on this MDScript
 * update \`{{session_dir}}/active-run.json\` to mark the run inactive when applicable
 * append goal_completed / run_completed to the append-only logs
-* stop and report the completed goal, \`{{run_dir}}\`, artifact summary, and that A/B/C signed off with empty p_findings
+* stop and report the completed goal, \`{{run_dir}}\`, artifact summary, and that the rules, security, and completeness lanes signed off with empty p_findings
 
 ## Manual Stop
 
@@ -1225,7 +1243,7 @@ export function buildActiveGoalContext(
     orchestratorModel?.trim()
       ? `* orchestrator_model: ${orchestratorModel.trim()} — pass model="${orchestratorModel.trim()}" on worker Task subagents (implementation, proof, explore, shell, CI)`
       : "",
-    "* reviewer_skill: gabe-review — compose via mdscript-exec; persist review-verdict.json (do not invent parallel sign-off protocol)",
+    "* reviewer_skill: gabe-review — compose via mdscript-exec; persist review-verdict.mdscript.md (do not invent parallel sign-off protocol)",
     ...completion.reasons.map((reason) => `* completion_gate: ${reason}`),
     "* while active: produce artifacts, compose gabe-review before stopping, append progress.jsonl only",
     "* only a gabe-review Proven-for verdict with empty blocking_findings completes the goal",
@@ -1834,6 +1852,34 @@ export function deactivateGoal(
     const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
     if (pointer) {
       writeJson(paths.activeRun, { ...pointer, active: false });
+    }
+  }
+}
+
+/**
+ * Re-open a run that was marked inactive or completed without gabe-review
+ * having closed it. Only the verdict plus three blind sign-offs end a goal; an
+ * agent editing its own front matter must not be able to end the loop.
+ */
+export function reopenGoalRun(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+): void {
+  const reopened: GoalState = {
+    ...state,
+    active: true,
+    ended_at: undefined,
+  };
+  writeGoalMdscript(root, paths, reopened, {
+    status: "active",
+    resumeHeading: DEFAULT_RESUME_HEADING,
+  });
+
+  if (existsSync(paths.activeRun)) {
+    const pointer = loadJson<ActiveRunPointer>(paths.activeRun);
+    if (pointer) {
+      writeJson(paths.activeRun, { ...pointer, active: true });
     }
   }
 }

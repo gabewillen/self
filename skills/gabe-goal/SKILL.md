@@ -58,6 +58,8 @@ description: >-
 
 ## Complete Goal
 
+* treat the gabe-review verdict as the only thing that closes a goal; setting `active: false` or `status: completed` without it does not end the run
+* expect the stop hook to re-open any run marked complete without a valid verdict, re-entering at `pursue-goal` and recording `completion_rejected`
 * verify `{{run_dir}}/review-verdict.mdscript.md` exists from gabe-review, reading its YAML front matter for matching `goal` and `conversation_id`, grade/proof_decision starting with `Proven for`, empty `blocking_findings`, and `proof_supplied` / `artifact_paths` referencing run artifacts
 * read a legacy `{{run_dir}}/review-verdict.json` only when the MDScript verdict is absent; never write the legacy file for new runs
 * set front-matter `active: false` on `{{goal_mdscript}}`
@@ -77,6 +79,7 @@ description: >-
 
 ## Manual Stop
 
+* use a terminal `status` of `stopped` or `blocked`, never `completed`, when leaving a run inactive without a gabe-review verdict
 * set front-matter `active: false` on `{{goal_mdscript}}` when the user stops the goal or an external blocker cannot be cleared
 * refresh `{{goal_mdscript}}` with `status: stopped` or `blocked`, the blocker summary, and `resume_heading: manual-stop`
 * append `goal_stopped` with the blocker summary to `{{run_dir}}/progress.jsonl` and both append-only logs

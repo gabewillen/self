@@ -102,7 +102,10 @@ Required headings: `Goal Contract`, `Resume Goal`, `Pursue Goal` (or current `re
 }
 ```
 
-Completion requires grade/proof_decision starting with `Proven for` and empty `blocking_findings`. `Not ready for …` re-enters pursue/fix. `Blocked for …` stops only when the missing precondition cannot be stood up locally.
+Completion requires grade/proof_decision starting with `Proven for` and empty `blocking_findings`.
+The stop hook enforces this: a run left inactive with `status: completed` but no valid
+verdict is re-opened at `pursue-goal` with a `completion_rejected` progress entry.
+Use `status: stopped` or `blocked` for a deliberate stop, which the hook leaves alone. `Not ready for …` re-enters pursue/fix. `Blocked for …` stops only when the missing precondition cannot be stood up locally.
 
 gabe-goal does not implement a parallel reviewer protocol — it execs `gabe-review` and persists that decision.
 
