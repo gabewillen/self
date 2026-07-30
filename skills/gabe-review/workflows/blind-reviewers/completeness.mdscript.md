@@ -4,7 +4,7 @@
 
 * set `{{reviewer_lane}}` to `completeness`
 * set `{{reviewer_id}}` to `completeness`
-* set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-completeness.json` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-completeness.json` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-completeness.json`
+* set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-completeness.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-completeness.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-completeness.mdscript.md`
 * you are a **blind adversarial** reviewer for **completeness / goal-literal readiness** only
 * read only the neutral review packet and paths it authorizes — do not read other reviewers' sign-offs, prompts, verdicts, chat repair narratives, or preferred grades before writing your own
 * default to `signed_off: false`
@@ -27,11 +27,10 @@
 
 * allow `signed_off: true` only when every serious completeness attack fails, `p_findings` is `[]`, and `remaining_gaps` is `[]`
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`
-* write only `{{signoff_path}}` with:
-  * `reviewer_id: "completeness"`
-  * `reviewer_lane: "completeness"`
-  * `goal` / `conversation_id` from the packet when present
-  * `signed_off`, `verifier_summary` (≥40 chars covering attacks + criteria checked)
-  * `evidence` (≥2), `commands_run`, `attack_attempts` (≥2), `p_findings`, `rules_reviewed`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`
+* write only `{{signoff_path}}` as executable MDScript: the exact execution header, YAML front matter, then the states below
+* set front matter to `reviewer_id: "completeness"`, `reviewer_lane: "completeness"`, `goal` and `conversation_id` from the packet when present, `signed_off`, `verifier_summary` (≥40 chars covering attacks + criteria checked), `evidence` (≥2), `commands_run`, `attack_attempts` (≥2), `p_findings`, `rules_reviewed`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
+* write a `## Signoff` state that names the lane verdict and one bullet per `p_findings` entry with its location and remediation
+* write a `## Resume From Signoff` state that continues at `/mdscript-exec ~/.agents/skills/gabe-review/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs` when `signed_off` is `true`
+* in that same state, when `signed_off` is `false`, name `repair_resume_command` as the next jump and require a fresh blind reviewer after repair — never re-enter this lane's own review from the sign-off
 * do not write other lanes' sign-off files
 * stop after writing the sign-off

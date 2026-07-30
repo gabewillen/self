@@ -111,6 +111,10 @@ export interface GoalSessionPaths {
   signoffReviewerRules: string;
   signoffReviewerSecurity: string;
   signoffReviewerCompleteness: string;
+  signoffReviewerRulesMdscript: string;
+  signoffReviewerSecurityMdscript: string;
+  signoffReviewerCompletenessMdscript: string;
+  reviewVerdictMdscript: string;
   artifacts: string;
   artifactsManifest: string;
   progressLog: string;
@@ -157,15 +161,22 @@ export interface GoalReviewVerdict {
 }
 
 export const MIN_SUMMARY_LENGTH = 40;
+/** Legacy pre-rename lanes. Kept for read fallback and cleanup only. */
 export const SIGNOFF_REVIEWER_A_FILE = "signoff-reviewer-a.json";
 export const SIGNOFF_REVIEWER_B_FILE = "signoff-reviewer-b.json";
 export const SIGNOFF_REVIEWER_C_FILE = "signoff-reviewer-c.json";
+/** Current lanes. Sign-offs and verdicts are re-enterable MDScript. */
+export const SIGNOFF_RULES_MDSCRIPT = "signoff-reviewer-rules.mdscript.md";
+export const SIGNOFF_SECURITY_MDSCRIPT = "signoff-reviewer-security.mdscript.md";
+export const SIGNOFF_COMPLETENESS_MDSCRIPT = "signoff-reviewer-completeness.mdscript.md";
+export const REVIEW_VERDICT_MDSCRIPT = "review-verdict.mdscript.md";
 export const REVIEWER_MODEL_SLUG = "composer-2.5-fast";
 export const ARTIFACTS_MANIFEST_FILE = "manifest.json";
 export const ACTIVE_RUN_FILE = "active-run.json";
 export const SESSION_LOG_FILE = "session-log.jsonl";
 export const PROGRESS_LOG_FILE = "progress.jsonl";
 export const GOAL_MDSCRIPT_FILE = "goal.mdscript.md";
+/** Legacy read-only fallback; never written for new runs. */
 export const REVIEW_VERDICT_FILE = "review-verdict.json";
 export const REVIEW_PACKET_FILE = "review-packet.md";
 export const RUNS_DIR_NAME = "runs";
@@ -224,6 +235,10 @@ function extendRunPaths(
     signoffReviewerRules: join(runDirectoryPath, "signoff-reviewer-rules.json"),
     signoffReviewerSecurity: join(runDirectoryPath, "signoff-reviewer-security.json"),
     signoffReviewerCompleteness: join(runDirectoryPath, "signoff-reviewer-completeness.json"),
+    signoffReviewerRulesMdscript: join(runDirectoryPath, SIGNOFF_RULES_MDSCRIPT),
+    signoffReviewerSecurityMdscript: join(runDirectoryPath, SIGNOFF_SECURITY_MDSCRIPT),
+    signoffReviewerCompletenessMdscript: join(runDirectoryPath, SIGNOFF_COMPLETENESS_MDSCRIPT),
+    reviewVerdictMdscript: join(runDirectoryPath, REVIEW_VERDICT_MDSCRIPT),
     artifacts: artifactsDirectory,
     artifactsManifest: join(artifactsDirectory, ARTIFACTS_MANIFEST_FILE),
     progressLog: join(runDirectoryPath, PROGRESS_LOG_FILE),
@@ -337,6 +352,28 @@ export function usesStrictGoalCompletion(paths: GoalSessionPaths): boolean {
     return true;
   }
   return paths.goal.endsWith("goal.json");
+}
+
+/**
+ * Read a record that is authored as re-enterable MDScript: YAML front matter is
+ * the state, the body carries the states an agent resumes from. Falls back to
+ * the pre-cutover JSON file so old runs keep evaluating.
+ */
+export function loadMdscriptRecord<T>(
+  mdscriptPath: string,
+  legacyJsonPath: string,
+): T | null {
+  if (existsSync(mdscriptPath)) {
+    try {
+      const fm = parseMdscriptFrontMatter(readFileSync(mdscriptPath, "utf-8"));
+      if (fm) {
+        return fm as T;
+      }
+    } catch {
+      // Fall through to legacy JSON.
+    }
+  }
+  return loadJson<T>(legacyJsonPath);
 }
 
 export function loadJson<T>(path: string): T | null {
@@ -1527,7 +1564,11 @@ export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
     paths.signoffReviewerRules,
     paths.signoffReviewerSecurity,
     paths.signoffReviewerCompleteness,
+    paths.signoffReviewerRulesMdscript,
+    paths.signoffReviewerSecurityMdscript,
+    paths.signoffReviewerCompletenessMdscript,
     paths.reviewVerdict,
+    paths.reviewVerdictMdscript,
   ]) {
     if (existsSync(signoffPath)) {
       unlinkSync(signoffPath);
@@ -1680,22 +1721,34 @@ export function validateTripleBlindSignoffs(
   conversationId: string,
 ): GoalCompletionStatus {
   const lanes: Array<{ id: GoalReviewerId; path: string }> = [
-    { id: "rules", path: paths.signoffReviewerRules },
-    { id: "security", path: paths.signoffReviewerSecurity },
-    { id: "completeness", path: paths.signoffReviewerCompleteness },
+    {
+      id: "rules",
+      path: paths.signoffReviewerRulesMdscript,
+      legacy: paths.signoffReviewerRules,
+    },
+    {
+      id: "security",
+      path: paths.signoffReviewerSecurityMdscript,
+      legacy: paths.signoffReviewerSecurity,
+    },
+    {
+      id: "completeness",
+      path: paths.signoffReviewerCompletenessMdscript,
+      legacy: paths.signoffReviewerCompleteness,
+    },
   ];
   const reasons: string[] = [];
   const signoffs: GoalSignoff[] = [];
 
   for (const lane of lanes) {
-    const signoff = loadJson<GoalSignoff>(lane.path);
+    const signoff = loadMdscriptRecord<GoalSignoff>(lane.path, lane.legacy);
     if (!signoff || !isValidSignoff(signoff, goal, conversationId, lane.id, root)) {
       reasons.push(
         signoffRejectionReason(
           signoff,
           goal,
           conversationId,
-          relativePath(root, lane.path),
+          relativePath(root, existsSync(lane.legacy) ? lane.legacy : lane.path),
           lane.id,
           root,
         ),
@@ -1777,14 +1830,22 @@ export function evaluateGoalCompletion(
     reasons.push(...triple.reasons);
   }
 
-  const verdict = loadJson<GoalReviewVerdict>(paths.reviewVerdict);
+  const verdict = loadMdscriptRecord<GoalReviewVerdict>(
+    paths.reviewVerdictMdscript,
+    paths.reviewVerdict,
+  );
   if (!verdict || !isValidGabeReviewVerdict(verdict, goal, conversationId)) {
     reasons.push(
       gabeReviewRejectionReason(
         verdict,
         goal,
         conversationId,
-        relativePath(root, paths.reviewVerdict),
+        relativePath(
+          root,
+          existsSync(paths.reviewVerdict)
+            ? paths.reviewVerdict
+            : paths.reviewVerdictMdscript,
+        ),
       ),
     );
   }

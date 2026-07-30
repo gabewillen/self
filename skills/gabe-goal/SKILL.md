@@ -48,7 +48,7 @@ description: >-
 * if any blind lane fails, gabe-review returns `Not ready for …`, or blocking findings remain
   * fix every blocking finding
   * refresh artifacts and `artifacts/manifest.json` when proof changed
-  * delete stale `{{run_dir}}/review-verdict.json`
+  * delete stale `{{run_dir}}/review-verdict.mdscript.md`
   * append a `review_rejected` line to `{{run_dir}}/progress.jsonl`
   * refresh `{{goal_mdscript}}` with the unioned findings and `resume_heading: pursue-goal`
   * [Pursue Goal](#pursue-goal)
@@ -58,7 +58,8 @@ description: >-
 
 ## Complete Goal
 
-* verify `{{run_dir}}/review-verdict.json` exists from gabe-review with matching `goal` and `conversation_id`, grade/proof_decision starting with `Proven for`, empty `blocking_findings`, and `proof_supplied` / `artifact_paths` referencing run artifacts
+* verify `{{run_dir}}/review-verdict.mdscript.md` exists from gabe-review, reading its YAML front matter for matching `goal` and `conversation_id`, grade/proof_decision starting with `Proven for`, empty `blocking_findings`, and `proof_supplied` / `artifact_paths` referencing run artifacts
+* read a legacy `{{run_dir}}/review-verdict.json` only when the MDScript verdict is absent; never write the legacy file for new runs
 * set front-matter `active: false` on `{{goal_mdscript}}`
 * refresh `{{goal_mdscript}}` with `status: completed` and `resume_heading: complete-goal`
 * update `{{session_dir}}/active-run.json` to mark the run inactive
@@ -85,12 +86,12 @@ description: >-
 
 * do not start on a vague goal — clarify first
 * do not write shared `.cursor/goal.json` — use `{{session_dir}}` / `{{run_dir}}` only
-* do not write `goal.json` for new runs — `{{run_dir}}/goal.mdscript.md` front matter is the sole run-state source
+* do not write `goal.json`, `review-verdict.json`, or `signoff-reviewer-*.json` for new runs — the matching `.mdscript.md` front matter is the sole source
 * do not track the active goal only in prose — keep `{{run_dir}}/goal.mdscript.md` executable and current
 * do not answer a stop-hook follow-up without `mdscript-exec` into the run MDScript heading it names
 * do not invent a custom reviewer protocol outside `gabe-review` — compose its triple adversarial blind lanes
 * do not accept completion without all three blind lane sign-offs (rules, security, completeness)
-* do not self-author `review-verdict.json` Proven-for grades — only persist what gabe-review decided
+* do not self-author `review-verdict.mdscript.md` Proven-for grades — only persist what gabe-review decided
 * do not claim completion without on-disk artifacts and a gabe-review Proven-for verdict
 * do not work solo-serially when parallel subagents can run
 * do not truncate or rewrite append-only logs or overwrite artifact files

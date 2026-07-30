@@ -17,10 +17,11 @@ Portable reference for the MDScript `gabe-goal` skill. Session layout matches th
 | `runs/<run_id>/artifacts/**` | New timestamped files only |
 | `runs/<run_id>/artifacts/manifest.json` | Reproduce map |
 | `runs/<run_id>/review-packet.md` | Neutral packet for gabe-review |
-| `runs/<run_id>/review-verdict.json` | Durable gabe-review completion verdict |
-| `runs/<run_id>/signoff-reviewer-rules.json` | Blind rules lane (AGENTS/CLAUDE/GEMINI) |
-| `runs/<run_id>/signoff-reviewer-security.json` | Blind security/penetration lane |
-| `runs/<run_id>/signoff-reviewer-completeness.json` | Blind completeness lane |
+| `runs/<run_id>/review-verdict.mdscript.md` | Durable gabe-review verdict (front matter) + `Resume From Verdict` dispatch |
+| `runs/<run_id>/review-verdict.json` | Legacy only — read fallback; not written for new runs |
+| `runs/<run_id>/signoff-reviewer-rules.mdscript.md` | Blind rules lane (AGENTS/CLAUDE/GEMINI): front matter + `Resume From Signoff` |
+| `runs/<run_id>/signoff-reviewer-security.mdscript.md` | Blind security/penetration lane: front matter + `Resume From Signoff` |
+| `runs/<run_id>/signoff-reviewer-completeness.mdscript.md` | Blind completeness lane: front matter + `Resume From Signoff` |
 
 ## goal.mdscript.md front matter (authoritative run state)
 
@@ -71,7 +72,7 @@ Required headings: `Goal Contract`, `Resume Goal`, `Pursue Goal` (or current `re
 }
 ```
 
-## review-verdict.json (gabe-review composition)
+## review-verdict.mdscript.md (gabe-review composition)
 
 ```json
 {
@@ -82,9 +83,9 @@ Required headings: `Goal Contract`, `Resume Goal`, `Pursue Goal` (or current `re
   "triple_blind": true,
   "lanes": ["rules", "security", "completeness"],
   "signoff_paths": [
-    "signoff-reviewer-rules.json",
-    "signoff-reviewer-security.json",
-    "signoff-reviewer-completeness.json"
+    "signoff-reviewer-rules.mdscript.md",
+    "signoff-reviewer-security.mdscript.md",
+    "signoff-reviewer-completeness.mdscript.md"
   ],
   "proof_scope": "goal-completion|live-proof|…",
   "grade": "Proven for <proof_scope>",
