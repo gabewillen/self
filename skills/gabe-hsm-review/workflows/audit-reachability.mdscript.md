@@ -2,8 +2,6 @@
 
 ## Audit Reachability
 
-Pure graph computation over `{{out_dir}}/graph.json`. No source reading.
-
 * compute the set of vertices reachable from every initial pseudostate, following transitions and
   composite entry
 * for each vertex not in that set, record `RC-01` — `P0`, unreachable vertex

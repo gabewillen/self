@@ -2,8 +2,6 @@
 
 ## Request Waiver
 
-Write the return script before asking. The prompt is invalid without it.
-
 * write `.mdscript/returns/hsm-review-waiver-{{run_id}}.md` containing:
   * this skill's path and the resume heading `Emit Findings`
   * `{{run_id}}`, `{{out_dir}}`, `{{findings_log}}`, `{{findings_path}}`, `{{full_sweep}}`,

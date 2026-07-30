@@ -16,6 +16,7 @@
 * if the user named `live_proof` as `required` or `optional`, keep that value
 * set `{{primary_user_action}}` to one sentence naming the end-to-end path that must work when live proof is required
 * if live proof is required and `{{primary_user_action}}` is empty
+  * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with the resume heading `Clarify Goal` and `{{primary_user_action}}` as the requested value
   * ask the user for the primary user/runtime path as `{{primary_user_action}}`
   * [Clarify Goal](#clarify-goal)
 * return to the caller

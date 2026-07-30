@@ -2,8 +2,6 @@
 
 ## Audit Time And Determinism
 
-Read only the behaviors listed in `{{out_dir}}/graph.json`.
-
 * for each sleep, timer, or ticker created inside a behavior, record `TM-01` — `P0`; time belongs to
   the model as an after, every, or at trigger
 * for each blocking wait inside a guard, effect, entry, or exit, record `BH-05` — `P0`

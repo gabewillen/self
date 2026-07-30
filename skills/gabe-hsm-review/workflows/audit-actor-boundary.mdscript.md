@@ -2,9 +2,6 @@
 
 ## Audit Actor Boundary
 
-The machine is the only reader and the only writer of its own data. Every violation here is a
-concurrency bug, not a style preference.
-
 * for each read or write of machine state or attributes, locate the code holding it
   * if it is not inside a guard, effect, entry, or exit of that same machine, record `AC-01` — `P0`
   * if it is inside an activity, record `AC-06` — `P0`; activities run outside the step and must

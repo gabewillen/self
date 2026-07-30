@@ -2,8 +2,6 @@
 
 ## Audit Hierarchy
 
-Cluster from `{{out_dir}}/graph.json`.
-
 * group transitions by trigger, then by the source vertex's parent
 * for each group where sibling vertices carry the same trigger with the same target or effect
   * record `HI-01` for exact duplicates, `HI-02` when the responses differ only in detail

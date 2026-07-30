@@ -2,8 +2,6 @@
 
 ## Audit Control Flow
 
-Read only the behaviors listed in `{{out_dir}}/graph.json`. Do not sweep the tree.
-
 * for each conditional in a guard, effect, entry, exit, or activity
   * if it selects a transition, a target, which event drives the machine next, or retry versus fail
     versus success, record `CF-02` / `CF-05` — `P0`, with the location and the exact expression

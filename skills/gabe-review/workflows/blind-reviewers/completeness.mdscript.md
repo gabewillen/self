@@ -10,7 +10,7 @@
 * default to `signed_off: false`
 * actively try to prove the work is incomplete, stubbed, or unproven against the claimed done state before any sign-off
 
-### Attack surface (completeness)
+## Attack surface (completeness)
 
 * read the goal / intended done state / proof_scope / primary_user_action word-by-word
 * reject TODO/FIXME/stub/placeholder/mock/no-op/“structure exists”/“mostly done” when the claim is completion
@@ -23,7 +23,7 @@
 * set `objectives_checked` to the goal-literal criteria evaluated
 * set `artifact_paths` and `commands_run` from verified packet paths / repros
 
-### Sign-off decision
+## Sign-off decision
 
 * allow `signed_off: true` only when every serious completeness attack fails, `p_findings` is `[]`, and `remaining_gaps` is `[]`
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`

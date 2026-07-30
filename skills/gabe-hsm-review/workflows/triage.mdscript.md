@@ -9,7 +9,7 @@
 * create `{{out_dir}}` and set `{{findings_log}}` to `{{out_dir}}/findings.jsonl`
 * set `{{findings}}` to an empty list
 
-### Find machines
+## Find machines
 
 * search scope for state machine definitions by structure, not by library name: a definition that
   declares vertices plus transitions with triggers, guards, or targets
@@ -17,7 +17,7 @@
 * if nothing is found, set `{{machine_inventory}}` to empty and return to the caller
 * write `{{out_dir}}/machines.json` and set `{{machine_inventory}}` from it
 
-### Resolve dialect and overlays
+## Resolve dialect and overlays
 
 * set `{{dialect}}` to the state machine library actually imported, with its **pinned version**,
   resolved from the lockfile or module list — not from memory and not from the newest release
@@ -30,7 +30,7 @@
 * set `{{enforced_patterns}}` from any edit-time or pre-commit enforcement the repo runs, so those
   rules are not re-reported as findings
 
-### Load rules
+## Load rules
 
 * load [hsm-core-rules.md](../references/hsm-core-rules.md) as the only primary rule set
 * load [check-patterns.md](../references/check-patterns.md) for scans

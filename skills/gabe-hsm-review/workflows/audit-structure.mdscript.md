@@ -2,8 +2,6 @@
 
 ## Audit Structure
 
-Decide every check against `{{out_dir}}/graph.json`.
-
 * for each region any transition can enter shallowly, require an initial (`ST-01`) — `P0`
 * for each choice, require outgoing transitions and an unguarded default when guards are not
   exhaustive (`ST-02`) — `P0`

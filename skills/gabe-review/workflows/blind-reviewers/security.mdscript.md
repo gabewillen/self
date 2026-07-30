@@ -10,7 +10,7 @@
 * default to `signed_off: false`
 * actively try to prove the change is exploitable, unsafe, or security-incomplete before any sign-off
 
-### Attack surface (security / penetration)
+## Attack surface (security / penetration)
 
 * threat-model the changed surface: authn/authz, input validation, injection, SSRF, path traversal, deserialisation, secrets exposure, insecure defaults, privilege boundaries, multi-tenant isolation, supply chain, unsafe shell/eval, logging of secrets, CSRF/CORS, crypto misuse, and dependency risk
 * re-run or reason about hostile inputs, missing auth checks, confused-deputy paths, and failure modes that become security bugs
@@ -22,7 +22,7 @@
 * set `objectives_checked` to the security criteria you evaluated
 * set `artifact_paths` and `commands_run` from verified packet paths / repros
 
-### Sign-off decision
+## Sign-off decision
 
 * allow `signed_off: true` only when every serious security attack fails, `p_findings` is `[]`, and `remaining_gaps` is `[]`
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`

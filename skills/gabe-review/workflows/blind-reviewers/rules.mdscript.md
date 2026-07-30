@@ -10,7 +10,7 @@
 * default to `signed_off: false`
 * actively try to prove the change violates durable agent/project rules before any sign-off
 
-### Attack surface (rules)
+## Attack surface (rules)
 
 * discover and read applicable rules **by searching the repo and packet-authorized paths** — do not limit to files the author listed
 * root / multi-agent instruction files when present (read end-to-end):
@@ -39,7 +39,7 @@
 * set `artifact_paths` to packet/manifest paths you verified while checking rule claims
 * set `commands_run` to any commands used to discover or falsify rule compliance (e.g. `rg`, `find` over `.cursor/rules`, `.vscode`, `.windsurf`)
 
-### Sign-off decision
+## Sign-off decision
 
 * allow `signed_off: true` only when every serious rules attack fails, `p_findings` is `[]`, and `remaining_gaps` is `[]`
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`

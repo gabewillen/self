@@ -1,6 +1,8 @@
 # @gabewillen/agents
 
-Gabe-shaped **MDScript** agent skills, plus the shared MDScript executor/writer skills.
+Gabe-shaped **MDScript** agent skills.
+
+The `mdscript-exec` and `mdscript-write` skills are not shipped here — install them from the [mdscript](https://github.com/gabewillen/mdscript) repo.
 
 This package ships Agent Skills (`SKILL.md` + workflows) so they can be installed with npm and discovered by `npx skills`, `skills-npm`, and similar tools.
 
@@ -17,8 +19,6 @@ This package ships Agent Skills (`SKILL.md` + workflows) so they can be installe
 | `gabe-voice` | Gabe-shaped reply drafting |
 | `gabe-goal` | Goal-driven loop until proof + triple blind review (MDScript rewrite of Cursor `goal`) |
 | `gabe-common` | Shared workflows used by the family |
-| `mdscript-exec` | Execute MDScript workflows |
-| `mdscript-write` | Author MDScript-backed skills |
 
 All coordination artifacts for Gabe work are **MDScript** (tasks, comments, plans, goals, instructions) under `~/.agents/projects/<project>/`.
 
@@ -154,8 +154,6 @@ Completion requires reproducible artifacts + three adversarial blind reviewer si
 skills/
   gabe/
   gabe-*/
-  mdscript-exec/
-  mdscript-write/
 scripts/install.mjs
 AGENTS.md
 package.json

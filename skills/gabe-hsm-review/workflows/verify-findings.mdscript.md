@@ -2,18 +2,14 @@
 
 ## Verify Findings
 
-Every rule blocks, so every finding must survive an attempt to kill it before it reaches the report.
-Verification is **blind**: a verifier gets the claim, the location, and the rule text — never the
-reasoning that produced it, and never the other verifiers' verdicts.
-
 * set `{{unverified}}` to the findings in `{{findings_log}}` with no verdict
 * if `{{unverified}}` is empty, return to the caller
 
-### Refute
+## Refute
 
 * for each finding in `{{unverified}}`, run an independent subagent in parallel, tasked to **refute**
   it, given only: rule id and rule text, location, evidence excerpt, and the graph or source it
-  points at
+  points at — never the reasoning that produced the finding, and never another verifier's verdict
 * the verifier answers `refuted` or `stands`, with the reason, against these tests:
   * does the cited code or vertex exist as quoted, at that location, in the current tree?
   * does the rule as written actually cover this, or was it stretched to fit?
@@ -27,7 +23,7 @@ reasoning that produced it, and never the other verifiers' verdicts.
   with distinct lenses — rule conformance, runtime consequence, false positive — and keep the
   finding only when at least two return `stands`
 
-### Record
+## Record
 
 * mark each finding `stands` or `refuted` with the verifier reasons in `{{findings_log}}`
 * keep refuted findings in the log marked refuted; report them, do not silently delete them

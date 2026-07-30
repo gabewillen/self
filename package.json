@@ -1,7 +1,7 @@
 {
   "name": "@gabewillen/agents",
   "version": "0.1.0",
-  "description": "Gabe MDScript agent skills pack (gabe-*, mdscript-exec/write, gabe-common) installable via npm and npx skills",
+  "description": "Gabe MDScript agent skills pack (gabe-*, gabe-common) installable via npm and npx skills",
   "license": "MIT",
   "type": "module",
   "private": false,
@@ -90,14 +90,6 @@
       {
         "name": "gabe-watch",
         "path": "./skills/gabe-watch"
-      },
-      {
-        "name": "mdscript-exec",
-        "path": "./skills/mdscript-exec"
-      },
-      {
-        "name": "mdscript-write",
-        "path": "./skills/mdscript-write"
       }
     ]
   },
@@ -146,14 +138,6 @@
       {
         "name": "gabe-watch",
         "path": "./skills/gabe-watch"
-      },
-      {
-        "name": "mdscript-exec",
-        "path": "./skills/mdscript-exec"
-      },
-      {
-        "name": "mdscript-write",
-        "path": "./skills/mdscript-write"
       }
     ]
   },
@@ -168,8 +152,6 @@
     "skills/gabe-unwatch/SKILL.md",
     "skills/gabe-voice/SKILL.md",
     "skills/gabe-watch/SKILL.md",
-    "skills/gabe/SKILL.md",
-    "skills/mdscript-exec/SKILL.md",
-    "skills/mdscript-write/SKILL.md"
+    "skills/gabe/SKILL.md"
   ]
 }

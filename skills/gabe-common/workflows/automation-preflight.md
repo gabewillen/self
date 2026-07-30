@@ -1,9 +1,9 @@
-<!-- mdscript: use the mdscript-exec skill or read [mdscript.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/README.md) -->
+<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Require Gabe Automate
 
 * before any Gabe-shaped agent calls `automation_update` or any available automation creation or update tool
-  * read `{{repo_root}}/skills/gabe-automate/SKILL.md`
+  * run `/mdscript-exec {{repo_root}}/skills/gabe-automate/SKILL.md`
   * run `/mdscript-exec {{repo_root}}/skills/gabe-automate/SKILL.md#load-automation-context`
 
 * if `gabe-automate` is not present in the active skill list

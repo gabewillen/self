@@ -13,11 +13,6 @@ description: >-
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
-Gated ladder. Each gate stops the review when it finds anything — do not run
-later gates to "be thorough". Every rule blocks; the only escape is an explicit
-waiver naming rule ids. Set `{{full_sweep}}` to `true` only when the user asks
-for a complete review.
-
 ## Triage
 
 * set `{{skill_root}}` to this skill directory
@@ -33,10 +28,6 @@ for a complete review.
 * [Gate 0 Ownership](#gate-0-ownership)
 
 ## Gate 0 Ownership
-
-Whether a machine should exist is decided before anything about how it is built.
-This gate runs on machines in scope **and** on changed components that own
-synchronization, a lifecycle, or message production without being a machine.
 
 * run [Audit Ownership](workflows/audit-ownership.mdscript.md#audit-ownership)
 * if any finding was recorded
@@ -76,8 +67,6 @@ synchronization, a lifecycle, or message production without being a machine.
 * [Verify](#verify)
 
 ## Verify
-
-No finding reaches the report without surviving an attempt to kill it.
 
 * run [Verify Findings](workflows/verify-findings.mdscript.md#verify-findings)
 * [Emit Findings](#emit-findings)

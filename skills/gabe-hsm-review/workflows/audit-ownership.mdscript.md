@@ -2,11 +2,7 @@
 
 ## Audit Ownership
 
-The gate that precedes design. Cheap, and it runs before any graph work, because a machine that
-should not exist does not need its structure reviewed — and a component that should be a machine
-will not appear in `{{machine_inventory}}` at all.
-
-### The three questions
+## The three questions
 
 * for each changed component in scope, machine or not, ask:
   * does it need a mutex, atomics, or any synchronization primitive?
@@ -17,7 +13,7 @@ will not appear in `{{machine_inventory}}` at all.
 * if every answer is no and it **is** a machine, record `OW-03`
 * set `{{ownership_verdict}}` per component and write it to `{{out_dir}}/ownership.json`
 
-### Boundary
+## Boundary
 
 * for each machine, require a named durable owner: its lifecycle, the data it owns, the events it
   accepts, the status it exposes. If absent, record `OW-01`

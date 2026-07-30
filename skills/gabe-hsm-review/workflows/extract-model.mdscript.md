@@ -2,10 +2,6 @@
 
 ## Extract Model
 
-Structure rules are decided on the graph. Definition source is the last resort, because models are
-usually assembled by builders and helpers whose vertices and transitions never appear at the call
-site.
-
 * for each machine in `{{machine_inventory}}`, obtain its finalized graph by the cheapest route
   that works:
   * a model introspection or transition-snapshot API on the finalized model
