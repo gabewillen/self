@@ -51,30 +51,62 @@ description: >-
 
 * convert `{{interval}}` to `{{interval_seconds}}`
 * set `{{sentinel}}` to `AGENT_LOOP_TICK_gabe_watch_{{pr_number}}`
-* if `{{watch_mdscript}}` front matter records a live `loop_pid` whose command line still contains `{{sentinel}}`
-  * reuse that PID as `{{loop_pid}}`
-  * do not start a second loop
-  * [Watch Tick](#watch-tick)
-* if any terminal already runs a matching `{{sentinel}}` loop
-  * reuse that PID as `{{loop_pid}}`
-  * set front-matter `loop_pid` on `{{watch_mdscript}}` to that PID
-  * do not start a second loop
-  * [Watch Tick](#watch-tick)
-* start exactly one background shell with a durable `while true` loop — arm once, never re-arm on ticks:
+* set `{{watch_dir}}` to `~/.agents/projects/{{project_name}}/gabe-watch`
+* set `{{tick_spool}}` to `{{watch_dir}}/tick-{{pr_number}}.jsonl`, `{{ticker_pid_file}}` to `{{watch_dir}}/tick-{{pr_number}}.pid`, `{{ticker_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.ticker-hb`, `{{agent_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.agent-hb`, and `{{stop_file}}` to `{{watch_dir}}/tick-{{pr_number}}.stop`
+* create `{{watch_dir}}` when missing and delete a stale `{{stop_file}}`
+* run [Resolve Owner Process](#resolve-owner-process)
+* run [Check Ticker Liveness](#check-ticker-liveness)
+* if `{{ticker_alive}}` is `true`
+  * do not start a second ticker
+  * [Reattach Tick Listener](#reattach-tick-listener)
+* copy [gabe-watch-ticker.sh](assets/gabe-watch-ticker.sh) to `{{watch_dir}}/gabe-watch-ticker.sh` when missing or outdated and make it executable
+* start exactly one detached ticker so agent-turn, tool-call, and chat-session cleanup cannot reap it:
 
 ```bash
-while true; do
-  sleep {{interval_seconds}}
-  echo '{{sentinel}} {"prompt":"/mdscript-exec {{watch_mdscript}}#resume-watch","pr":"{{pr_number}}","repo":"{{repo}}"}'
-done
+setsid nohup {{watch_dir}}/gabe-watch-ticker.sh \
+  {{sentinel}} {{interval_seconds}} {{owner_pid}} \
+  {{tick_spool}} {{ticker_heartbeat}} {{agent_heartbeat}} \
+  {{stop_file}} {{max_idle_seconds}} {{ticker_pid_file}} \
+  "/mdscript-exec {{watch_mdscript}}#resume-watch" \
+  >/dev/null 2>&1 </dev/null & disown
 ```
 
-* set `notify_on_output` on that shell with pattern `^{{sentinel}}`
-* record `{{loop_pid}}` from the shell
-* smoke-check once that the loop is running and has not exited
-* set front matter on `{{watch_mdscript}}` with `watch_active: true`, `status: active`, `resume_heading: resume-watch`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `loop_pid`, `skill_root`, `easy_model`, `hard_model`, and `armed_at`
+* read `{{ticker_pid}}` from `{{ticker_pid_file}}` (or the spool `armed` record) once the file appears; never take it from `$!`, which returns the `setsid`/`nohup` wrapper and not the ticker
+* set `{{ticker_pgid}}` from `ps -o pgid= -p {{ticker_pid}}`
+* confirm the ticker is detached: its parent is `1` (or a reparenting supervisor) and it is not in this agent shell's process group
+* set front matter on `{{watch_mdscript}}` with `watch_active: true`, `status: active`, `resume_heading: resume-watch`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `owner_pid`, `ticker_pid`, `ticker_pgid`, `tick_spool`, `ticker_pid_file`, `stop_file`, `skill_root`, `easy_model`, `hard_model`, and `armed_at`
+* [Reattach Tick Listener](#reattach-tick-listener)
+
+## Resolve Owner Process
+
+* set `{{owner_pid}}` to the long-lived process the watch should outlive turns with, but not outlive entirely: the editor, IDE, harness, or agent-session process that owns this chat
+* find it by walking the parent chain of the current shell and taking the outermost ancestor that is still the harness or editor process, not the transient tool shell that runs this command
+* if the harness exposes its own session or supervisor PID, prefer that value
+* if no owner process can be identified, set `{{owner_pid}}` to `0` to disable the owner check and rely on the idle guard alone
+* set `{{max_idle_seconds}}` to at least six times `{{interval_seconds}}` so a ticker whose agent never returns eventually self-cleans
+
+## Check Ticker Liveness
+
+* set `{{ticker_alive}}` to `true` when `{{ticker_pid_file}}` holds a PID that is running and whose command line still contains `{{sentinel}}`
+* otherwise scan for any running process whose command line contains `{{sentinel}}`
+  * if exactly one exists, adopt it as `{{ticker_pid}}`, refresh `{{ticker_pid_file}}`, and set `{{ticker_alive}}` to `true`
+  * if more than one exists, keep the oldest, kill the rest, and record the duplicate cleanup in the ledger
+* otherwise set `{{ticker_alive}}` to `false`
+
+## Reattach Tick Listener
+
+* the listener is disposable: it only relays ticks to this agent, so a harness that kills it must not stop the watch
+* start one background shell that follows the spool and wakes this agent on each tick:
+
+```bash
+tail -n0 -F {{tick_spool}}
+```
+
+* set `notify_on_output` on that shell with pattern `^{{sentinel}}` so a tick line resumes `/mdscript-exec {{watch_mdscript}}#resume-watch`
+* if the harness offers a durable native scheduler or wakeup that survives session cleanup, use it instead of this listener and record which wake path is in use
+* do not treat a dead listener as a dead watch — the ticker owns the schedule and the spool holds every tick until it is processed
 * run the first [Watch Tick](#watch-tick) immediately after arming
-* end the turn after the tick — the persistent loop wakes the next `#resume-watch`; do not sleep, do not re-arm, do not schedule a one-shot fallback
+* end the turn after the tick — the detached ticker owns the next wake; do not sleep, do not re-arm, do not schedule a one-shot fallback
 
 ## Resume Watch
 
@@ -84,16 +116,27 @@ done
 * read `{{watch_mdscript}}` front matter as the authoritative state
 * if front-matter `watch_active` is not `true`
   * stop and report the watch is inactive; suggest `/gabe-watch` to start again
-* restore `{{pr_number}}`, `{{pr_url}}`, `{{repo}}`, `{{repo_root}}`, `{{interval}}`, `{{sentinel}}`, `{{loop_pid}}`, `{{skill_root}}`, `{{easy_model}}`, `{{hard_model}}`, and `{{tick_count}}` from that front matter
-* if `{{loop_pid}}` is dead or no longer matches `{{sentinel}}`
-  * set `{{blocker}}` to persistent watch loop died; run `/gabe-watch` to re-arm once
-  * [Report Blocker](#report-blocker)
-* do not start or re-arm any loop from resume
+* restore `{{pr_number}}`, `{{pr_url}}`, `{{repo}}`, `{{repo_root}}`, `{{interval}}`, `{{sentinel}}`, `{{owner_pid}}`, `{{ticker_pid}}`, `{{tick_spool}}`, `{{ticker_pid_file}}`, `{{stop_file}}`, `{{skill_root}}`, `{{easy_model}}`, `{{hard_model}}`, and `{{tick_count}}` from that front matter
+* touch `{{agent_heartbeat}}` so the ticker's idle guard knows this agent is still consuming ticks
+* run [Check Ticker Liveness](#check-ticker-liveness)
+* if `{{ticker_alive}}` is `false` and `{{owner_pid}}` is still running
+  * treat this as harness cleanup, not as a blocker
+  * re-arm exactly one ticker through [Arm Persistent Interval Loop](#arm-persistent-interval-loop) and record the re-arm and its cause in the ledger
+* if `{{ticker_alive}}` is `false` and `{{owner_pid}}` is gone
+  * set `{{stop_reason}}` to owner process exited
+  * run [Stop Watch Loop](../gabe-unwatch/SKILL.md#stop-watch-loop)
+  * report that the owning session ended and the watch stopped
+  * stop
+* if the tick listener is not running
+  * [Reattach Tick Listener](#reattach-tick-listener)
+* if `{{tick_spool}}` holds tick records newer than front-matter `last_processed_seq`
+  * process the newest one now and set `last_processed_seq` to the highest seq seen; do not replay every missed tick individually
 * [Watch Tick](#watch-tick)
 
 ## Watch Tick
 
-* increment `{{tick_count}}` and set it in `{{watch_mdscript}}` front matter with `last_head_sha` and `last_tick_at`
+* touch `{{agent_heartbeat}}` at the start of every tick so the ticker's idle guard stays satisfied
+* increment `{{tick_count}}` and set it in `{{watch_mdscript}}` front matter with `last_head_sha`, `last_tick_at`, and `last_processed_seq`
 * run [Refresh PR State](workflows/watch-tick.md#refresh-pr-state)
 * if `{{pr_state}}` is `MERGED` or `CLOSED`
   * set `{{stop_reason}}` to PR `{{pr_state}}`
@@ -112,8 +155,9 @@ done
 * run [Evaluate Merge Ready](workflows/watch-tick.md#evaluate-merge-ready)
 * if `{{merge_ready}}` is `true`
   * report merge-ready status for `{{pr_url}}` — keep watching until `/gabe-unwatch`
-* append one ledger line under `~/.agents/projects/{{project_name}}/lane-ledger.jsonl` with tick, head SHA, CI summary, unresolved thread count, `loop_pid`, and that the persistent loop remains armed
-* end the turn without re-arming, without `sleep`, and without a one-shot wake — the existing `while true` loop owns the next tick
+* append one ledger line under `~/.agents/projects/{{project_name}}/lane-ledger.jsonl` with tick, head SHA, CI summary, unresolved thread count, `ticker_pid`, wake path, and that the detached ticker remains armed
+* never kill, reap, or clean up the ticker, its process group, its spool, or its pid file from a tick, a resume, a subagent, a thread-cleanup pass, or an end-of-turn tidy; only `/gabe-unwatch`, a terminal PR state, or owner-process death may stop it
+* end the turn without re-arming, without `sleep`, and without a one-shot wake — the detached ticker owns the next tick
 
 ## Report Blocker
 

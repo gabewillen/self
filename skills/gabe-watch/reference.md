@@ -8,25 +8,55 @@
 | `{{interval}}` | no | Default `5m`. Accepts `30s`, `5m`, `10m`, `1h` |
 | `{{repo_root}}` | yes after setup | Local checkout used for sync/fix/push |
 
-## Persistent loop (arm once)
+## Persistent loop (two processes, arm once)
 
-`/gabe-watch` arms **one** background `while true` shell:
+Harnesses like Cursor reap background shells when a turn, tool call, or chat
+session ends. So timekeeping and waking are split, and only the disposable half
+is allowed to die:
+
+| Process | Lifetime | Job |
+|---------|----------|-----|
+| **Ticker** — `assets/gabe-watch-ticker.sh`, launched `setsid nohup … & disown` | Survives turns and session cleanup. Exits only on `/gabe-unwatch`, terminal PR state, owner-process death, or the idle guard | Sleeps the interval, appends tick records to the spool |
+| **Listener** — `tail -n0 -F <spool>` with `notify_on_output` | Disposable; expected to be killed | Relays a tick into the chat so the agent resumes |
+
+If the harness kills the listener, the ticker keeps time and the spool keeps
+every tick. The next resume re-attaches a listener and catches up from
+`last_processed_seq`. If the harness kills the ticker anyway, resume re-arms it
+automatically — a dead ticker is cleanup, not a blocker.
+
+The ticker is deliberately tied to `owner_pid`, the editor/harness/agent-session
+process: it must outlive the turn that armed it, but must not outlive the
+session that wanted it.
 
 ```bash
-while true; do
-  sleep <interval_seconds>
-  echo 'AGENT_LOOP_TICK_gabe_watch_<N> {"prompt":"/mdscript-exec …/goals/gabe-watch-<N>.mdscript.md#resume-watch",…}'
-done
+setsid nohup <watch_dir>/gabe-watch-ticker.sh \
+  <sentinel> <interval_seconds> <owner_pid> <spool> <ticker_hb> \
+  <agent_hb> <stop_file> <max_idle_seconds> <pid_file> \
+  "/mdscript-exec <watch_mdscript>#resume-watch" \
+  >/dev/null 2>&1 </dev/null & disown
+```
+
+Each spooled tick carries its own resume prompt, so a woken agent has the exact
+command even if it sees only the tick line:
+
+```json
+{"event":"tick","seq":7,"at":"…","prompt":"/mdscript-exec …#resume-watch"}
 ```
 
 Rules:
 
-- Arm only from `#arm-persistent-interval-loop` during setup (or when front matter proves the old PID is dead and the user re-runs `/gabe-watch`).
-- `#resume-watch` / `#watch-tick` **must not** re-arm, start a one-shot `sleep`, or schedule a fallback wake.
-- End each tick turn after work; the existing loop owns the next wake.
-- Persist `loop_pid`, `sentinel`, and contract fields to the watch MDScript front matter (see below).
-- Stop the loop only via `/gabe-unwatch` (or auto-stop when the PR is `MERGED`/`CLOSED`).
-- Merge-ready status is reported but **does not** stop the watch.
+- Take `ticker_pid` from the pid file the ticker writes, **never from `$!`** — `setsid`/`nohup` return the wrapper PID, not the ticker.
+- Kill the group with `kill -- -<ticker_pgid>`; `setsid` puts the ticker in its own process group.
+- `/gabe-unwatch` writes the stop file **first**, so the ticker exits on its own even if the kill path fails or the PID went stale.
+- Never reap the ticker from a tick, resume, subagent, thread-cleanup pass, or end-of-turn tidy.
+- The agent touches `agent_heartbeat` every tick; if it stops, the idle guard retires the orphan after `max_idle_seconds`.
+- `#resume-watch` / `#watch-tick` must not start a one-shot `sleep` or fallback wake.
+- Arm at most one ticker: adopt a live `sentinel` process instead of starting a second.
+- Stop only via `/gabe-unwatch`, terminal PR state, or owner death. Merge-ready is reported but **does not** stop the watch.
+- Prefer a harness-native durable scheduler over the listener when one exists, and record which wake path is in use.
+
+Files under `~/.agents/projects/<project>/gabe-watch/`: `tick-<N>.jsonl` (spool),
+`tick-<N>.pid`, `tick-<N>.ticker-hb`, `tick-<N>.agent-hb`, `tick-<N>.stop`.
 
 ## Watch state (MDScript front matter)
 

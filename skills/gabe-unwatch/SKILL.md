@@ -24,11 +24,15 @@ description: >-
 
 * read `{{watch_mdscript}}` front matter when not already loaded, falling back to a legacy `gabe-watch/pr-{{pr_number}}.json` only when no MDScript exists
 * set `{{sentinel}}` from front matter (default `AGENT_LOOP_TICK_gabe_watch_{{pr_number}}`)
-* set `{{loop_pid}}` from front matter when present
-* if `{{loop_pid}}` is set and still running
-  * kill that PID and its process group when safe
-* also kill any remaining shell whose command line contains `{{sentinel}}` so orphaned loops cannot keep waking the agent
+* set `{{ticker_pid}}`, `{{ticker_pgid}}`, `{{ticker_pid_file}}`, `{{tick_spool}}`, and `{{stop_file}}` from front matter when present
+* create `{{stop_file}}` first — the detached ticker exits on its own at the next interval even if the kill path fails or the PID is stale
+* if `{{ticker_pid}}` is set and still running
+  * kill that PID, and kill its process group with `kill -- -{{ticker_pgid}}` because `setsid` put the ticker in its own group
+* also kill any remaining process whose command line contains `{{sentinel}}` so orphaned tickers cannot keep spooling
+* stop the disposable tick listener shell when one is attached
+* remove `{{ticker_pid_file}}` once no process for this watch survives, and leave `{{tick_spool}}` in place as the tick record
 * await killed shell tasks so stale completion notifications are consumed
+* verify no process for `{{sentinel}}` remains before reporting the watch stopped
 * set front matter on `{{watch_mdscript}}` to `watch_active: false`, terminal `status`, `resume_heading: stop-watch`, `stopped_at`, and `stop_reason` (`user-unwatch` unless the caller already set `{{stop_reason}}`)
 * clear `notify_on_output` expectations for this sentinel
 * return to the caller
