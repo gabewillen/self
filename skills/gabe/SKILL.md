@@ -7,14 +7,20 @@ description: "Compatibility router for project-scoped Gabe MDScript operating-mo
 
 ## Detect Agent Position
 
+* set `{{skills_root}}` to `{{repo_root}}/skills` when `{{repo_root}}` is set and that directory exists
+* otherwise set `{{skills_root}}` to `~/.agents/skills`
 * set `{{agent_position}}` to `subagent` when this agent was spawned by another agent, carries a delegated contract, or has a `{{parent_agent}}` or `{{parent_reporting_path}}`
 * otherwise set `{{agent_position}}` to `main`
 * set `{{can_spawn_subagents}}` to `true` when this runtime exposes a subagent, task, or child-thread creation tool
 * otherwise set `{{can_spawn_subagents}}` to `false`
 * set `{{is_review_request}}` to `true` when the request is an independent readiness review, blind-review pass, plan, diff, handoff, MR/PR readiness, goal, final report, or publication hygiene review
+* otherwise set `{{is_review_request}}` to `false`
 * [Route Gabe Request](#route-gabe-request)
 
 ## Route Gabe Request
+
+* if `{{agent_position}}` is empty
+  * [Detect Agent Position](#detect-agent-position)
 
 * read [boundaries.md](references/boundaries.md) and hold every boundary it names for the routed role
 
@@ -24,47 +30,55 @@ description: "Compatibility router for project-scoped Gabe MDScript operating-mo
   * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)
 
 * if the request is a standalone interval PR watch that repairs review comments and CI with selected fixer models (`/gabe-watch`, interval+PR babysit, merge-ready watch loop)
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-watch/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe-watch/SKILL.md`
-  * execute as `gabe-watch`
+  * set `{{gabe_role}}` to `gabe-watch`
+  * [Execute Routed Role](#execute-routed-role)
 
 * if the request is `/gabe-unwatch`, stop watching a PR, or cancel an armed gabe-watch loop
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-unwatch/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe-unwatch/SKILL.md`
-  * execute as `gabe-unwatch`
+  * set `{{gabe_role}}` to `gabe-unwatch`
+  * [Execute Routed Role](#execute-routed-role)
 
 * if the request is HSM/SML hard-rule review, hierarchical state machine audit, or `/gabe-hsm-review`
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-hsm-review/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe-hsm-review/SKILL.md`
-  * execute as `gabe-hsm-review`
+  * set `{{gabe_role}}` to `gabe-hsm-review`
+  * [Execute Routed Role](#execute-routed-role)
 
 * if the request is a goal-driven proof loop until artifacts and triple adversarial blind review (`/gabe-goal`, `/goal`, deprecated `/grind`, or stricter goal-until-signoff work)
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-goal/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe-goal/SKILL.md`
-  * execute as `gabe-goal`
+  * set `{{gabe_role}}` to `gabe-goal`
+  * [Execute Routed Role](#execute-routed-role)
 
 * if the user explicitly asks for an external automation tool or non-goal automation outside this repo-local skill copy
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-automate/SKILL.md`
-  * execute as `gabe-automate`
+  * set `{{gabe_role}}` to `gabe-automate`
+  * [Execute Routed Role](#execute-routed-role)
 
 * if `{{is_review_request}}` is `true`
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-review/SKILL.md`
-  * execute as `gabe-review`
+  * set `{{gabe_role}}` to `gabe-review`
+  * [Execute Routed Role](#execute-routed-role)
 
 * if `{{agent_position}}` is `subagent`
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-implement/SKILL.md`
-  * execute as `gabe-implement`
+  * set `{{gabe_role}}` to `gabe-implement`
+  * [Execute Routed Role](#execute-routed-role)
 
-* if `{{agent_position}}` is `main` and `{{can_spawn_subagents}}` is `false`
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-implement/SKILL.md`
-  * execute as `gabe-implement`
-  * own the work in this agent and do not promise delegated lanes this runtime cannot create
+* if `{{can_spawn_subagents}}` is `false`
+  * set `{{gabe_role}}` to `gabe-implement`
+  * do not promise delegated lanes this runtime cannot create
+  * [Execute Routed Role](#execute-routed-role)
 
-* if `{{agent_position}}` is `main` and `{{can_spawn_subagents}}` is `true`
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-orchestrate/SKILL.md`
-  * execute as `gabe-orchestrate`
+* set `{{gabe_role}}` to `gabe-orchestrate`
+* [Execute Routed Role](#execute-routed-role)
 
-* if the request is creating, updating, reviewing, or handing off a recurring monitor, PR/MR watcher, blocker watcher, lane-management wakeup, or thread follow-up while acting as `gabe-orchestrate`
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/goal-mdscript.md#write-goal-mdscript`
+## Execute Routed Role
 
-* set `{{gabe_role}}` to the role selected above and carry it into the routed skill
-* before any Gabe orchestrator claims ongoing monitoring, resumed coordination, or watcher ownership
-  * run `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/goal-mdscript.md#write-goal-mdscript`
-  * do not claim the lane is resumable until the MDScript goal names the exact re-entry point and validation fields
+* if `{{gabe_role}}` is empty
+  * [Detect Agent Position](#detect-agent-position)
 
+* if `{{skills_root}}/{{gabe_role}}/SKILL.md` does not exist
+  * stop and report the missing skill path and that the pack needs reinstalling
+
+* run `/mdscript-exec {{skills_root}}/{{gabe_role}}/SKILL.md`
+
+* carry `{{gabe_role}}`, `{{agent_position}}`, and `{{can_spawn_subagents}}` into the routed skill
+
+* if `{{gabe_role}}` is `gabe-orchestrate`
+  * run `/mdscript-exec {{skills_root}}/gabe-common/workflows/goal-mdscript.md#write-goal-mdscript` before claiming ongoing monitoring, resumed coordination, or watcher ownership
+  * do not claim the lane is resumable until that goal names the exact re-entry point and validation fields
+
+* stop after the routed skill returns
