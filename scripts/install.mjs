@@ -18,6 +18,7 @@
  *   node scripts/install.mjs --live-root ~/src/agents
  *   node scripts/install.mjs --target ~/.agents/skills
  *   node scripts/install.mjs --local        (agent state in <repo>/.agents)
+ *   node scripts/install.mjs --no-instructions  (skip the router directive)
  *   node scripts/install.mjs --dry-run
  *   node scripts/install.mjs --no-adapters
  *   node scripts/install.mjs --pull
@@ -70,6 +71,9 @@ const localState =
   args.includes("--local") ||
   process.env.GABE_AGENTS_LOCAL === "1" ||
   process.env.GABE_AGENTS_LOCAL === "true";
+const skipInstructions =
+  args.includes("--no-instructions") ||
+  process.env.GABE_AGENTS_INSTRUCTIONS === "0";
 const skipMdscript =
   args.includes("--no-mdscript") ||
   process.env.GABE_AGENTS_MDSCRIPT === "0" ||
@@ -368,6 +372,60 @@ function reportBrokenSkillDirs(targetRoots, managedSkills) {
     "[gabe-agents] a symlinked skill needs its live root present on THIS machine; re-run install after fixing the source",
   );
   return broken;
+}
+
+const ROUTER_DIRECTIVE =
+  "- ALWAYS use the `gabe` router skill for Gabe-shaped work: judgment, delegation, " +
+  "prioritization, review, implementation, coordination, MR/PR watching, and goal loops. " +
+  "It routes to gabe-orchestrate, gabe-implement, gabe-review, gabe-watch, and gabe-goal.";
+const ROUTER_BLOCK_START = "<!-- gabe-agents:router -->";
+const ROUTER_BLOCK_END = "<!-- /gabe-agents:router -->";
+
+/**
+ * Global instruction files, by agent home. ~/.agents/AGENTS.md is ours and is
+ * always ensured; the rest are only touched when that agent is installed.
+ */
+const INSTRUCTION_TARGETS = [
+  { dir: ".agents", file: "AGENTS.md", always: true },
+  { dir: ".claude", file: "CLAUDE.md" },
+  { dir: ".codex", file: "AGENTS.md" },
+  { dir: ".cursor", file: "AGENTS.md" },
+  { dir: ".gemini", file: "GEMINI.md" },
+  { dir: ".kimi", file: "KIMI.md" },
+  { dir: ".qwen", file: "QWEN.md" },
+  { dir: ".copilot", file: "copilot-instructions.md" },
+];
+
+function hasRouterDirective(text) {
+  if (text.includes(ROUTER_BLOCK_START)) return true;
+  return /ALWAYS use (the )?[`'"]?gabe[`'"]? router skill/i.test(text);
+}
+
+function ensureRouterDirective() {
+  const home = homedir();
+  const report = [];
+  for (const target of INSTRUCTION_TARGETS) {
+    const dir = join(home, target.dir);
+    if (!target.always && !existsSync(dir)) continue;
+    const path = join(dir, target.file);
+    const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
+    if (hasRouterDirective(existing)) {
+      report.push({ path, action: "present" });
+      continue;
+    }
+    if (dryRun) {
+      report.push({ path, action: existing ? "would-append" : "would-create" });
+      continue;
+    }
+    const block = `${ROUTER_BLOCK_START}\n${ROUTER_DIRECTIVE}\n${ROUTER_BLOCK_END}\n`;
+    ensureDir(dir);
+    const body = existing
+      ? `${existing.replace(/\n*$/, "")}\n\n${block}`
+      : `# Global agent instructions\n\n${block}`;
+    writeFileSync(path, body, "utf8");
+    report.push({ path, action: existing ? "appended" : "created" });
+  }
+  return report;
 }
 
 function installInto(targetRoot, skills, skillsRoot) {
@@ -749,6 +807,28 @@ const adapterReport = installAdapters(skills, [...targets], skillsRoot);
 
 if (!dryRun) reportBrokenSkillDirs(targets, skills);
 
+let instructionReport = [];
+if (localState) {
+  console.log(
+    "[gabe-agents] --local: skipping the global router directive; add it to this project's AGENTS.md yourself",
+  );
+} else if (skipInstructions) {
+  console.log("[gabe-agents] skipping the router directive (--no-instructions)");
+} else {
+  instructionReport = ensureRouterDirective();
+  const changed = instructionReport.filter((r) => r.action !== "present");
+  if (changed.length) {
+    console.log(
+      `[gabe-agents] router directive ${dryRun ? "would be written to" : "written to"} ${changed.length} file(s):`,
+    );
+    for (const r of changed) console.log(`    - ${r.path} (${r.action})`);
+  } else {
+    console.log(
+      `[gabe-agents] router directive already present in ${instructionReport.length} instruction file(s)`,
+    );
+  }
+}
+
 let markerPath = null;
 if (mode === "live") {
   markerPath = writeLiveMarker(liveRoot, skills);
@@ -762,6 +842,7 @@ const receipt = {
   skills_root: skillsRoot,
   skills,
   local_state: localState,
+  instructions: instructionReport,
   mdscript_skills_root: mdscriptSkillsRoot,
   mdscript_skills: mdscriptSkills,
   targets: results,
