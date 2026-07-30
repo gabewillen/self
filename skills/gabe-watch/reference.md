@@ -105,6 +105,24 @@ This file is the lane's goal MDScript, so watcher state stays under `goals/*.mds
 mdscript-exec ~/.agents/projects/<project>/goals/gabe-watch-<N>.mdscript.md#resume-watch
 ```
 
+## Three comment surfaces
+
+A PR carries review activity in three places, and a `reviewThreads` query sees
+only the first:
+
+| Surface | Endpoint / field | Holds |
+|---------|------------------|-------|
+| inline review threads | GraphQL `reviewThreads`, `pulls/<n>/comments` | line comments and their resolved state |
+| PR-level conversation | `issues/<n>/comments`, `gh pr view --json comments` | bot summaries, human discussion, approvals in prose |
+| review bodies | `pulls/<n>/reviews`, `gh pr view --json reviews` | the text attached to an approval or change request |
+
+`latestReviews` keeps only the newest review per reviewer, so a PR with several
+review bodies from one bot loses the earlier ones — read `reviews` instead.
+
+Review bots post after their checks finish, so a tick with checks still running
+has not seen the review surface yet. Report counts as provisional in that tick
+rather than stating a clean unresolved count.
+
 ## Models
 
 Pick both the model and the effort level from what the runtime offers, per

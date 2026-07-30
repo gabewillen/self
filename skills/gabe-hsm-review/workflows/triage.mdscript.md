@@ -27,7 +27,8 @@
 * set `{{overlay_rules}}` from those files, keeping their native rule ids
 * map each overlay rule onto a core rule id where one exists; record unmapped overlay rules as
   coverage gaps in `{{out_dir}}/rule-packs.json`
-* an overlay may add a rule or raise a severity; it may never weaken or lower one
+* allow an overlay to add a rule or raise a severity
+* do not let an overlay weaken or lower a rule
 * set `{{enforced_patterns}}` from any edit-time or pre-commit enforcement the repo runs, so those
   rules are not re-reported as findings
 

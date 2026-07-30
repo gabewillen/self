@@ -38,7 +38,7 @@ description: >-
 
 ## Pursue Goal
 
-* keep `{{run_dir}}/goal.mdscript.md` current — it is the durable tracker and stop-hook resume target
+* keep `{{run_dir}}/goal.mdscript.md` current as the durable tracker and stop-hook resume target
 * set front-matter `resume_heading` to `pursue-goal` while implementing/proofing, `complete-goal` only when ready to finish, or `manual-stop` when blocked
 * run [Pursue Iteration](workflows/pursue-iteration.md#pursue-iteration)
 * run [Capture Artifacts](workflows/capture-artifacts.md#capture-artifacts)

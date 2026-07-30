@@ -7,8 +7,13 @@
 * set `{{owner}}` and `{{repo_name}}` by splitting `{{repo}}` on `/`
 * run `gh pr view {{pr_number}} --repo {{repo}} --json number,url,state,isDraft,mergeable,mergeStateStatus,baseRefName,headRefName,headRefOid,reviewDecision,reviews,latestReviews,comments,statusCheckRollup`
 * set `{{pr_state}}`, `{{head_sha}}`, `{{base_ref}}`, `{{head_ref}}`, `{{mergeable}}`, `{{merge_state}}`, `{{review_decision}}`, `{{is_draft}}` from that JSON
+* read all three comment surfaces: inline review threads, PR-level comments, and review bodies
 * set `{{pr_comments}}` from the `comments` field with author, timestamp, and body
-* set `{{review_bodies}}` from `latestReviews` with reviewer, state, submitted time, and body
+* set `{{review_bodies}}` from the `reviews` field with reviewer, state, submitted time, and body
+* do not take review bodies from `latestReviews`
+* if `{{pr_comments}}` or `{{review_bodies}}` looks truncated
+  * run `gh api repos/{{repo}}/issues/{{pr_number}}/comments --paginate` for PR-level comments
+  * run `gh api repos/{{repo}}/pulls/{{pr_number}}/reviews --paginate` for review bodies
 * [Refresh Checks](#refresh-checks)
 
 ## Refresh Checks
@@ -52,7 +57,8 @@ query($owner:String!,$repo:String!,$number:Int!,$cursor:String){
 ```
 
 * set `{{unresolved_threads}}` to nodes where `isResolved` is false, keeping thread id, path, line, and every comment body
-* run `gh api repos/{{repo}}/pulls/{{pr_number}}/comments --paginate` and attach each comment to its thread in `{{unresolved_threads}}`
+* run `gh api repos/{{repo}}/pulls/{{pr_number}}/comments --paginate` for inline review comments
+* attach each inline comment to its thread in `{{unresolved_threads}}`
 * if the query errors
   * set `{{blocker}}` to cannot read review threads for `{{pr_url}}`
   * do not set `{{unresolved_threads}}` to empty after a failed query
@@ -66,8 +72,13 @@ query($owner:String!,$repo:String!,$number:Int!,$cursor:String){
   * treat every earlier check result, review, and approval as stale
 * set front-matter `last_seen_at` to the newest timestamp read
 * set front-matter `last_head_sha` to `{{head_sha}}`
-* report checks read, failing, pending, unresolved threads, conversation comments, and reviews as counts
+* report checks read, failing, pending, unresolved threads, PR-level comments, and review bodies as counts
+* if `{{pending_checks}}` is non-empty
+  * report every comment and thread count as provisional for this tick
+  * do not state a final unresolved-thread count while checks are still running
+  * expect review bots to post after their checks finish
 * do not report no new activity unless every fetch in this workflow succeeded
+* name the three surfaces read in the tick report: inline threads, PR-level comments, and review bodies
 * do not dump full JSON into chat; keep ids, paths, bodies, and check names only
 * return to the caller
 

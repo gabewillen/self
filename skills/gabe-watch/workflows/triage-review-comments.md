@@ -6,6 +6,7 @@
 * load unresolved review threads from `{{unresolved_threads}}`
 * load PR conversation comments from `{{pr_comments}}`
 * load review bodies from `{{review_bodies}}`
+* triage all three surfaces every tick: inline threads, PR-level comments, and review bodies
 * treat a request made in the conversation as actionable even when it is not an inline thread
 * for each conversation comment or review body newer than the last tick
   * if it asks for a change inside `{{watch_grant}}`
