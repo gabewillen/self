@@ -83,6 +83,10 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
 
 * run [Check UI And Product Surface](checks/evidence-boundary.md#check-ui-and-product-surface)
 
+## Check Indirection
+
+* run [Check Indirection](checks/indirection.md#check-indirection)
+
 ## Check Ownership And Permission
 
 * run [Check Ownership And Permission](checks/ownership-permission.md#check-ownership-and-permission)
