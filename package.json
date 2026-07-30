@@ -40,7 +40,9 @@
     "install-skills:copy": "node ./scripts/install.mjs --copy",
     "install-skills:pull": "node ./scripts/install.mjs --live --pull",
     "install-skills:no-adapters": "node ./scripts/install.mjs --live --no-adapters",
-    "pack:check": "npm pack --dry-run"
+    "pack:check": "npm pack --dry-run",
+    "test": "node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs",
+    "validate": "node scripts/validate-mdscript.mjs"
   },
   "engines": {
     "node": ">=18"

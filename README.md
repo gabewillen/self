@@ -32,8 +32,10 @@ All coordination artifacts for Gabe work are **MDScript** (tasks, comments, plan
 ## Validate
 
 ```bash
+npm test                                        # validator + agent-home agreement
 node ./scripts/validate-mdscript.mjs            # whole pack
 node ./scripts/validate-mdscript.mjs skills/gabe --json
+node ./scripts/test-agent-home.mjs              # hooks and skills resolve the same home
 ```
 
 Checks frontmatter, the execution header, `##`-only states, duplicate anchors,
