@@ -26,7 +26,8 @@
 
 * write `{{return_script}}` as executable MDScript, not a prose note
 
-* start `{{return_script}}` with the MDScript execution comment header
+* start `{{return_script}}` with the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->`
+* write every heading in `{{return_script}}` as a `##` state so `mdscript-exec` can resolve it; `#` headings leave the file with zero states
 
 * include a `## Resume` heading that:
   * restores the saved variables and context from this return script

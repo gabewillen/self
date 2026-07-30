@@ -1,4 +1,4 @@
-<!-- mdscript: use the mdscript-exec skill or read [mdscript.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/README.md) -->
+<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Resolve Goal MDScript
 
@@ -36,11 +36,21 @@
   * `created_at`
   * `updated_at`
 
-* the goal body must start with the MDScript comment header and include these headings:
-  * `Goal Contract`
-  * `Resume Goal`
-  * `Hot Path`
-  * `Stop`
+* start the goal body with the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->`, not a bare `<!-- mdscript -->` marker
+
+* write every goal heading as a `##` state, because `mdscript-exec` parses only `##` as states; a goal written with `#` headings has zero states and `#resume-goal` cannot match it
+
+* include these `##` states:
+  * `## Goal Contract`
+  * `## Resume Goal`
+  * `## Hot Path`
+  * `## Stop`
+
+* write each state body as executable bullets — one discrete action per bullet, with explicit `[State](#anchor)` links for every branch, retry, and recovery path
+
+* do not write goal states as prose paragraphs; a paragraph is reference material, and the executor will not perform it
+
+* after writing the goal, verify `/mdscript-exec {{goal_mdscript}}#resume-goal` resolves to a real `##` state before reporting the lane resumable
 
 * put the objective, scoped done state, source of truth, parent reporting path, claim scope, contract preconditions, postconditions, invariants, proof path, local resource path, lane ledger keys, `model`, `reasoning`, `model_selection_basis`, exact role continuation jumps, exact event `event_exec` values, stop/report conditions, and authority boundaries in the goal
 

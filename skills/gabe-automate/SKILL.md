@@ -3,7 +3,7 @@ name: gabe-automate
 description: "Design and create Gabe-shaped automations as MDScript-driven continuations backed by file-based tasks and comments. Use before any Gabe-shaped agent calls automation_update or any automation creation/update tool, and when an agent creates, updates, reviews, or hands off recurring monitors, reminders, PR/MR watchers, blocker watchers, lane-management wakeups, or thread follow-ups so the automation has an exact mdscript-exec re-entry point, preferably a task-local hot-path MDScript for watched lanes, role boundary, cadence, owner, stop condition, evidence/reporting contract, file task/comment source of truth, gpt-5.6 Sol with medium reasoning for resumed orchestrators, and a task-appropriate gpt-5.6-family model and reasoning level for resumed implementers or reviewers."
 ---
 
-<!-- mdscript: use the mdscript-exec skill or read [mdscript.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/README.md) -->
+<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Load Automation Context
 
@@ -56,6 +56,7 @@ description: "Design and create Gabe-shaped automations as MDScript-driven conti
 ## Select MDScript Reentry
 
 * set `{{mdscript_reentry}}` to an exact command shaped like `/mdscript-exec <absolute-mdscript-path>#stable-heading`
+* verify the target file exists and that `#stable-heading` resolves to a real `##` state before recording the re-entry; a re-entry into a file with no matching `##` state cannot resume
 
 * when `{{task_mdscript}}` exists for a watched or resumable lane, prefer `/mdscript-exec {{task_mdscript}}#hot-path-monitor` over generic role or workflow entries
 

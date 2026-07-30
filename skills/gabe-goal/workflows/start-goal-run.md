@@ -16,7 +16,11 @@
 * set `{{run_dir}}` to `{{session_dir}}/runs/{{run_id}}`
 * set `{{goal_mdscript}}` to `{{run_dir}}/goal.mdscript.md`
 * create `{{run_dir}}/artifacts/logs`, `captures`, `images`, `screenshots`, and `live`
-* write executable `{{goal_mdscript}}` as the sole durable run tracker with YAML front matter (`active`, `status`, `goal`, paths, proof fields, `resume_heading`, `iteration`, `started_at`) plus MDScript header and headings `Goal Contract`, `Resume Goal`, `Pursue Goal`, `Complete Goal`, `Manual Stop`, and `Stop Hook Resume Command`
+* write executable `{{goal_mdscript}}` as the sole durable run tracker with YAML front matter (`active`, `status`, `goal`, paths, proof fields, `resume_heading`, `iteration`, `started_at`) plus the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->`
+* write every heading in `{{goal_mdscript}}` as a `##` state — `mdscript-exec` parses only `##`, so `#` headings leave the file with zero states and no resume target
+* include the `##` states `Goal Contract`, `Resume Goal`, `Pursue Goal`, `Complete Goal`, `Manual Stop`, and `Stop Hook Resume Command`
+* write each state body as executable bullets with explicit `[State](#anchor)` branches, not prose paragraphs
+* verify `mdscript-exec {{goal_mdscript}}#pursue-goal` resolves to a real `##` state before reporting the run started
 * do not write `goal.json` for new runs — front matter is authoritative (legacy `goal.json` is read-only fallback only)
 * put the exact stop-hook resume command `mdscript-exec {{goal_mdscript}}#pursue-goal` in `Stop Hook Resume Command`
 * write `{{session_dir}}/active-run.json` pointing at `{{run_id}}`, `{{run_dir}}`, and `{{goal_mdscript}}`
