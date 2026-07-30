@@ -7,7 +7,8 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve as resolvePath } from "node:path";
+import { homedir } from "node:os";
 
 export interface GoalState {
   active: boolean;
@@ -184,11 +185,32 @@ export const RUNS_DIR_NAME = "runs";
 export const DEFAULT_RESUME_HEADING = "pursue-goal";
 export const MDSCRIPT_EXEC_HEADER =
   "<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->";
-export const PROJECT_GOAL_LOG_PATH = ".cursor/goal/goal-log.jsonl";
+/**
+ * Agent state lives under ~/.agents (or $AGENTS_HOME), not in the working
+ * repository. GABE_AGENTS_LOCAL=1 — set by installing with --local — keeps it
+ * beside the project instead, under <repo>/.agents.
+ */
+export function agentProjectHome(root: string): string {
+  if (process.env.GABE_AGENTS_LOCAL === "1") {
+    return join(root, ".agents");
+  }
+  const home = process.env.AGENTS_HOME
+    ? resolvePath(process.env.AGENTS_HOME)
+    : join(homedir(), ".agents");
+  return join(home, "projects", projectSlug(root));
+}
+
+function projectSlug(root: string): string {
+  const base = root.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || "project";
+  return base.replace(/[^A-Za-z0-9._-]+/g, "-") || "project";
+}
+
+export const PROJECT_GOAL_LOG_PATH = "goal/goal-log.jsonl";
 export const LEGACY_GOAL_PATH = ".cursor/goal.json";
 export const LEGACY_SIGNOFF_PATH = ".cursor/goal-signoff.json";
 export const LEGACY_PROGRESS_PATH = ".cursor/goal-progress.md";
-export const SESSIONS_DIR = ".cursor/goal/sessions";
+export const SESSIONS_DIR = "goal/sessions";
+export const LEGACY_REPO_SESSIONS_DIR = ".cursor/goal/sessions";
 
 /** @deprecated Use SESSIONS_DIR. Kept for active sessions started under grind. */
 export const LEGACY_GRIND_SESSIONS_DIR = ".cursor/grind/sessions";
@@ -205,7 +227,21 @@ export function safeSessionId(conversationId: string): string {
 }
 
 export function sessionDirectory(root: string, conversationId: string): string {
-  return join(root, SESSIONS_DIR, safeSessionId(conversationId));
+  const id = safeSessionId(conversationId);
+  const home = join(agentProjectHome(root), SESSIONS_DIR, id);
+  if (existsSync(home)) {
+    return home;
+  }
+  // Pre-cutover runs stayed in the repository; keep reading them in place.
+  const legacy = join(root, LEGACY_REPO_SESSIONS_DIR, id);
+  if (existsSync(legacy)) {
+    return legacy;
+  }
+  return home;
+}
+
+export function projectGoalLogPath(root: string): string {
+  return join(agentProjectHome(root), PROJECT_GOAL_LOG_PATH);
 }
 
 function extendRunPaths(
@@ -280,9 +316,8 @@ export function recordGoalEvent(
   mkdirSync(sessionRoot, { recursive: true });
   appendJsonLine(join(sessionRoot, SESSION_LOG_FILE), entry);
 
-  const projectLogDirectory = join(root, ".cursor", "goal");
-  mkdirSync(projectLogDirectory, { recursive: true });
-  appendJsonLine(join(root, PROJECT_GOAL_LOG_PATH), entry);
+  mkdirSync(dirname(projectGoalLogPath(root)), { recursive: true });
+  appendJsonLine(projectGoalLogPath(root), entry);
 }
 
 export function appendProgressLog(
@@ -592,13 +627,14 @@ export function ensureSessionDirectory(
   const sessionRoot = sessionDirectory(root, conversationId);
   mkdirSync(sessionRoot, { recursive: true });
   mkdirSync(join(sessionRoot, RUNS_DIR_NAME), { recursive: true });
-  mkdirSync(join(root, ".cursor", "goal"), { recursive: true });
+  mkdirSync(dirname(projectGoalLogPath(root)), { recursive: true });
 
   if (!existsSync(join(sessionRoot, SESSION_LOG_FILE))) {
     writeFileSync(join(sessionRoot, SESSION_LOG_FILE), "", "utf-8");
   }
-  if (!existsSync(join(root, PROJECT_GOAL_LOG_PATH))) {
-    writeFileSync(join(root, PROJECT_GOAL_LOG_PATH), "", "utf-8");
+  if (!existsSync(projectGoalLogPath(root))) {
+    mkdirSync(dirname(projectGoalLogPath(root)), { recursive: true });
+    writeFileSync(projectGoalLogPath(root), "", "utf-8");
   }
 
   const meta: GoalSessionMeta = {
@@ -1070,7 +1106,7 @@ ${MDSCRIPT_EXEC_HEADER}
 * goal_mdscript is \`${scriptRelative}\` — this file is the durable tracker and stop-hook resume target
 * proof_kind is \`${proofKind}\`; live_proof is \`${state.live_proof ?? liveProof}\`
 * primary_user_action is \`${primaryAction || "(unset)"}\`
-* append-only surfaces: \`${runRelative}/progress.jsonl\`, session-log.jsonl, and .cursor/goal/goal-log.jsonl
+* append-only surfaces: \`${runRelative}/progress.jsonl\`, session-log.jsonl, and the project goal-log.jsonl
 * immutable run rule: never reuse or delete prior runs/<run_id>/ directories
 * review rule: compose gabe-review for completion; orchestrator never self-authors a Proven verdict
 * completion requires on-disk artifacts/manifest matching proof_kind/live_proof and a durable gabe-review verdict with empty blocking_findings

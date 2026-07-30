@@ -17,6 +17,7 @@
  *   node scripts/install.mjs --copy
  *   node scripts/install.mjs --live-root ~/src/agents
  *   node scripts/install.mjs --target ~/.agents/skills
+ *   node scripts/install.mjs --local        (agent state in <repo>/.agents)
  *   node scripts/install.mjs --dry-run
  *   node scripts/install.mjs --no-adapters
  *   node scripts/install.mjs --pull
@@ -63,6 +64,12 @@ const explicitLiveRoot = liveRootIdx >= 0 ? resolve(args[liveRootIdx + 1]) : nul
 const mdscriptRootIdx = args.indexOf("--mdscript-root");
 const explicitMdscriptRoot =
   mdscriptRootIdx >= 0 ? resolve(args[mdscriptRootIdx + 1]) : null;
+// Agent state (goals, tasks, comments, ledgers, run dirs) lives under
+// ~/.agents by default. --local puts it beside the project instead.
+const localState =
+  args.includes("--local") ||
+  process.env.GABE_AGENTS_LOCAL === "1" ||
+  process.env.GABE_AGENTS_LOCAL === "true";
 const skipMdscript =
   args.includes("--no-mdscript") ||
   process.env.GABE_AGENTS_MDSCRIPT === "0" ||
@@ -700,6 +707,7 @@ const receipt = {
   live: liveMeta,
   skills_root: skillsRoot,
   skills,
+  local_state: localState,
   mdscript_skills_root: mdscriptSkillsRoot,
   mdscript_skills: mdscriptSkills,
   targets: results,
@@ -714,6 +722,16 @@ if (!dryRun) {
   } catch {
     // ignore when package is read-only
   }
+}
+
+if (localState) {
+  console.log(
+    "[gabe-agents] --local: agent state goes under <repo>/.agents (export GABE_AGENTS_LOCAL=1 for hooks and skills)",
+  );
+} else {
+  console.log(
+    "[gabe-agents] agent state under ~/.agents (or $AGENTS_HOME); working repositories stay clean",
+  );
 }
 
 if (mdscriptSkills.length) {

@@ -17,6 +17,7 @@ description: >-
 
 * set `{{skill_root}}` to this skill directory
 * set `{{repo_root}}` to the working repository root, or the path the user named
+* run [Resolve Agent Home](../gabe-common/workflows/agent-home.md#resolve-agent-home)
 * set `{{review_scope}}` from the user request; if empty, default to the working diff
 * set `{{full_sweep}}` to `true` only if the user asked for a complete or whole-tree review
 * read [anti-patterns.md](references/anti-patterns.md) and hold it for every gate

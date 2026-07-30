@@ -1,13 +1,19 @@
 # gabe-goal contracts
 
-Portable reference for the MDScript `gabe-goal` skill. Session layout matches the Cursor `goal` skill so existing hooks under `scripts/cursor-hooks/` remain usable.
+Portable reference for the MDScript `gabe-goal` skill.
+
+`<project_home>` is `~/.agents/projects/<project>` (or `$AGENTS_HOME`), resolved by
+[Resolve Agent Home](../../gabe-common/workflows/agent-home.md#resolve-agent-home).
+Run state stays out of the working repository unless the pack was installed with
+`--local` or `GABE_AGENTS_LOCAL=1`, in which case it lives under `<repo>/.agents`.
+A pre-cutover `.cursor/goal/` tree is read as legacy and never written for new runs.
 
 ## Paths
 
 | Path | Rule |
 |------|------|
-| `.cursor/goal/goal-log.jsonl` | Project-wide append-only events |
-| `.cursor/goal/sessions/<conversation_id>/` | One chat session |
+| `<project_home>/goal/goal-log.jsonl` | Project-wide append-only events |
+| `<project_home>/goal/sessions/<conversation_id>/` | One chat session |
 | `session-log.jsonl` | Session append-only log |
 | `active-run.json` | Pointer to current run |
 | `runs/<run_id>/` | Immutable run directory |

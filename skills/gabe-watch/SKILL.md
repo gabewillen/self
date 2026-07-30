@@ -45,7 +45,8 @@ description: >-
   * [Report Blocker](#report-blocker)
 * set `{{skill_root}}` to this skill's absolute directory (`~/.agents/skills/gabe-watch` unless overridden)
 * set `{{project_name}}` from `{{repo}}`
-* set `{{watch_mdscript}}` to `~/.agents/projects/{{project_name}}/goals/gabe-watch-{{pr_number}}.mdscript.md`
+* run [Resolve Agent Home](../gabe-common/workflows/agent-home.md#resolve-agent-home)
+* set `{{watch_mdscript}}` to `{{project_home}}/goals/gabe-watch-{{pr_number}}.mdscript.md`
 * create `~/.agents/projects/{{project_name}}/goals` when missing
 * if a legacy `~/.agents/projects/{{project_name}}/gabe-watch/pr-{{pr_number}}.json` exists and `{{watch_mdscript}}` does not
   * read that legacy state once to recover `loop_pid`, `sentinel`, and contract fields

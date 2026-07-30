@@ -13,6 +13,7 @@ description: >-
 
 ## Parse Goal
 
+* run [Resolve Agent Home](../gabe-common/workflows/agent-home.md#resolve-agent-home)
 * set `{{skill_root}}` to this skill directory (directory containing this `SKILL.md`)
 * set `{{repo_root}}` to the working repository root when present, otherwise the current workspace root
 * set `{{goal_text}}` from `/gabe-goal …`, `/goal …`, `/grind …`, or the natural-language goal in the user request
@@ -65,7 +66,7 @@ description: >-
 * set front-matter `active: false` on `{{goal_mdscript}}`
 * refresh `{{goal_mdscript}}` with `status: completed` and `resume_heading: complete-goal`
 * update `{{session_dir}}/active-run.json` to mark the run inactive
-* append `goal_completed` to `{{session_dir}}/session-log.jsonl` and `.cursor/goal/goal-log.jsonl`
+* append `goal_completed` to `{{session_dir}}/session-log.jsonl` and `{{project_home}}/goal/goal-log.jsonl`
 * append `run_completed` to `{{run_dir}}/progress.jsonl`
 * stop and report the completed goal, `{{run_dir}}`, `{{goal_mdscript}}`, artifact summary, and the gabe-review Proven-for verdict
 

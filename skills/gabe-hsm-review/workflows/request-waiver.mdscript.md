@@ -2,7 +2,7 @@
 
 ## Request Waiver
 
-* write `.mdscript/returns/hsm-review-waiver-{{run_id}}.md` containing:
+* write `{{project_home}}/returns/hsm-review-waiver-{{run_id}}.mdscript.md` containing:
   * this skill's path and the resume heading `Emit Findings`
   * `{{run_id}}`, `{{out_dir}}`, `{{findings_log}}`, `{{findings_path}}`, `{{full_sweep}}`,
     `{{dialect}}`, `{{graph_source}}`, and the gate that stopped
@@ -11,5 +11,5 @@
     declines, and resume at [Emit Findings](../SKILL.md#emit-findings)
 * ask the user which blocking rule ids, if any, they waive for this run, listing each with its
   location and consequence
-* end the question with `mdscript-exec .mdscript/returns/hsm-review-waiver-{{run_id}}.md` as the
+* end the question with `mdscript-exec {{project_home}}/returns/hsm-review-waiver-{{run_id}}.mdscript.md` as the
   final line, and write nothing after it

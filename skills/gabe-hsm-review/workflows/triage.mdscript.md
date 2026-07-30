@@ -5,7 +5,8 @@
 * resolve `{{repo_root}}` to an existing absolute path; if missing, ask the user for one and [Triage](#triage)
 * expand `{{review_scope}}` into concrete paths under `{{repo_root}}`
 * set `{{run_id}}` to a new timestamp id
-* set `{{out_dir}}` to `{{repo_root}}/.gabe-hsm-review/{{run_id}}` when writable, else `{{skill_root}}/runs/{{run_id}}`
+* run [Resolve Agent Home](../../gabe-common/workflows/agent-home.md#resolve-agent-home)
+* set `{{out_dir}}` to `{{project_home}}/hsm-review/{{run_id}}`
 * create `{{out_dir}}` and set `{{findings_log}}` to `{{out_dir}}/findings.jsonl`
 * set `{{findings}}` to an empty list
 
