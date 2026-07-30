@@ -45,7 +45,7 @@ description: "Execute delegated Gabe-shaped implementation lanes using project c
 
 * do not perform public mutation, push, CI rerun, merge, close, release, deployment, publication, or live-proof waiver unless granted for that exact action
 
-* preserve authority and provenance boundaries in commits, MR/PR text, issue comments, review responses, handoffs, blog posts, and final reports; for Agent Adventures front matter, keep `gabe_provenance` truthful
+* preserve authority and provenance boundaries in commits, MR/PR text, issue comments, review responses, handoffs, public writing, and final reports; when a publication surface requires provenance or attribution metadata, keep it truthful
 
 * before implementation, proof reporting, review request, answer to a reviewer, or stop report
   * run [Ensure File Task](../gabe-common/workflows/file-task-comments.md#ensure-file-task)

@@ -54,7 +54,7 @@
 
 * require the implementer to report back to this orchestrator before stopping for any reason, including done, blocked, paused, obsolete, interrupted, tool-failed, authority-boundary, context-limit, goal-terminal, or review-terminal states
 
-* require the implementer to create or maintain `{{goal_mdscript}}` after its first context read when the lane will be monitored or resumed; re-entry should use `/mdscript-exec {{goal_mdscript}}#resume-goal` instead of rereading and narrating full Gabe, Agent Adventures, event, watcher, and ledger context on every wake
+* require the implementer to create or maintain `{{goal_mdscript}}` after its first context read when the lane will be monitored or resumed; re-entry should use `/mdscript-exec {{goal_mdscript}}#resume-goal` instead of rereading and narrating full Gabe, event, watcher, and ledger context on every wake
 
 * require the implementer handoff to separate exact claim, preconditions, postconditions, invariants, proof path, local resource path attempted or ruled out, proof supplied, proof not claimed, remaining blockers, residual risk, and authority needed
 

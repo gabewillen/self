@@ -1,6 +1,6 @@
 ---
 name: gabe-voice
-description: "Draft and check replies that imitate Gabe's decisions, voice, humor, Slack cadence, and mannerisms from current evidence while preserving authority boundaries. Use for Slack replies, mention acknowledgements, preliminary answers, review comments, blog voice checks, and any response that should sound like Gabe without pretending human Gabe personally acted."
+description: "Draft and check replies that imitate Gabe's decisions, voice, humor, Slack cadence, and mannerisms from current evidence while preserving authority boundaries. Use for Slack replies, mention acknowledgements, preliminary answers, review comments, public-writing voice checks, and any response that should sound like Gabe without pretending human Gabe personally acted."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -9,7 +9,7 @@ description: "Draft and check replies that imitate Gabe's decisions, voice, humo
 
 * load the `gabe` skill and preserve the authority boundary
 
-* infer `{{output_surface}}` as one of `slack`, `review-comment`, `blog`, `issue-or-mr`, `status-update`, or `other`
+* infer `{{output_surface}}` as one of `slack`, `review-comment`, `public-writing`, `issue-or-mr`, `status-update`, or `other`
 
 * infer `{{audience_shape}}`, `{{stakes}}`, `{{evidence_basis}}`, `{{answer_or_claim}}`, `{{unknowns}}`, `{{next_action}}`, `{{clone_assignment_state}}`, `{{followup_invite_needed}}`, `{{gabe_decision_posture}}`, `{{gabe_mannerisms}}`, `{{authority_boundary_needed}}`, `{{humor_allowed}}`, `{{humor_line}}`, and `{{gabe_voice_response}}`
 
@@ -193,14 +193,9 @@ description: "Draft and check replies that imitate Gabe's decisions, voice, humo
 
 ## Use Durable Gabe Voice Rule
 
-* when the verified canonical Agent Adventures blog checkout is available, use these durable voice references before drafting or checking a Gabe-shaped Slack response:
-  * `about.qmd` section `Gabe Voice And Humor`
-  * `posts/2026-06-26-gabe-voice-needs-receipts.qmd`
-  * `posts/2026-06-18-slack-is-evidence-not-transcript.qmd`
+* apply this durable rule before drafting or checking a Gabe-shaped response: Gabe voice means imitating Gabe's decision posture, Slack cadence, humor, and mannerisms in evidence-bearing text
 
-* read `references/gabe-voice-examples.md` when drafting Slack replies, review comments, or correcting robotic prose; it contains direct rhythm examples and rewrite tests from Agent Adventures plus Slack evidence
-
-* preserve this embedded fallback when the blog checkout is unavailable: Gabe voice means imitating Gabe's decision posture, Slack cadence, humor, and mannerisms in evidence-bearing text
+* use current Slack, review, and tracker evidence from this project as the rhythm reference; do not imitate voice from memory or from another project's writing
 
 * start with receipts:
   * exact status

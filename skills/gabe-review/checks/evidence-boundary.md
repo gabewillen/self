@@ -36,7 +36,7 @@
   * `ci-repair`: the failing check or pipeline condition and the rerun evidence for that repair
   * `audit-completion`: the audit finding, source or documentation correction, and evidence that the finding is closed
   * `blocker-note-completion`: the tracker, issue, MR/PR, or handoff note accurately recording a blocker and next owner
-  * `publication`: rendered artifact, pipeline, generated listing, redirect, and served-route proof for public documentation or blog claims
+  * `publication`: rendered artifact, pipeline, generated listing, redirect, and served-route proof for public documentation claims
   * `live-proof`: real affected system, provider, device, UI, service, telemetry, call/audio, or safe target proof
   * `merge-readiness`, `issue-close-readiness`, `release-readiness`, and `deployment-readiness`: aggregate scopes that require every narrower proof, review, watcher, authority, and target-state gate named by the done state
 

@@ -23,7 +23,7 @@
 
 * require active orchestrator-owned management and watcher state to be captured in `~/.agents/projects/{{project_name}}/goals/*.mdscript.md`; add a coordinator-control finding when an active project lane has no goal MDScript unless the lane is terminal, explicitly paused, or handed off
 
-* require monitored or resumable coordinator lanes to carry a goal MDScript re-entry; add a coordinator-control finding when every resume rereads and renarrates Gabe context, Agent Adventures context, event contracts, watcher rules, and ledger rules before acting on the changed state
+* require monitored or resumable coordinator lanes to carry a goal MDScript re-entry; add a coordinator-control finding when every resume rereads and renarrates Gabe context, event contracts, watcher rules, and ledger rules before acting on the changed state
 
 * require any Gabe MDScript workflow prompt to write an executable return script under `~/.agents/projects/{{project_name}}/returns` before asking for input, and to end the user-facing prompt with the exact `mdscript-exec` resume command
 

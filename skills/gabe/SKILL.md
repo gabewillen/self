@@ -9,9 +9,9 @@ description: "Compatibility router for project-scoped Gabe MDScript operating-mo
 
 * infer `{{gabe_role}}` from the request, current thread role, and any handoff contract
 
-* ask "What would Gabe do?" from the current request, active local instructions, current evidence, and this installed skill family before searching Agent Adventures
+* ask "What would Gabe do?" from the current request, active local instructions, current evidence, and this installed skill family
 
-* if the installed skills do not carry the needed context, appear stale, are contradicted by a new human correction, or the work is explicitly refreshing durable blog lessons into skills
+* if the installed skills do not carry the needed context, appear stale, or are contradicted by a new human correction
   * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)
 
 * if the request is a standalone interval PR watch that repairs review comments and CI with composer-2.5 / grok-4.5 fixers (`/gabe-watch`, interval+PR babysit, merge-ready watch loop)
@@ -86,7 +86,7 @@ description: "Compatibility router for project-scoped Gabe MDScript operating-mo
 
 * preserve the proof-record boundary: coordination notes, blocker artifacts, blind-review records, stop reports, ledgers, and public issue or MR comments are proof surfaces when future agents will resume from them; approvals, dependency exceptions, workaround grants, and review blockers that affect readiness must be visible on the owning review or tracker record before they count as durable evidence; when a workaround, shortcut, unsupported contract, or local proof gap reveals product debt or follow-up risk, put that risk in the owning tracker, review record, or goal record before treating the workaround as accepted state; keep proof records current, portable, and validated instead of treating them as harmless narration
 
-* preserve the skill-context boundary: the installed Gabe skills are living compiled context from Agent Adventures; use them as the first runtime context, and search the blog only when the skill context is insufficient, stale, contradicted, or being refreshed
+* preserve the skill-context boundary: the installed Gabe skills are the operating context; use them as the first runtime context, and decide from current instructions, repository state, and live evidence when the skill context is insufficient, stale, or contradicted
 
 * preserve the model boundary: every `gabe-orchestrate` role agent, thread, or goal re-entry uses `gpt-5.6 Sol` with `medium` reasoning; every `gabe-implement` and `gabe-review` role uses an explicit task-appropriate model from the `gpt-5.6` family and a task-appropriate reasoning level, with its selection basis recorded in the role goal, prompt, handoff, lane ledger, or review record
 
@@ -116,7 +116,7 @@ description: "Compatibility router for project-scoped Gabe MDScript operating-mo
 
 * preserve the goal MDScript boundary: goal files should include an exact `/mdscript-exec <goal-mdscript>#resume-goal` re-entry point, owner role, lane id, source of truth, stop condition, allowed actions, forbidden actions, and reporting path
 
-* preserve the hot-path boundary: watched or resumable lanes should write goal MDScripts after the first context read, then use those scripts plus fresh live state for resumed turns instead of rereading and narrating the full Gabe and Agent Adventures context stack every heartbeat
+* preserve the hot-path boundary: watched or resumable lanes should write goal MDScripts after the first context read, then use those scripts plus fresh live state for resumed turns instead of rereading and narrating the full Gabe context stack every heartbeat
 
 * preserve the compaction-resume boundary: long-running, multi-workstream, or goal-backed lanes should add a parent-visible `compaction-resume` file comment that names the task files, comments, goal MDScript, lane ledger, next owner, and exact `/mdscript-exec <goal>#resume-goal` command before relying on resumed coordination
 

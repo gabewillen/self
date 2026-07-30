@@ -127,9 +127,9 @@ description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects
 
 * use this table for goal resumes, worker stop reports, child-orchestrator reports, MR/PR state changes, CI terminal state, and reviewer verdict intake before reloading longer workflow detail
 
-* refresh live MR/PR, tracker, CI, discussion, reviewer, and lane-ledger state on every goal resume; do not refresh Agent Adventures context on every resume when a current goal MDScript already captures the lane context
+* refresh live MR/PR, tracker, CI, discussion, reviewer, and lane-ledger state on every goal resume; do not reload the full skill context stack on every resume when a current goal MDScript already captures the lane context
 
-* if the lane has `{{goal_mdscript}}`, execute `/mdscript-exec {{goal_mdscript}}#resume-goal` first; reread Agent Adventures only when the goal script is missing, stale, contradicted by a new human correction, or the lane scope/project changes
+* if the lane has `{{goal_mdscript}}`, execute `/mdscript-exec {{goal_mdscript}}#resume-goal` first; reload the full skill context only when the goal script is missing, stale, contradicted by a new human correction, or the lane scope/project changes
 
 * after any hot-path state change, add a file comment on the affected task before updating chat or external trackers
 
@@ -175,10 +175,6 @@ description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects
 ## Handle Merge Or Close Decision
 
 * run [Handle Merge Or Close Decision](workflows/merge-or-close-decision.md#handle-merge-or-close-decision)
-
-## Publish Durable Context
-
-* run [Publish Durable Context](../gabe-common/workflows/publish-durable-context.md#publish-durable-context)
 
 ## Report
 

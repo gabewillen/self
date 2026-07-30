@@ -67,5 +67,5 @@
   * require the watcher and any re-entered reviewer to check GitHub for replies to prior findings, requested re-review, new commits or head SHA drift, unresolved conversations, changed review states, checks, and mergeability before treating an earlier approval, blocker, green check, or `feedback_posted` record as terminal
   * require a fresh review on the current head when any GitHub reply, re-review request, new commit, unresolved review thread, stale base, conflict, or check change appears after the last reviewer signal
 
-* if the change is MDScript-only, blog-only, documentation-only, instruction-only, plan-only, task-only, comment-only, or another non-code artifact change
+* if the change is MDScript-only, documentation-only, instruction-only, plan-only, task-only, comment-only, or another non-code artifact change
   * require one fresh review and relevant direct checks, render or pipeline, and served-route proof when publication is part of the claim

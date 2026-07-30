@@ -35,6 +35,6 @@
   * require resolvable threads to be resolved only after concerns are fixed, withdrawn, or accepted closed
   * require reviewer identities to author their own sanitized GitLab notes through `gitlab-sudo-alias` with `-reviewer` aliases when leased reviewer identities are available
 
-* for MDScript-only, blog-only, documentation-only, and instruction-only changes
+* for MDScript-only, documentation-only, and instruction-only changes
   * require exactly one fresh review and direct checks, render or pipeline, and served-route proof when publication is part of the claim
   * do not require or start a recursive review loop

@@ -11,7 +11,7 @@
 
 * require the automation contract to include `{{mdscript_reentry}}`, owner role, lane id, watched target, source of truth, cadence, stop condition, allowed actions, forbidden actions, parent agent, reporting path, next jump, and stop-report rule
 
-* for explicit external watcher automations, prefer `{{mdscript_reentry}}` that targets the lane's `{{goal_mdscript}}#resume-goal` when a goal MDScript exists; the automation should refresh live state and execute the changed hot-path action instead of re-reading or restating Gabe and Agent Adventures context on every wake
+* for explicit external watcher automations, prefer `{{mdscript_reentry}}` that targets the lane's `{{goal_mdscript}}#resume-goal` when a goal MDScript exists; the automation should refresh live state and execute the changed hot-path action instead of re-reading or restating Gabe context on every wake
 
 * require watcher automations to execute the matching event MDScript jump when `DISPOSITION_READY`, `TARGET_DRIFT`, `HANDOFF_UNACKED`, or `STALE_MR` conditions are met, and to report `{{event_exec}}` to the parent reporting path before stopping
 

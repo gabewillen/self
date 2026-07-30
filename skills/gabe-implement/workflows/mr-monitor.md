@@ -22,7 +22,7 @@
 
 * give routine monitor resumes `/mdscript-exec {{goal_mdscript}}#resume-goal`
 
-* routine resumes should refresh live MR/PR, CI, review, discussion, and tracker state, then execute only the changed hot-path action; do not reread or narrate full Gabe, Agent Adventures, event, watcher, and ledger context unless `{{goal_mdscript}}` is missing or stale
+* routine resumes should refresh live MR/PR, CI, review, discussion, and tracker state, then execute only the changed hot-path action; do not reread or narrate full Gabe, event, watcher, and ledger context unless `{{goal_mdscript}}` is missing or stale
 
 * when the goal reports lane state, include `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/report-to-orchestrator.md#report-to-orchestrator` as the re-entry command
 

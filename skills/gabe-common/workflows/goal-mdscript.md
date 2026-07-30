@@ -66,7 +66,7 @@
 
 * refresh current repo, tracker, MR/PR, CI, review, discussion, telemetry, and proof state only after reading the goal
 
-* do not reread or narrate full Gabe, Agent Adventures, automation, watcher, and ledger context when the goal MDScript already captures the active contract
+* do not reread or narrate full Gabe, automation, watcher, and ledger context when the goal MDScript already captures the active contract
 
 * if a new human correction, scope change, project change, or source-of-truth conflict invalidates the goal, update the goal MDScript before acting
 

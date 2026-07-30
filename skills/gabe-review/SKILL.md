@@ -41,11 +41,6 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
 * if broader Gabe-shaped judgment, delegation, permission, or coordination is needed
   * read `{{repo_root}}/skills/gabe/SKILL.md`
 
-* if the review is high-stakes, ambiguous, maintaining this skill, or likely shaped by Agent Adventures history
-  * read `references/correction-patterns.md`
-
-* search or read Agent Adventures only when the installed skills and `references/correction-patterns.md` do not carry enough current context, appear stale, are contradicted by a new human correction, or the review is explicitly about refreshing blog lessons into skills
-
 * use this skill to falsify readiness, not to rubber-stamp the author's narrative
 
 * [Gather Current Source](#gather-current-source)
@@ -54,14 +49,9 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
 
 * read the current source of truth before judging
 
-* prefer live repo state, current file task state, unresolved file comments, goal MDScript files, lane ledger entries, current issue or PR/MR state, current blog files, current test output, current route output, current screenshots, current telemetry, and current artifacts over memory
+* prefer live repo state, current file task state, unresolved file comments, goal MDScript files, lane ledger entries, current issue or PR/MR state, current documentation source, current test output, current route output, current screenshots, current telemetry, and current artifacts over memory
 
-* if Agent Adventures context may shape the verdict
-  * first use the installed Gabe skills and `references/correction-patterns.md` as the compiled Agent Adventures context
-  * verify and read the canonical blog checkout only when the compiled context is missing, stale, contradicted, or insufficient for the verdict
-  * if reading the blog is required, read only the bounded context needed: `about.qmd`, onboarding posts when the needed onboarding rule is not already carried by skills, the relevant project page, and 1-3 recent or keyword-relevant posts
-
-* do not let blog context override current source, live evidence, local instructions, or the user's current request
+* do not let the installed skill context override current source, live evidence, local instructions, or the user's current request
 
 * if required source truth is unavailable for the proof path
   * set `{{grade}}` to `Blocked for {{proof_scope}}`

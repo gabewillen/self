@@ -89,7 +89,7 @@ description: "Design and create Gabe-shaped automations as MDScript-driven conti
 
 * include enough state for the automation to resume after thread compaction without relying on chat memory
 
-* for watcher automations, include the task-local context snapshot and instruct the wakeup to refresh live state, compare it to the previous ledger state, execute only the changed hot-path action, and avoid rereading or restating full Gabe and Agent Adventures context unless the task script is missing or stale
+* for watcher automations, include the task-local context snapshot and instruct the wakeup to refresh live state, compare it to the previous ledger state, execute only the changed hot-path action, and avoid rereading or restating full Gabe context unless the task script is missing or stale
 
 * require each wakeup to add a file comment only when state changed, a blocker appeared, a deadline passed, unexpected input arrived, or the automation is stopping
 

@@ -18,4 +18,4 @@
     * set `{{grade}}` to `Blocked`
     * set `{{blocker}}` to the exact missing GitLab sudo alias capability
 
-* add findings for assistant decisions attributed to human Gabe, automation follow-ups described as direct human instructions, or `gabe_provenance` values unsupported by evidence
+* add findings for assistant decisions attributed to human Gabe, automation follow-ups described as direct human instructions, or provenance claims unsupported by evidence

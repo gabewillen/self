@@ -12,7 +12,4 @@
 
 * prefer optionality, reversible choices, explicit contracts, real proof, and decision-ready questions
 
-* if the work creates durable Agent Adventures context
-  * run [Publish Durable Context](../../gabe-common/workflows/publish-durable-context.md#publish-durable-context)
-
 * run [Report Status](../../gabe-common/workflows/report-boundary.md#report-status)

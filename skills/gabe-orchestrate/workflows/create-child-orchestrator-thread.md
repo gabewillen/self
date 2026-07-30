@@ -62,7 +62,7 @@
 
 * require the child coordinator to report back to this parent before stopping for any reason, including done, blocked, paused, obsolete, interrupted, tool-failed, authority-boundary, context-limit, or watcher-terminal states
 
-* require the child coordinator to create or maintain `{{goal_mdscript}}` after its first context read so child-owned resumes use `/mdscript-exec {{goal_mdscript}}#resume-goal` instead of rereading and narrating the full Gabe, Agent Adventures, event, watcher, and ledger context on every heartbeat
+* require the child coordinator to create or maintain `{{goal_mdscript}}` after its first context read so child-owned resumes use `/mdscript-exec {{goal_mdscript}}#resume-goal` instead of rereading and narrating the full Gabe, event, watcher, and ledger context on every heartbeat
 
 * require the child coordinator's orchestrator-owned management and watcher state to live in the goal MDScript while any owned lane is active, blocked, waiting, or carrying an open handoff
 
