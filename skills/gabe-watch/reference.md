@@ -15,18 +15,38 @@
 ```bash
 while true; do
   sleep <interval_seconds>
-  echo 'AGENT_LOOP_TICK_gabe_watch_<N> {"prompt":"/mdscript-exec …/gabe-watch/SKILL.md#resume-watch",…}'
+  echo 'AGENT_LOOP_TICK_gabe_watch_<N> {"prompt":"/mdscript-exec …/goals/gabe-watch-<N>.mdscript.md#resume-watch",…}'
 done
 ```
 
 Rules:
 
-- Arm only from `#arm-persistent-interval-loop` during setup (or when state proves the old PID is dead and the user re-runs `/gabe-watch`).
+- Arm only from `#arm-persistent-interval-loop` during setup (or when front matter proves the old PID is dead and the user re-runs `/gabe-watch`).
 - `#resume-watch` / `#watch-tick` **must not** re-arm, start a one-shot `sleep`, or schedule a fallback wake.
 - End each tick turn after work; the existing loop owns the next wake.
-- Persist `loop_pid`, `sentinel`, and contract fields to `~/.agents/projects/<project>/gabe-watch/pr-<N>.json`.
+- Persist `loop_pid`, `sentinel`, and contract fields to the watch MDScript front matter (see below).
 - Stop the loop only via `/gabe-unwatch` (or auto-stop when the PR is `MERGED`/`CLOSED`).
 - Merge-ready status is reported but **does not** stop the watch.
+
+## Watch state (MDScript front matter)
+
+One artifact holds the whole watch: `~/.agents/projects/<project>/goals/gabe-watch-<N>.mdscript.md`, written from [assets/watch.mdscript.md](assets/watch.mdscript.md).
+
+| Path | Rule |
+|------|------|
+| `goals/gabe-watch-<N>.mdscript.md` | Sole watch state (YAML front matter) + executable tracker + loop resume target |
+| `gabe-watch/pr-<N>.json` | Legacy only — read fallback; not written for new watches |
+| `lane-ledger.jsonl` | Append-only per-tick ledger |
+
+Front matter is authoritative: `watch_active`, `status`, `resume_heading`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `loop_pid`, `skill_root`, `easy_model`, `hard_model`, `tick_count`, `last_head_sha`, `last_tick_at`, `armed_at`, `stopped_at`, `stop_reason`, `blocker`.
+
+Required headings: `Watch Contract`, `Resume Goal`, `Resume Watch`, `Watch Tick`, `Report Blocker`, `Stop Watch`, `Loop Resume Command`.
+
+This file is the lane's goal MDScript, so watcher state stays under `goals/*.mdscript.md` with a stable re-entry:
+
+```text
+mdscript-exec ~/.agents/projects/<project>/goals/gabe-watch-<N>.mdscript.md#resume-watch
+```
 
 ## Models
 
@@ -80,6 +100,7 @@ Workflows link here as `[Classify Difficulty](../reference.md#classify-difficult
 /gabe-unwatch 123
 /mdscript-exec ~/.agents/skills/gabe-watch/SKILL.md#setup-watch
 /mdscript-exec ~/.agents/skills/gabe-watch/SKILL.md#resume-watch
+/mdscript-exec ~/.agents/projects/<project>/goals/gabe-watch-<N>.mdscript.md#resume-watch
 /mdscript-exec ~/.agents/skills/gabe-unwatch/SKILL.md#unwatch
 ```
 
