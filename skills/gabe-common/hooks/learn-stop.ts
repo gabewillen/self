@@ -9,6 +9,10 @@ import {
   writeLearnPass,
   learnPassPath,
 } from "./learn-lib.ts";
+import {
+  formatPendingWatchFollowup,
+  listPendingWatches,
+} from "../../gabe-watch/hooks/watch-lib.ts";
 
 const input = readHookInput();
 
@@ -17,15 +21,32 @@ if (input.dialect === "grok" && input.reason && input.reason !== "end_turn") {
   finishHook();
 }
 
-if (shouldSkipLearnHooks()) {
-  finishHook();
-}
-
 if (input.status === "aborted" || input.status === "error") {
   finishHook();
 }
 
 if (input.status !== "completed") {
+  finishHook();
+}
+
+// Pending gabe-watch ticks beat learn: Cursor often kills the tick listener, so
+// the spool advances while the chat is idle. Drain watches before reflecting.
+if (
+  process.env.GABE_WATCH_SKIP_HOOKS !== "1" &&
+  process.env.GABE_WATCH_SKIP_HOOKS !== "true"
+) {
+  const pending = listPendingWatches();
+  if (pending.length) {
+    finishHook(
+      continueWorkingPayload(
+        input.dialect,
+        formatPendingWatchFollowup(pending),
+      ),
+    );
+  }
+}
+
+if (shouldSkipLearnHooks()) {
   finishHook();
 }
 

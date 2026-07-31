@@ -412,6 +412,14 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/engineering-rules/impl-dbc.mdscript.md",
     "references/implementation-rules-catalog.md",
   ],
+  "gabe-watch": [
+    "SKILL.md",
+    "assets/gabe-watch-ticker.sh",
+    "hooks/watch-lib.ts",
+    "hooks/watch-stop.ts",
+    "hooks/watch-session-start.ts",
+    "adapters/cursor/hooks.json",
+  ],
   "gabe-common": [
     "SKILL.md",
     "workflows/goal-mdscript.md",

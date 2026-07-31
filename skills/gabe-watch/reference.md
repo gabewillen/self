@@ -8,6 +8,45 @@
 | `{{interval}}` | no | Default `5m`. Accepts `30s`, `5m`, `10m`, `1h` |
 | `{{repo_root}}` | yes after setup | Local checkout used for sync/fix/push |
 
+## Cursor on macOS — known failure modes
+
+macOS **ticker detach works**. Live evidence from a Cursor-armed watch showed
+ticks every 5m under PPID 1, then exit for:
+
+| Spool reason | Meaning |
+|--------------|---------|
+| `agent-idle` | Agent stopped touching `agent_heartbeat` (listener died; chat never resumed) |
+| `owner-gone` | `owner_pid` was a short-lived process (tool shell / helper), not Cursor.app main |
+
+Cursor-specific wake problems:
+
+1. **Listener dies** — `tail -F` + `notify_on_output` is disposable; Cursor often kills it when the chat goes idle (known Cursor rough edge).
+2. **Ticks still write** — the detached ticker keeps appending to the spool.
+3. **Nothing wakes the chat** until a Stop/session hook drains pending ticks or the user pastes `#resume-watch`.
+4. **Do not set `wake_path: scheduler`** unless a real durable scheduler was verified. Prefer `cursor-notify-on-output` or `listener`.
+
+Mitigations shipped in this pack:
+
+- Resolve `owner_pid` to Cursor.app main / `VSCODE_PID`, not Helper hosts.
+- Longer `max_idle_seconds` on Cursor (12× interval).
+- Stop hooks drain pending spool ticks before learn (`#resume-watch`).
+- SessionStart injects active/pending watch context so a new turn re-attaches the listener.
+
+Manual recovery when stuck:
+
+```bash
+# Is the ticker alive?
+pgrep -fl AGENT_LOOP_TICK_gabe_watch
+
+# Spool / heartbeats
+ls -la ~/.agents/projects/*/gabe-watch/
+
+# Force a tick drain in Cursor chat:
+mdscript-exec ~/.agents/projects/<project>/goals/gabe-watch-<N>.mdscript.md#resume-watch
+```
+
+Opt out of watch stop/session hooks: `GABE_WATCH_SKIP_HOOKS=1`.
+
 ## Persistent loop (two processes, arm once)
 
 Harnesses like Cursor reap background shells when a turn, tool call, or chat

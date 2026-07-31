@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "adapter": "cursor",
+  "skill": "gabe-watch",
+  "runtime": "bun",
+  "runtimeFallbacks": ["bun", "node"],
+  "hooks": {
+    "sessionStart": [
+      {
+        "id": "gabe-watch-session-start",
+        "script": "../../hooks/watch-session-start.ts"
+      }
+    ],
+    "stop": [
+      {
+        "id": "gabe-watch-stop",
+        "script": "../../hooks/watch-stop.ts",
+        "timeout": 120
+      }
+    ]
+  },
+  "replaceLegacyCommands": [
+    "skills/gabe-watch/hooks/watch-stop.ts",
+    "skills/gabe-watch/hooks/watch-session-start.ts"
+  ]
+}

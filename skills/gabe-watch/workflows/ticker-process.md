@@ -2,15 +2,17 @@
 
 ## Resolve Owner Process
 
-* set `{{owner_pid}}` to the editor, IDE, harness, or agent-session process that owns this chat
-* find it by walking the parent chain of the current shell
-* take the outermost ancestor that is still the harness or editor process, not the transient tool shell running this command
-* if the harness exposes its own session or supervisor PID
-  * set `{{owner_pid}}` to that value
-* if no owner process can be identified
-  * set `{{owner_pid}}` to `0`
-  * rely on the idle guard alone
-* set `{{max_idle_seconds}}` to at least six times `{{interval_seconds}}`
+* set `{{owner_pid}}` to a **long-lived** editor or harness process, never the transient tool shell for this turn
+* on Cursor / VS Code, prefer in order:
+  * `VSCODE_PID` or `CURSOR_PID` from the environment when that PID is still alive
+  * the parent chain walk that lands on `Cursor.app/Contents/MacOS/Cursor` (the main app binary), not `Cursor Helper`, not `extension-host`, not `agent-exec`
+  * otherwise the outermost living ancestor of the current shell that is still the IDE
+* on macOS, verify the chosen PID with `ps -o pid=,command= -p {{owner_pid}}` and reject Helper / plugin host PIDs
+* if no long-lived owner can be identified
+  * set `{{owner_pid}}` to `0` so the ticker relies on the idle guard and stop file only
+* set `{{max_idle_seconds}}` to at least twelve times `{{interval_seconds}}` on Cursor (listener death is common; give the stop-hook drain path time to resume)
+* otherwise set `{{max_idle_seconds}}` to at least six times `{{interval_seconds}}`
+* record `owner_pid_basis` in the watch front matter (for example `vscode_pid`, `cursor-main`, `parent-walk`, or `none`)
 
 ## Check Ticker Liveness
 
@@ -34,17 +36,21 @@
 
 ## Reattach Tick Listener
 
-* start one background shell that follows the spool:
+* set `{{wake_path}}` to `cursor-notify-on-output` when this harness is Cursor
+* otherwise set `{{wake_path}}` to `listener`
+* never set `{{wake_path}}` to `scheduler` unless a real durable harness scheduler was armed and verified this turn
+* start one background shell that follows the spool with `block_until_ms: 0` / background true:
 
 ```bash
 tail -n0 -F {{tick_spool}}
 ```
 
 * set `notify_on_output` on that shell with pattern `^{{sentinel}}`
-* resume `/mdscript-exec {{watch_mdscript}}#resume-watch` when that pattern fires
-* if the harness offers a durable native scheduler that survives session cleanup
+* when the pattern fires, resume `/mdscript-exec {{watch_mdscript}}#resume-watch` using the tick line's `prompt` field when present
+* on Cursor, know that the listener is disposable and often dies when the chat goes idle — the detached ticker keeps writing ticks to the spool; Stop hooks and session-start context must drain pending ticks via `#resume-watch`
+* if the harness offers a durable native scheduler that survives session cleanup and was verified this turn
   * use it instead of this listener
-  * record which wake path is in use
+  * set `{{wake_path}}` to that scheduler's name
 * do not treat a dead listener as a dead watch
 * run the first [Watch Tick](../SKILL.md#watch-tick) immediately after arming
 * end the turn after that tick
