@@ -79,7 +79,7 @@ After install:
 
 ```bash
 # edit a living skill
-$EDITOR ~/.agents/repos/gabewillen-agents/skills/gabe-hsm-review/SKILL.md
+$EDITOR ~/.agents/repos/gabewillen-agents/skills/gabe-review/hsm/SKILL.md
 # or, when installed from this checkout, edit here directly
 
 git -C ~/.agents/repos/gabewillen-agents add -A

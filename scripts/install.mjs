@@ -398,8 +398,10 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/blind-reviewers/eng-xstate.mdscript.md",
     "workflows/blind-reviewers/eng-sml.mdscript.md",
     "workflows/blind-reviewers/eng-hsm.mdscript.md",
+    // HSM pack (folded into gabe-review; not a top-level skill)
+    "hsm/SKILL.md",
+    "hsm/workflows/triage.mdscript.md",
   ],
-  "gabe-hsm-review": ["SKILL.md", "workflows/triage.mdscript.md"],
   "gabe-common": ["SKILL.md", "workflows/goal-mdscript.md", "workflows/file-task-comments.md"],
 };
 
@@ -487,7 +489,7 @@ const ROUTER_DIRECTIVE =
   "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before " +
   "planning or answering, and let it choose the role: any parentless main agent is a root " +
   "orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane " +
-  "MDScript); explicit routes cover gabe-watch, gabe-goal, gabe-hsm-review, and gabe-automate.";
+  "MDScript); explicit routes cover gabe-watch, gabe-goal, and gabe-automate; HSM is a gabe-review lane.";
 const ROUTER_BLOCK_START = "<!-- gabe-agents:router -->";
 const ROUTER_BLOCK_END = "<!-- /gabe-agents:router -->";
 const ROUTER_BLOCK_RE =
@@ -581,9 +583,30 @@ function installAgentHomeScript(targetRoot, skillsRoot) {
   return dest;
 }
 
+/** Top-level skill dirs this pack used to ship and must uninstall. */
+const RETIRED_SKILLS = ["gabe-hsm-review"];
+
+function removeRetiredSkills(targetRoot) {
+  const removed = [];
+  for (const skill of RETIRED_SKILLS) {
+    const dest = join(targetRoot, skill);
+    if (!existsSync(dest) && !isSymlink(dest)) continue;
+    if (dryRun) {
+      console.log(`[dry-run] remove retired skill ${dest}`);
+      removed.push(dest);
+      continue;
+    }
+    removePath(dest);
+    removed.push(dest);
+    console.log(`[gabe-agents] removed retired skill ${dest}`);
+  }
+  return removed;
+}
+
 function installInto(targetRoot, skills, skillsRoot) {
   ensureDir(targetRoot);
   installAgentHomeScript(targetRoot, skillsRoot);
+  removeRetiredSkills(targetRoot);
   const installed = [];
   for (const skill of skills) {
     const src = join(skillsRoot, skill);

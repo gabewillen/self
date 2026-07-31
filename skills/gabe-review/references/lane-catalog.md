@@ -38,7 +38,7 @@ Each uses the shared reviewer [engineering-rules.mdscript.md](../workflows/blind
 
 | Lane id | Entrypoint | Select when |
 | --- | --- | --- |
-| `hsm` | `hsm.mdscript.md#hsm-blind-review` | State machine / HSM / SML structural ownership in scope — runs `gabe-hsm-review` UML semantics (deeper than `eng-hsm` rules) |
+| `hsm` | `hsm.mdscript.md#hsm-blind-review` | State machine / HSM / SML structural ownership in scope — runs the internal `gabe-review/hsm` UML pack (deeper than `eng-hsm` rules) |
 
 When HSM is in scope, both `eng-hsm` (rules checklist) and `hsm` (semantic audit) may run. `eng-hsm` may sign off `n/a` only when the rules file is inapplicable; `hsm` has its own ownership gate.
 

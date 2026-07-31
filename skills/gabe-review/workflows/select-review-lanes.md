@@ -73,7 +73,7 @@
   * [Add Lane](#add-lane)
   * set `{{candidate_lane}}` to `hsm`
   * set `{{candidate_entry}}` to `{{blind_reviewers_root}}/hsm.mdscript.md#hsm-blind-review`
-  * set `{{candidate_reason}}` to `deep gabe-hsm-review semantic lane`
+  * set `{{candidate_reason}}` to `deep HSM/UML semantic lane (gabe-review/hsm pack)`
   * [Add Lane](#add-lane)
 * if `{{hsm_in_scope}}` is `false`
   * record in the packet that no HSM lane was selected and why

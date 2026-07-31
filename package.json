@@ -20,8 +20,7 @@
     "ai-agent-skill",
     "mdscript",
     "gabe",
-    "skills",
-    "hsm"
+    "skills"
   ],
   "files": [
     "skills",
@@ -65,10 +64,6 @@
       {
         "name": "gabe-goal",
         "path": "./skills/gabe-goal"
-      },
-      {
-        "name": "gabe-hsm-review",
-        "path": "./skills/gabe-hsm-review"
       },
       {
         "name": "gabe-implement",
@@ -115,10 +110,6 @@
         "path": "./skills/gabe-goal"
       },
       {
-        "name": "gabe-hsm-review",
-        "path": "./skills/gabe-hsm-review"
-      },
-      {
         "name": "gabe-implement",
         "path": "./skills/gabe-implement"
       },
@@ -148,7 +139,6 @@
     "skills/gabe-automate/SKILL.md",
     "skills/gabe-common/SKILL.md",
     "skills/gabe-goal/SKILL.md",
-    "skills/gabe-hsm-review/SKILL.md",
     "skills/gabe-implement/SKILL.md",
     "skills/gabe-orchestrate/SKILL.md",
     "skills/gabe-review/SKILL.md",

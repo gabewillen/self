@@ -22,6 +22,9 @@ const required = [
   "workflows/select-language-framework-lanes.md",
   "workflows/triple-adversarial-blind-review.mdscript.md",
   "workflows/blind-reviewers/engineering-rules.mdscript.md",
+  "workflows/blind-reviewers/hsm.mdscript.md",
+  "hsm/SKILL.md",
+  "hsm/workflows/triage.mdscript.md",
   "references/lane-catalog.md",
   "references/engineering-rules/SOURCE.md",
 ];

@@ -1,14 +1,13 @@
 ---
-name: gabe-hsm-review
+name: gabe-review-hsm
 description: >-
   Adversarially review hierarchical state machines against UML 2.5 semantics
   (library-agnostic): the ownership gate that decides whether a machine should
   exist, actor/RTC data boundaries, explicit guards and choice control flow,
   side-effect-free guards and behaviors, activities for long-running work,
   actors instead of orthogonal regions, and hierarchy to eliminate duplicate
-  same-event transitions. Use for /gabe-hsm-review, statechart design review, or
-  before merge when HSM control flow must stay in the graph rather than in
-  behavior code.
+  same-event transitions. Internal HSM/UML audit pack for the gabe-review hsm blind lane.
+  Invoked via mdscript-exec on this file or workflows; not a top-level agent skill.
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -17,7 +16,7 @@ description: >-
 
 * set `{{skill_root}}` to this skill directory
 * set `{{repo_root}}` to the working repository root, or the path the user named
-* run [Resolve Agent Home](../gabe-common/workflows/agent-home.md#resolve-agent-home)
+* run [Resolve Agent Home](../../gabe-common/workflows/agent-home.md#resolve-agent-home)
 * set `{{review_scope}}` from the user request; if empty, default to the working diff
 * set `{{full_sweep}}` to `true` only if the user asked for a complete or whole-tree review
 * read [anti-patterns.md](references/anti-patterns.md) and hold it for every gate

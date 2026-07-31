@@ -148,7 +148,7 @@ description: "Compose multi-lane adversarial review on the parent process (main 
 
 * if this is a terminal readiness gate, `{{hsm_in_scope}}` is `true`, and no `hsm` lane sign-off exists
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
-  * set `{{proof_decision}}` to `Not accepted: state machine in scope requires the blind gabe-hsm-review lane`
+  * set `{{proof_decision}}` to `Not accepted: state machine in scope requires the blind hsm lane`
   * [Report Verdict](#report-verdict)
 
 * if this is a terminal readiness gate, code changed, and no `eng-core` lane is in `{{blind_lanes}}` while engineering rules are installed

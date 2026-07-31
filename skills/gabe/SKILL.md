@@ -1,6 +1,6 @@
 ---
 name: gabe
-description: "ALWAYS use this skill for EVERY request. Run it first, before planning or answering, and let it pick the role. Any agent with no parent that is not a subagent is a root orchestrator (gabe-orchestrate). Subagents run gabe-implement only (or a single blind-lane MDScript when that is the assignment) — never gabe-review, gabe-orchestrate, or gabe-goal as their skill role. Explicit invocations still route to gabe-watch, gabe-unwatch, gabe-goal, gabe-hsm-review, or gabe-automate first. Review composition stays on the parent/orchestrator/implementer process with per-lane blind fanout only. Carries project-scoped Gabe MDScript work under ~/.agents/projects/project-name/. Select the best available model and effort level for each role and task."
+description: "ALWAYS use this skill for EVERY request. Run it first, before planning or answering, and let it pick the role. Any agent with no parent that is not a subagent is a root orchestrator (gabe-orchestrate). Subagents run gabe-implement only (or a single blind-lane MDScript when that is the assignment) — never gabe-review, gabe-orchestrate, or gabe-goal as their skill role. Explicit invocations still route to gabe-watch, gabe-unwatch, gabe-goal, or gabe-automate first. HSM review is a gabe-review blind lane, not a separate skill. Review composition stays on the parent/orchestrator/implementer process with per-lane blind fanout only. Carries project-scoped Gabe MDScript work under ~/.agents/projects/project-name/. Select the best available model and effort level for each role and task."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -39,7 +39,10 @@ description: "ALWAYS use this skill for EVERY request. Run it first, before plan
   * [Execute Routed Role](#execute-routed-role)
 
 * if the request is HSM/SML hard-rule review, hierarchical state machine audit, or `/gabe-hsm-review`
-  * set `{{gabe_role}}` to `gabe-hsm-review`
+  * set `{{gabe_role}}` to `gabe-review`
+  * set `{{hsm_in_scope}}` to `true`
+  * set `{{forced_lanes}}` to include `hsm` and `eng-hsm` when not already forced
+  * run gabe-review composition on this parent process with HSM lanes selected; do not treat HSM as a separate skill role
   * [Execute Routed Role](#execute-routed-role)
 
 * if the request is a goal-driven proof loop until artifacts and multi-lane adversarial blind review (`/gabe-goal`, `/goal`, or stricter goal-until-signoff work)

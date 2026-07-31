@@ -81,7 +81,7 @@
 ## Check HSM And Tracker Surfaces
 
 * if any in-scope path defines or changes a state machine, transition table, event dispatch, behavior-driving mode enum, or lifecycle/protocol sequencing
-  * inspect for blind `hsm` lane sign-off from `gabe-hsm-review` before counting the terminal readiness gate
+  * inspect for blind `hsm` lane sign-off (via `gabe-review/hsm` pack) before counting the terminal readiness gate
   * if the HSM sign-off is missing at a terminal readiness gate
     * add a finding requiring the blind HSM lane
   * if `lane_applicable: false` or `n/a` lacks its own search evidence, attack attempts, and commands

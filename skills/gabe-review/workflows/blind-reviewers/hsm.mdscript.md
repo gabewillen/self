@@ -13,19 +13,20 @@
 
 ## Attack surface (hsm)
 
-* set `{{hsm_skill}}` to the installed `gabe-hsm-review` skill path
-  * prefer the `gabe-hsm-review` directory sibling to the `gabe-review` skill root this lane MDScript was loaded from
-  * otherwise `~/.agents/skills/gabe-hsm-review/SKILL.md`
-  * otherwise `{{repo_root}}/skills/gabe-hsm-review/SKILL.md` when present
-* if `{{hsm_skill}}` is missing
+* set `{{hsm_pack}}` to the gabe-review internal HSM pack
+  * prefer `{{review_skill_root}}/hsm/SKILL.md` when `{{review_skill_root}}` is set
+  * otherwise the `hsm/SKILL.md` sibling two directories above this lane MDScript (`../../hsm/SKILL.md`)
+  * otherwise `~/.agents/skills/gabe-review/hsm/SKILL.md`
+  * otherwise `{{repo_root}}/skills/gabe-review/hsm/SKILL.md` when present
+* if `{{hsm_pack}}` is missing
   * keep `signed_off: false`
-  * set `remaining_gaps` to the exact missing `gabe-hsm-review` skill path
+  * set `remaining_gaps` to the exact missing `gabe-review/hsm` pack path
   * [Sign-off decision](#sign-off-decision)
 * set `{{review_scope}}` to the packet's in-scope changed paths — the packet is the request, not a chat instruction
 * set `{{repo_root}}` from the packet
 * set `{{full_sweep}}` to `true` only when the packet asks for a whole-tree state machine audit
 * set `{{waiver_requested}}` to `true` and set `{{waived_rule_ids}}` only from waivers the packet already carries, so this lane never prompts a human mid-review
-* run `/mdscript-exec {{hsm_skill}}#triage` and let its gates run in order: ownership, graph, actor boundary, behavior, design, verify, emit
+* run `/mdscript-exec {{hsm_pack}}#triage` and let its gates run in order: ownership, graph, actor boundary, behavior, design, verify, emit
 * set `{{hsm_verdict}}`, `{{gate_stopped}}`, `{{findings_path}}`, `{{graph_confidence}}`, `{{ownership_verdict}}`, and `{{machine_inventory}}` from what those gates returned
 * read the emitted `findings.json` — only findings whose `verdict` is `stands` are real
 * attack the ownership gate in both directions: a changed component that owns lifecycle, mode, or protocol state but has no machine is a finding, not an exemption

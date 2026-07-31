@@ -65,7 +65,7 @@ When any in-scope path defines or changes a state machine, transition table, eve
 
 **Require**
 
-- blind `hsm` lane sign-off from `gabe-hsm-review` before the terminal readiness gate counts
+- blind `hsm` lane sign-off (internal `gabe-review/hsm` pack) before the terminal readiness gate counts
 - `lane_applicable: false` / `n/a` sign-off only when it carries its own search evidence, attack attempts, and commands
 
 **Reject**

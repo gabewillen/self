@@ -1,6 +1,6 @@
 # HSM review rules
 
-Primary contract for `gabe-hsm-review`. UML 2.5 hierarchical state machine semantics, actor-oriented.
+Primary HSM contract for the gabe-review `hsm` blind lane. UML 2.5 hierarchical state machine semantics, actor-oriented.
 
 **Library-agnostic.** No rule names a library, module, API, or version. Concrete frameworks are
 implementation bindings only — see [bindings.md](bindings.md), used for remediation wording after a
