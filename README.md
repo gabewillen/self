@@ -1,6 +1,6 @@
 # @gabewillen/agents
 
-Gabe-shaped **MDScript** agent skills.
+agent-shaped **MDScript** agent skills.
 
 The `mdscript-exec` and `mdscript-write` skills live in the [mdscript](https://github.com/gabewillen/mdscript) repo, which owns them. Install clones that repo to `~/.agents/repos/gabewillen-mdscript` and installs both alongside these skills, so every execution header here resolves.
 
@@ -17,17 +17,17 @@ This package ships Agent Skills (`SKILL.md` + workflows) so they can be installe
 
 | Skill | Role |
 |-------|------|
-| `gabe` | Compatibility router for Gabe-shaped work |
+| `gabe` | Compatibility router for agent-shaped work |
 | `gabe-orchestrate` | Root coordination, lanes, goals, watchers |
 | `gabe-implement` | Delegated implementation lanes; selects and applies the same vendored [gabewillen/rules](https://github.com/gabewillen/rules) packs (`impl-core`, `impl-dbc`, language/framework, optional `impl-hsm`) before and after edits so review eng-* lanes see construction already held to those rules |
 | `gabe-review` | Multi-lane blind / readiness review (agent rules + security + completeness + selected eng-* language/framework lanes from vendored [gabewillen/rules](https://github.com/gabewillen/rules) + optional deep HSM) |
 | `gabe-automate` | External automation design |
 | `gabe-watch` / `gabe-unwatch` | Interval PR repair watch |
-| `gabe-voice` | Gabe-shaped reply drafting |
-| `gabe-goal` | Goal-driven loop until proof + multi-lane gabe-review. When the harness has `/goal` (Grok host `/goal`, Cursor `goal` skill), prefers that for multi-round continuation and **skips gabe-goal hooks** while still following the MDScript workflow |
+| `gabe-voice` | agent-shaped reply drafting |
+| `gabe-goal` | Goal-driven loop until proof + multi-lane review. When the harness has `/goal` (Grok host `/goal`, Cursor `goal` skill), prefers that for multi-round continuation and **skips gabe-goal hooks** while still following the MDScript workflow |
 | `gabe-common` | Shared workflows used by the family, including living-skills updates and the `/gabe-learn` MDScript (not a skill) forced by Stop hooks on Claude/Cursor/Codex/Grok |
 
-All coordination artifacts for Gabe work are **MDScript** (tasks, comments, plans, goals, instructions) under `~/.agents/projects/<project>/`.
+All coordination artifacts for agent work are **MDScript** (tasks, comments, plans, goals, instructions) under `~/.agents/projects/<project>/`.
 
 ## Validate
 
@@ -36,7 +36,7 @@ npm test                                        # validator + agent-home + gabe-
 node ./scripts/validate-mdscript.mjs            # whole pack
 node ./scripts/validate-mdscript.mjs skills/gabe --json
 node ./scripts/test-agent-home.mjs              # hooks and skills resolve the same home
-node ./scripts/test-gabe-review-install.mjs     # multi-lane gabe-review tree complete
+node ./scripts/test-gabe-review-install.mjs     # multi-lane review tree complete
 node ./scripts/test-gabe-review-install.mjs ~/.agents/skills/gabe-review
 node ./scripts/test-gabe-implement-install.mjs  # impl-* engineering-rules construction tree
 node ./scripts/test-gabe-implement-install.mjs ~/.agents/skills/gabe-implement

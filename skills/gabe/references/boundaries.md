@@ -1,17 +1,17 @@
-# Gabe operating boundaries
+# Agent operating boundaries
 
-Reference material for the Gabe skill family, loaded by
-[gabe/SKILL.md](../SKILL.md#route-gabe-request) and held for every routed role.
-These are constraints on how any Gabe role acts, not steps in a workflow — the
+Reference material for the skill pack, loaded by
+[gabe/SKILL.md](../SKILL.md#route-agent-request) and held for every routed role.
+These are constraints on how any agent role acts, not steps in a workflow — the
 executable flow lives in the skills themselves.
 
 * preserve the root-orchestrator identity boundary: any agent with no parent that is not a subagent is a root orchestrator (`gabe-orchestrate`); never reclassify a parentless main agent as implementer solely because spawn tools are missing — use single-process fallback and file-task role switches instead
 
-* preserve the root-coordinator boundary: when a root or coordinating thread is acting from human Gabe's direction, route application-code implementation and code-review ownership to `gabe-implement` worker lanes instead of editing or reviewing code in the root; the root still remains the orchestrator
+* preserve the root-coordinator boundary: when a root or coordinating thread is acting from the human principal's direction, route application-code implementation and code-review ownership to `gabe-implement` worker lanes instead of editing or reviewing code in the root; the root still remains the orchestrator
 
 * preserve the target-surface delegation boundary: repo, tracker, product-surface, or owner-queue work should be delegated from the actual target checkout, project, or owner surface; if workers start from a generic or wrong workspace, stop and recreate the lane on the right surface before treating the judgment as proof
 
-* preserve the authority boundary and do not claim human Gabe approval unless human Gabe directly provided it
+* preserve the authority boundary and do not claim the human principal approval unless the human principal directly provided it
 
 * preserve the record-owner boundary: when typed events, tool logs, trackers, review records, metrics, dashboards, or other owner records already carry state truth, use that record to decide or mutate state; brief status claims like done, approved, or blocked and model narration, transcripts, digests, and summaries may explain state only when they stay bound to the owner record and exact scope
 
@@ -25,7 +25,7 @@ executable flow lives in the skills themselves.
 
 * preserve the authority-scope boundary: approval, readiness, mergeability, review decisions, and human or assistant direction apply only to the exact artifact, target, head, and proof scope named; approval or readiness signals should name whether checks are terminal or pending, whether review threads remain unresolved, whether the claim is source health, visual proof, live behavior, merge authority, closure authority, or something narrower, and if the target is narrowed or the head changes, re-prove the smaller current state instead of treating earlier proof or approval as blanket permission
 
-* preserve the delegation-grant boundary: models, adapters, automations, workers, and proxies that can choose Gabe-shaped actions act only inside an explicit grant; verify the requested runtime or owner identity, fail closed on unavailable or substituted decision paths, and record allowed, approval-gated, forbidden, proof, audit, and rollback surfaces before widening autonomy
+* preserve the delegation-grant boundary: models, adapters, automations, workers, and proxies that can choose agent-shaped actions act only inside an explicit grant; verify the requested runtime or owner identity, fail closed on unavailable or substituted decision paths, and record allowed, approval-gated, forbidden, proof, audit, and rollback surfaces before widening autonomy
 
 * preserve the learning-source boundary: training, evaluation, corpus, adapter, and manager loops must keep human input, proxy output, automation output, synthetic replay, and tool traces provenance-separate; training creates candidates, evaluation creates evidence, and promotion or live use still needs its own explicit authority
 
@@ -40,7 +40,7 @@ executable flow lives in the skills themselves.
 * preserve the model boundary: every `gabe-orchestrate`, `gabe-implement`, and `gabe-review` role agent, thread, subagent, or goal re-entry selects the best available model and effort level for its exact task, and records the selection basis in the role goal, prompt, handoff, lane ledger, or review record
 * preserve the review-fanout boundary: do not delegate the full `/gabe-review` skill to a subagent; the parent that can spawn owns composition and spawns only per-lane blind reviewers; the primary skill orchestrators hand to worker subagents is `/gabe-implement`
 
-* preserve the all-MDScript boundary: tasks, comments, plans, goals, durable instructions, handoffs, and continuation records for Gabe-shaped work are executable MDScript with stable headings and exact re-entry commands; use `~/.agents/projects/<project-name>/tasks`, `comments`, `plans`, `goals`, `instructions`, and `lane-ledger.jsonl` as the durable coordination surface outside the working repository; GitLab or chat comments may mirror them but do not replace them
+* preserve the all-MDScript boundary: tasks, comments, plans, goals, durable instructions, handoffs, and continuation records for agent-shaped work are executable MDScript with stable headings and exact re-entry commands; use `~/.agents/projects/<project-name>/tasks`, `comments`, `plans`, `goals`, `instructions`, and `lane-ledger.jsonl` as the durable coordination surface outside the working repository; GitLab or chat comments may mirror them but do not replace them
 
 * preserve the MDScript-as-documentation boundary: directly validate MDScript metadata, headings, links, entrypoints, and claimed executable branches, and apply the same review policy as documentation—one fresh review when no code changed, with no recursive non-code re-review after repair
 
@@ -50,9 +50,9 @@ executable flow lives in the skills themselves.
 
 * preserve the child-orchestrator boundary: child orchestrators are durable Codex threads or file-task child lanes, not subagents, because orchestrators need their own MDScript goal and resumable lane state
 
-* preserve the stop-report boundary: child orchestrators, implementers, reviewers, and goal-resumed Gabe lanes must report back to their parent agent or parent reporting path before they stop for any reason, including done, blocked, paused, obsolete, interrupted, tool-failed, authority-boundary, context-limit, or watcher-terminal states
+* preserve the stop-report boundary: child orchestrators, implementers, reviewers, and goal-resumed agent lanes must report back to their parent agent or parent reporting path before they stop for any reason, including done, blocked, paused, obsolete, interrupted, tool-failed, authority-boundary, context-limit, or watcher-terminal states
 
-* preserve the prompt-return boundary: before any Gabe MDScript role asks Gabe, the user, a repository owner, or another authority surface for input, it must write an executable return script under `~/.agents/projects/<project-name>/returns` and end the prompt with the exact `mdscript-exec` resume command
+* preserve the prompt-return boundary: before any agent MDScript role asks Agent, the user, a repository owner, or another authority surface for input, it must write an executable return script under `~/.agents/projects/<project-name>/returns` and end the prompt with the exact `mdscript-exec` resume command
 
 * preserve the thread-cleanup boundary: every agent owns cleanup for chat threads, child orchestrator threads, worker threads, reviewer threads, and subagents it creates; terminal or superseded threads must be closed, archived, deleted when explicitly allowed, transferred with a new owner, or reported as a cleanup blocker before the creating lane claims done, a satisfied review gate, or clean handoff
 
@@ -64,7 +64,7 @@ executable flow lives in the skills themselves.
 
 * preserve the goal MDScript boundary: goal files should include an exact `/mdscript-exec <goal-mdscript>#resume-goal` re-entry point, owner role, lane id, source of truth, stop condition, allowed actions, forbidden actions, and reporting path
 
-* preserve the hot-path boundary: watched or resumable lanes should write goal MDScripts after the first context read, then use those scripts plus fresh live state for resumed turns instead of rereading and narrating the full Gabe context stack every heartbeat
+* preserve the hot-path boundary: watched or resumable lanes should write goal MDScripts after the first context read, then use those scripts plus fresh live state for resumed turns instead of rereading and narrating the full skill context stack every heartbeat
 
 * preserve the compaction-resume boundary: long-running, multi-workstream, or goal-backed lanes should add a parent-visible `compaction-resume` file comment that names the task files, comments, goal MDScript, lane ledger, next owner, and exact `/mdscript-exec <goal>#resume-goal` command before relying on resumed coordination
 

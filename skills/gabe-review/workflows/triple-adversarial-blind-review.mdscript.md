@@ -70,7 +70,7 @@
   * set `{{blocking_findings}}` to `[]`
   * set residual notes from any non-blocking commentary without weakening the gate
   * set `{{grade}}` to `Proven for {{proof_scope}}`
-  * set `{{proof_decision}}` to `Proven for {{proof_scope}} via adversarial blind gabe-review ({{blind_lanes}})`
+  * set `{{proof_decision}}` to `Proven for {{proof_scope}} via adversarial blind multi-lane review ({{blind_lanes}})`
   * when an `hsm` or `eng-hsm` lane signed off `n/a` or `lane_applicable: false`, keep that in residual notes so the verdict never reads as state machine proof
   * persist durable `review-verdict.mdscript.md` when `{{run_dir}}` or `{{review_signoff_dir}}` is the goal/run surface
   * write it as executable MDScript: the exact execution header, YAML front matter, then the states below

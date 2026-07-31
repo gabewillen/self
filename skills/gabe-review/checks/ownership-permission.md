@@ -18,8 +18,8 @@
   * inspect for the upstream PR/MR issue and review surface for code changes
   * if the upstream review surface is missing for code changes
     * add a finding requiring the upstream PR/MR issue and review surface
-* inspect for preserved human Gabe, assistant, automation, worker, reviewer, and author boundaries
-* if assistant decisions are attributed to human Gabe
+* inspect for preserved the human principal, assistant, automation, worker, reviewer, and author boundaries
+* if assistant decisions are attributed to the human principal
   * add a finding with consequence and evidence pointer
 * if automation follow-ups are described as direct human instructions
   * add a finding with consequence and evidence pointer

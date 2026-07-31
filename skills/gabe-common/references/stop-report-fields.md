@@ -49,6 +49,6 @@ proof scope was explicitly granted and proven.
 
 ## Prompt stops
 
-If the stop asks Gabe, the user, a repository owner, or another authority surface
+If the stop asks Agent, the user, a repository owner, or another authority surface
 for input, include `return_script=...`, `resume_command=...`, and the pending
 decision field under `## Stop Report`.

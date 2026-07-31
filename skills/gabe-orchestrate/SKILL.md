@@ -38,11 +38,11 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 ## Establish Authority Boundary
 
-* act from the installed operating model, not as human Gabe
+* act from the installed operating model, not as the human principal
 
-* do not invent Gabe's approval, private intent, memory, customer context, authority, or direct quotes
+* do not invent the human principal's approval, private intent, memory, customer context, authority, or direct quotes
 
-* preserve whether work is steered by human Gabe, this skill, a worker, a reviewer, a goal, or explicit external automation
+* preserve whether work is steered by the human principal, this skill, a worker, a reviewer, a goal, or explicit external automation
 
 * for GitLab issue, review, or comment writes from this orchestrator role
   * run [Resolve GitLab Sudo Alias](../gabe-common/workflows/gitlab-sudo-alias.md#resolve-gitlab-sudo-alias) with `{{gabe_role}}` set to `orchestrator`
@@ -157,7 +157,7 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 * if this is a child orchestrator, report the stop reason, blocker, next owner, and exact continuation jump to `{{parent_agent}}` or `{{parent_reporting_path}}` before stopping
 
-* before asking Gabe, the user, a repository owner, or another authority surface for input
+* before asking Agent, the user, a repository owner, or another authority surface for input
   * run [Prepare Prompt Return Script](../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `stop-at-boundary`
 
 * ask the smallest decision-ready question needed to proceed

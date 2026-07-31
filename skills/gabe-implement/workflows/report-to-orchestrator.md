@@ -43,7 +43,7 @@
 
 * report `Blocked for {{claim_scope}}: {{blocker}}`
 
-* before asking Gabe, the user, a repository owner, or another authority surface for input
+* before asking Agent, the user, a repository owner, or another authority surface for input
   * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this workflow and `{{return_resume_heading}}` set to `report-to-orchestrator`
 
 * ask the smallest decision-ready question and bind the answer to `{{authority_decision}}`

@@ -21,13 +21,13 @@ A durable lane ledger must carry, when applicable:
 
 **Require**
 
-- root and coordinating Gabe threads keep code implementation and code-review ownership in durable implementer lanes
-- every child orchestrator, implementer, reviewer, and goal-resumed Gabe lane reports back to its parent agent or parent reporting path before stopping for any reason
+- root and coordinating Agent threads keep code implementation and code-review ownership in durable implementer lanes
+- every child orchestrator, implementer, reviewer, and goal-resumed Agent lane reports back to its parent agent or parent reporting path before stopping for any reason
 - child orchestrators are durable Codex threads or file-task child lanes, not subagents, when they own coordination scope, lane ledgers, goal setup, or handoffs
 - epics, milestones, projects, portfolios, programs, parent tracker items, release trains, and any scope with subtickets are delegated to a child orchestrator
 - orchestrator-created Codex threads use canonical titles shaped as `<role>: [<issue>] <description>`
 - active orchestrator-owned management and watcher state is captured in `~/.agents/projects/{{project_name}}/goals/*.mdscript.md`
-- monitored or resumable coordinator lanes carry a goal MDScript re-entry (resume must not reread and renarrate Gabe context, event contracts, watcher rules, and ledger rules before acting)
+- monitored or resumable coordinator lanes carry a goal MDScript re-entry (resume must not reread and renarrate skill context, event contracts, watcher rules, and ledger rules before acting)
 
 ## Parent-visible stop reports
 
@@ -43,7 +43,7 @@ A durable lane ledger must carry, when applicable:
 
 ## Prompt return scripts
 
-**Require** any Gabe MDScript workflow prompt to write an executable return script under `~/.agents/projects/{{project_name}}/returns` before asking for input, and to end the user-facing prompt with the exact `mdscript-exec` resume command.
+**Require** any Agent MDScript workflow prompt to write an executable return script under `~/.agents/projects/{{project_name}}/returns` before asking for input, and to end the user-facing prompt with the exact `mdscript-exec` resume command.
 
 **Add a coordinator-control finding** when a blocker, authority-boundary stop, or decision-ready question has no `{{return_script}}`, no `{{return_resume_command}}`, or a stop report whose `resume_command` cannot resume the saved caller heading.
 

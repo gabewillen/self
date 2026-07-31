@@ -7,10 +7,10 @@
   * inspect the durable lane ledger for thread id, goal MDScript when monitored or resumable, `/mdscript-exec` re-entry command, owner, parent agent, repository or system, issue/PR/MR, referenced tickets, agent identities, phase, event execution, event type, stop reason when stopping, next proof, blocker, next check, and reporting path
   * for each missing applicable ledger field
     * add a coordinator-control finding with consequence and evidence pointer
-* inspect whether root and coordinating Gabe threads keep code implementation and code-review ownership in durable implementer lanes
+* inspect whether root and coordinating Agent threads keep code implementation and code-review ownership in durable implementer lanes
 * if a root or coordinating thread owns implementation or code review
   * add a coordinator-control finding with consequence and evidence pointer
-* inspect whether every child orchestrator, implementer, reviewer, and goal-resumed Gabe lane reported back to its parent agent or parent reporting path before stopping
+* inspect whether every child orchestrator, implementer, reviewer, and goal-resumed Agent lane reported back to its parent agent or parent reporting path before stopping
 * if a child lane is terminal, paused, blocked, obsolete, interrupted, watcher-terminal, closed, deleted, or archived without a parent-visible stop report
   * add a coordinator-control finding with consequence and evidence pointer
 * if a child orchestrator that owns coordination scope, lane ledgers, goal setup, or handoffs is a subagent rather than a durable Codex thread or file-task child lane
@@ -31,9 +31,9 @@
   * add a coordinator-control finding with consequence and evidence pointer
 * if a monitored or resumable coordinator lane lacks a goal MDScript re-entry
   * add a coordinator-control finding with consequence and evidence pointer
-* if every resume rereads and renarrates Gabe context, event contracts, watcher rules, and ledger rules before acting on the changed state
+* if every resume rereads and renarrates skill context, event contracts, watcher rules, and ledger rules before acting on the changed state
   * add a coordinator-control finding with consequence and evidence pointer
-* if a Gabe MDScript workflow prompt asks for input without writing an executable return script under `~/.agents/projects/{{project_name}}/returns`
+* if a Agent MDScript workflow prompt asks for input without writing an executable return script under `~/.agents/projects/{{project_name}}/returns`
   * add a coordinator-control finding with consequence and evidence pointer
 * if a user-facing prompt does not end with the exact `mdscript-exec` resume command
   * add a coordinator-control finding with consequence and evidence pointer

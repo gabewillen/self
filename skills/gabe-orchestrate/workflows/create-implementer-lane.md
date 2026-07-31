@@ -62,7 +62,7 @@
 * include `model: {{required_model}}`, `reasoning: {{required_reasoning}}`, and `model_selection_basis: {{model_selection_basis}}`
 * require the implementer to report back to this orchestrator before stopping for any reason
 * require the implementer to create or maintain `{{goal_mdscript}}` after its first context read when the lane will be monitored or resumed
-* require re-entry via `/mdscript-exec {{goal_mdscript}}#resume-goal` instead of rereading full Gabe context on every wake
+* require re-entry via `/mdscript-exec {{goal_mdscript}}#resume-goal` instead of rereading full skill context on every wake
 * require the handoff to separate exact claim, preconditions, postconditions, invariants, proof path, local resource path attempted or ruled out, proof supplied, proof not claimed, remaining blockers, residual risk, and authority needed
 * tell the implementer that missing infrastructure is not a valid blocker until the local stack, bootstrap, preflight, dev server, fixture target, compose profile, or safe local resource path has been found and used, or explicitly shown absent, unsafe, or unable to satisfy the precondition
 * tell the implementer not to ask reviewers for vague readiness; the review request must name the typed claim scope
@@ -102,7 +102,7 @@
 
 ## Stop On Implementer Blocker
 
-* if the caller will ask Gabe, the user, a repository owner, or another authority surface for a different model, runner, or handoff decision
+* if the caller will ask Agent, the user, a repository owner, or another authority surface for a different model, runner, or handoff decision
   * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script)
   * return to the caller's stop-boundary state
 * stop and report `Blocked for {{claim_scope}}: {{blocker}}`

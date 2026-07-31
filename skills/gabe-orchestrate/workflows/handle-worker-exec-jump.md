@@ -48,7 +48,7 @@
 
 ## Stop On Unsafe Jump
 
-* if the caller will ask Gabe, the user, a repository owner, or another authority surface for the requested action decision
+* if the caller will ask Agent, the user, a repository owner, or another authority surface for the requested action decision
   * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script)
   * return to the caller's stop-boundary state
 * stop and report `Blocked for {{claim_scope}}: {{blocker}}`

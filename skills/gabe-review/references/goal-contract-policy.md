@@ -46,9 +46,9 @@ For MDScript workflows that prompt for user or authority input, require the cont
 - saved context
 - caller heading that resumes after the answer
 
-## Gabe-shaped artifacts
+## Agent-shaped artifacts
 
-Each Gabe-shaped task, comment, plan, durable instruction, handoff, and continuation artifact must include:
+Each agent-shaped task, comment, plan, durable instruction, handoff, and continuation artifact must include:
 
 - an MDScript execution header
 - stable state headings

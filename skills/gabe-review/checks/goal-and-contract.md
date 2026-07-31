@@ -22,11 +22,11 @@
   * inspect the prompt contract for the pending decision, return script path, exact resume command, saved context, and caller resume heading
   * for each missing prompt-contract field
     * add a finding with consequence and evidence pointer
-* if the artifact is a Gabe-shaped task, comment, plan, durable instruction, handoff, or continuation
-  * [Check Gabe Artifact Shape](#check-gabe-artifact-shape)
-* [After Gabe Shape](#after-gabe-shape)
+* if the artifact is an agent-shaped task, comment, plan, durable instruction, handoff, or continuation
+  * [Check Agent Artifact Shape](#check-agent-artifact-shape)
+* [After Agent Shape](#after-agent-shape)
 
-## Check Gabe Artifact Shape
+## Check Agent Artifact Shape
 
 * if the artifact is prose-only
   * add a finding with consequence and evidence pointer
@@ -35,9 +35,9 @@
   * add a finding with consequence and evidence pointer
 * for each bullet that explains why a rule exists rather than naming an action
   * add a finding requiring rationale in a linked reference file
-* [After Gabe Shape](#after-gabe-shape)
+* [After Agent Shape](#after-agent-shape)
 
-## After Gabe Shape
+## After Agent Shape
 
 * if the change touches MDScript files
   * [Run MDScript Validator](#run-mdscript-validator)

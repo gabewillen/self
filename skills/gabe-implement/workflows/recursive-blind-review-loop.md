@@ -1,6 +1,6 @@
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
-## Use Gabe Review
+## Use Multi-Lane Review
 
 * this implementer (or goal/orchestrator process that owns the lane) runs the gabe-review **composition** itself
 * never spawn a subagent whose job is `/gabe-review` or `mdscript-exec …/gabe-review/SKILL.md` as a whole skill
@@ -22,10 +22,10 @@
 * before root-level review of work that created child-orchestrator lanes, verify every affected child has a parent-visible rollup stop comment, terminal task state, matching goal state, lane-ledger rollup, and cleanup status
 * if any child rollup is missing
   * repair the missing child rollup
-  * [Use Gabe Review](#use-gabe-review)
+  * [Use Multi-Lane Review](#use-multi-lane-review)
 * if any child-orchestrator task still says an implementer is active while the child is counted as `proven`
   * repair that stale durable state
-  * [Use Gabe Review](#use-gabe-review)
+  * [Use Multi-Lane Review](#use-multi-lane-review)
 * do not lead reviewers with a preferred verdict, implementation narrative, or another reviewer's findings
 * run [Require GitLab Review Visibility](review-gitlab-visibility.md#require-gitlab-review-visibility)
 * make grades, findings, questions, answers, fix responses, evidence links, cleanup state, and resolution visible in file comments before counting the review gate

@@ -7,9 +7,9 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 ## Load Automation Context
 
-* read this skill before creating, updating, or reviewing an automation for Gabe-shaped work
+* read this skill before creating, updating, or reviewing an automation for agent-shaped work
 
-* use this skill before any `automation_update` call or any available automation creation or update tool for Gabe-shaped work
+* use this skill before any `automation_update` call or any available automation creation or update tool for agent-shaped work
 
 * if this skill is not present in the active skill list
   * load it by absolute path from `{{repo_root}}/skills/gabe-automate/SKILL.md`
@@ -20,7 +20,7 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 * run [Read File Task Packet](../gabe-common/workflows/file-task-comments.md#read-file-task-packet) when the automation belongs to a file task
 
-* if the automation belongs to a Gabe role lane
+* if the automation belongs to a role lane
   * read the relevant role skill: `{{repo_root}}/skills/gabe-orchestrate/SKILL.md`, `{{repo_root}}/skills/gabe-implement/SKILL.md`, or `{{repo_root}}/skills/gabe-review/SKILL.md`
 
 * if the automation is for a GitLab issue, MR, PR, comment watcher, blocker watcher, or lane-management wakeup
@@ -90,7 +90,7 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 * include enough state for the automation to resume after thread compaction without relying on chat memory
 
-* for watcher automations, include the task-local context snapshot and instruct the wakeup to refresh live state, compare it to the previous ledger state, execute only the changed hot-path action, and avoid rereading or restating full Gabe context unless the task script is missing or stale
+* for watcher automations, include the task-local context snapshot and instruct the wakeup to refresh live state, compare it to the previous ledger state, execute only the changed hot-path action, and avoid rereading or restating full skill context unless the task script is missing or stale
 
 * require each wakeup to add a file comment only when state changed, a blocker appeared, a deadline passed, unexpected input arrived, or the automation is stopping
 
@@ -182,5 +182,5 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 * if `{{blocker}}` is set
   * report `Blocked: {{blocker}}`
-  * before asking Gabe, the user, a repository owner, or another authority surface for input, run [Prepare Prompt Return Script](../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-automation`
+  * before asking Agent, the user, a repository owner, or another authority surface for input, run [Prepare Prompt Return Script](../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-automation`
   * ask the smallest decision-ready question needed to proceed

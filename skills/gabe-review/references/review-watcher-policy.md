@@ -80,7 +80,7 @@ When any in-scope path defines or changes a state machine, transition table, eve
 - reviewers author their own sanitized GitLab notes, reviews, or comments through `gitlab-sudo-alias` with a target-scoped alias ending in `-reviewer`
 - resolvable threads marked resolved only after the concern is fixed, withdrawn, or explicitly accepted as closed
 
-## Root or coordinating Gabe thread
+## Root or coordinating Agent thread
 
 **Add a finding** if the root/coordinator personally edits application code, owns ticket implementation, performs code review, spawns code reviewers, or treats coordinator inspection as the implementer's review gate.
 

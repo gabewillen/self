@@ -1,6 +1,6 @@
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
-## Compose Gabe Review
+## Compose Multi-Lane Review
 
 * this goal/orchestrator process owns gabe-review **composition** — do not spawn a subagent whose job is `/gabe-review` or the full gabe-review skill
 * the only review subagents are **per-lane** blind reviewers under `gabe-review/workflows/blind-reviewers/`

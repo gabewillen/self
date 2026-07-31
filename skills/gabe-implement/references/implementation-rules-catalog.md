@@ -1,4 +1,4 @@
-# Gabe-implement engineering-rules catalog
+# gabe-implement engineering-rules catalog
 
 Implementers load the **same** vendored rule files as `gabe-review` blind eng lanes. Selection lives in [select-implementation-rules.md](../workflows/select-implementation-rules.md). This catalog maps pack id → entrypoint → rule source → when to add.
 

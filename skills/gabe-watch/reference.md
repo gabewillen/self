@@ -217,7 +217,7 @@ Excluded, still needs the user: force-push, merging the PR, editing CI workflow
 definitions to make a check pass, changes outside this PR's scope, and anything
 the user named off-limits for this watch.
 
-- When in doubt about scope, authority, or the right call, use the `gabe` skill and decide as Gabe would from current evidence. Asking is the last resort, after `gabe`, the repo, and the PR evidence still leave it undecidable.
+- When in doubt about scope, authority, or the right call, use the `gabe` skill and decide from the operating model from current evidence. Asking is the last resort, after `gabe`, the repo, and the PR evidence still leave it undecidable.
 - Fix in the tick that found it. "Want me to push that fix on the next tick?" is a bug: apply, verify, push, report.
 - Out-of-scope failures never gate in-scope repairs; fix what is in scope and report the rest as residue.
 - A blocked item never pauses the rest of the watch.
@@ -236,7 +236,7 @@ the user named off-limits for this watch.
 /mdscript-exec ~/.agents/skills/gabe-unwatch/SKILL.md#unwatch
 ```
 
-## Relation to other Gabe skills
+## Relation to other pack skills
 
 - `gabe-implement` / `mr-monitor`: implementer-owned monitor while building the PR
 - `gabe-orchestrate` / `mr-comment-watcher`: coordinator routes comments to lanes

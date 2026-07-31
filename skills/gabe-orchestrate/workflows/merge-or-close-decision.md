@@ -23,7 +23,7 @@
 
 ## Decide Allowed Merge
 
-* if a Gabe-shaped assistant owns a worker MR/PR into a permitted non-default coordination, development, or integration branch and all gates are clean
+* if an agent-shaped assistant owns a worker MR/PR into a permitted non-default coordination, development, or integration branch and all gates are clean
   * merge only when repository-local instructions and exact permission boundaries allow it
 * never merge default branches, production branches, release branches, human-owned PRs/MRs, releases, deployments, or live-proof waivers without exact authority for that action
 * if merge, close, release, deployment, publication, or live-proof waiver authority is missing
@@ -45,7 +45,7 @@
 
 ## Stop On Disposition Blocker
 
-* if the caller will ask Gabe, the user, a repository owner, or another authority surface for that authority decision
+* if the caller will ask Agent, the user, a repository owner, or another authority surface for that authority decision
   * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script)
   * return to the caller's stop-boundary state
 * stop and report `Blocked for {{claim_scope}}: {{blocker}}`

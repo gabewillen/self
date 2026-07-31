@@ -2,9 +2,9 @@
 
 ## Load Operating Context
 
-* re-read the calling Gabe role skill before meaningful orchestration, delegation, implementation, review, public mutation, publication, final recommendation, or resumed goal work
-* read the relevant installed Gabe skill references first, including linked common workflows and role workflows
-* decide "What would Gabe do?" from the current request, active local instructions, current evidence, and the installed skill context
+* re-read the calling role skill before meaningful orchestration, delegation, implementation, review, public mutation, publication, final recommendation, or resumed goal work
+* read the relevant installed skill references first, including linked common workflows and role workflows
+* decide "What would the agent do?" from the current request, active local instructions, current evidence, and the installed skill context
 * if the installed skill context is sufficient for the current objective
   * continue from the skill contract and the current live source of truth
   * [Compile Lane Goal Context](#compile-lane-goal-context)
@@ -15,7 +15,7 @@
   * run [Update Living Skills](update-living-skills.md#update-living-skills)
   * [Compile Lane Goal Context](#compile-lane-goal-context)
 * do not let compiled skill context override current instructions, tracker state, code, tests, telemetry, or live proof
-* preserve whether the work was steered by human Gabe, a Gabe role skill, a worker, a reviewer, a goal, or explicit external automation
+* preserve whether the work was steered by the human principal, a role skill, a worker, a reviewer, a goal, or explicit external automation
 * return to the caller
 
 ## Compile Lane Goal Context

@@ -152,7 +152,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
 
 * if this is a terminal readiness gate and blind sign-offs are missing or incomplete for any lane in `{{blind_lanes}}`
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
-  * set `{{proof_decision}}` to `Not accepted: adversarial blind gabe-review ({{blind_lanes}}) required`
+  * set `{{proof_decision}}` to `Not accepted: adversarial blind multi-lane review ({{blind_lanes}}) required`
   * [Report Verdict](#report-verdict)
 
 * if this is a terminal readiness gate, `{{hsm_in_scope}}` is `true`, and no `hsm` lane sign-off exists
@@ -167,7 +167,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
 
 * if no `{{blocking_findings}}` remain for `{{proof_scope}}`, all `{{contract_preconditions}}` were available, no invariant failure at `{{blocking_severities}}` remains, `{{proof_path}}` passed with current proof, and (for terminal readiness) every selected blind lane signed off with empty `p_findings`
   * set `{{grade}}` to `Proven for {{proof_scope}}`
-  * set `{{proof_decision}}` to `Proven for {{proof_scope}} at {{blocking_severities}} threshold via adversarial blind gabe-review ({{blind_lanes}})` when blind lanes ran; otherwise `Proven for {{proof_scope}} at {{blocking_severities}} threshold` only for explicitly non-terminal intermediate passes
+  * set `{{proof_decision}}` to `Proven for {{proof_scope}} at {{blocking_severities}} threshold via adversarial blind multi-lane review ({{blind_lanes}})` when blind lanes ran; otherwise `Proven for {{proof_scope}} at {{blocking_severities}} threshold` only for explicitly non-terminal intermediate passes
   * when the `hsm` or `eng-hsm` lane signed off `n/a` or `lane_applicable: false`, do not let the verdict read as state machine proof
   * [Report Verdict](#report-verdict)
 
@@ -180,13 +180,13 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * lead with findings ordered by consequence
   * include file and line, PR/MR/issue, command, route, screenshot, trace, metric, log, or artifact pointers when available
   * when posting inline review comments on GitHub or GitLab
-    * write each comment as a concise Gabe-shaped question that names the evidence and risk without sounding bossy, opinionated, or like a command
+    * write each comment as a concise agent-shaped question that names the evidence and risk without sounding bossy, opinionated, or like a command
     * ask the smallest useful question, such as whether the current proof, contract, ownership, failure path, or user-visible behavior really satisfies the claim
-    * keep the question honest: do not soften a blocker, hide the scoped grade, omit the remediation entrypoint, or imply human Gabe personally asked the question unless he did
+    * keep the question honest: do not soften a blocker, hide the scoped grade, omit the remediation entrypoint, or imply the human principal personally asked the question unless they did
   * when a finding maps to implementer work
     * tell the implementer the exact remediation entrypoint, such as `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/implementation-contract.md#define-implementation-contract`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/implementation-contract.md#implement-narrowly`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/verify-real-proof.md#verify-real-proof`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/mr-monitor.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/blocker-watcher.md#create-blocker-watcher`
   * include open questions for missing evidence, authority, or source truth
-  * before asking Gabe, the user, a repository owner, or another authority surface for input instead of only recording reviewer findings, run [Prepare Prompt Return Script](../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-verdict`
+  * before asking Agent, the user, a repository owner, or another authority surface for input instead of only recording reviewer findings, run [Prepare Prompt Return Script](../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-verdict`
   * report `Decision: {{proof_decision}}` and `Verdict: {{grade}}` with `{{proof_scope}}`, `{{blocking_severities}}`, `{{blocking_findings}}`, `{{residual_findings}}`, `{{contract_preconditions}}`, `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{proof_supplied}}`, `{{proof_not_claimed}}`, and the narrow reason
   * set `{{stop_reason}}` to `blocked` or `review-complete`
   * report the stop reason, final scoped grade, `proof_not_claimed`, and exact `cleanup_status=...` or cleanup blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before the reviewer is closed
@@ -196,7 +196,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * run [Add File Comment](../gabe-common/workflows/file-task-comments.md#add-file-comment) with the scoped proven grade, evidence, residual risk, and stop report before any external tracker note
   * before posting the ready verdict to a GitLab issue, review, or comment, run [Resolve GitLab Sudo Alias](../gabe-common/workflows/gitlab-sudo-alias.md#resolve-gitlab-sudo-alias) with `{{gabe_role}}` set to `reviewer`
   * run [Use GitLab Sudo Alias Before Public Write](../gabe-common/workflows/gitlab-sudo-alias.md#use-gitlab-sudo-alias-before-public-write)
-  * say `No Gabe-review findings for {{proof_scope}} at {{blocking_severities}} threshold. Decision: Proven for {{proof_scope}}.`
+  * say `No review findings for {{proof_scope}} at {{blocking_severities}} threshold. Decision: Proven for {{proof_scope}}.`
   * if broader final proof remains outside the claim
     * say `This does not claim {{proof_not_claimed}}.`
   * if the implementer should continue at a specific proof-decision step

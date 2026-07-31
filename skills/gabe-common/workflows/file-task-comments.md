@@ -8,7 +8,7 @@
   * resolve `{{source_repo_root}}` to an absolute canonical path
 * set `{{agents_root}}` to `$AGENTS_HOME` when configured, otherwise `~/.agents`
 * resolve `{{agents_root}}` to an absolute path
-* set `{{repo_root}}` to `{{agents_root}}` for installed Gabe skill and workflow entry points
+* set `{{repo_root}}` to `{{agents_root}}` for installed skill and workflow entry points
 * infer `{{project_name}}` from the explicit project name, configured project identity, or source repository basename, in that order
 * normalize `{{project_name}}` to a stable lowercase path-safe slug
 * set `{{file_task_root}}` to `{{agents_root}}/projects/{{project_name}}`
@@ -23,7 +23,7 @@
 * treat `{{source_repo_root}}` only as the affected implementation or evidence surface
 * create missing task, comment, goal, plan, instruction, return, artifact, and ledger parent directories under `{{file_task_root}}`
   * if directory creation fails, stop and report the exact path and error
-* do not write Gabe control-plane tasks, comments, plans, goals, instructions, artifacts, or lane ledgers into `{{source_repo_root}}`
+* do not write Agent control-plane tasks, comments, plans, goals, instructions, artifacts, or lane ledgers into `{{source_repo_root}}`
 
 ## Ensure File Task
 
@@ -116,7 +116,7 @@
 * keep each instruction bullet to one discrete tool-executable action
 * link every condition, failure, retry, recovery, and authority prompt to an explicit MDScript state or return script
 * include the exact `/mdscript-exec {{instruction_file}}#<entry-state>` command in every handoff that depends on the instruction
-* do not create prose-only durable instruction files for Gabe-shaped work
+* do not create prose-only durable instruction files for agent-shaped work
 * return to the caller
 
 ## Read File Task Packet

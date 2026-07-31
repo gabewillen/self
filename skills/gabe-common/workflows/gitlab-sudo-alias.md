@@ -46,7 +46,7 @@
 
 * set `{{blocker}}` to the exact missing or invalid GitLab sudo alias capability, lease failure, or missing tooling
 * report the blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before stopping when this is a child orchestrator, implementer, reviewer, or goal-resumed lane
-* if the caller will prompt Gabe, the user, a repository owner, or another authority surface for the missing alias decision
+* if the caller will prompt Agent, the user, a repository owner, or another authority surface for the missing alias decision
   * run [Prepare Prompt Return Script](return-script.md#prepare-prompt-return-script)
   * stop
 * stop

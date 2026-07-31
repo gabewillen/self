@@ -30,7 +30,7 @@
 
 * on routine resume, execute only the changed hot-path action
 
-* do not reread or narrate full Gabe, event, watcher, and ledger context unless `{{goal_mdscript}}` is missing or stale
+* do not reread or narrate full Agent, event, watcher, and ledger context unless `{{goal_mdscript}}` is missing or stale
 
 * when the goal reports lane state, include `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/report-to-orchestrator.md#report-to-orchestrator` as the re-entry command
 
@@ -87,11 +87,11 @@
 
 ## Arm External MR Automation
 
-* run [Require Gabe Automate](../../gabe-common/workflows/automation-preflight.md#require-gabe-automate)
+* run [Require Automate Skill](../../gabe-common/workflows/automation-preflight.md#require-automate-skill)
 
 * set `{{cadence}}` to `FREQ=MINUTELY;INTERVAL=10`
 
-* use the available automation tool only after the Gabe Automate contract is complete
+* use the available automation tool only after the Agent Automate contract is complete
 
 * if the requested automation tooling is unavailable
   * record the exact automation-tooling blocker

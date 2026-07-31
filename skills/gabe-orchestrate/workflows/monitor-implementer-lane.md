@@ -83,7 +83,7 @@
 * if the blocker needs monitored goal state and no blocker watcher exists
   * send the implementer `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/blocker-watcher.md#create-blocker-watcher`
   * stop after directing the blocker watcher
-* if authority or judgment is needed from Gabe, the user, or a repository owner
+* if authority or judgment is needed from Agent, the user, or a repository owner
   * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this workflow and `{{return_resume_heading}}` set to `monitor-implementer-lane`
   * prepare the smallest decision-ready question for the authority decision
   * stop after the prompt is prepared
@@ -91,6 +91,6 @@
 
 ## Steer Implementer Lane
 
-* include an exact implementer continuation jump such as `/mdscript-exec {{repo_root}}/skills/gabe-implement/SKILL.md#inspect-current-state`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/verify-real-proof.md#verify-real-proof`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/recursive-blind-review-loop.md#use-gabe-review`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/mr-monitor.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/blocker-watcher.md#create-blocker-watcher`
+* include an exact implementer continuation jump such as `/mdscript-exec {{repo_root}}/skills/gabe-implement/SKILL.md#inspect-current-state`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/verify-real-proof.md#verify-real-proof`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/recursive-blind-review-loop.md#use-multi-lane-review`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/mr-monitor.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/blocker-watcher.md#create-blocker-watcher`
 * update the lane ledger with the steering action and next owner
 * run [Report Status](../../gabe-common/workflows/report-boundary.md#report-status)

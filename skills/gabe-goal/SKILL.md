@@ -50,7 +50,7 @@ description: "ALWAYS use this skill when running a goal loop (/goal or /gabe-goa
     * still execute every state of this skill's MDScript workflow for work, proof, and gabe-review
   * when `{{harness_goal_kind}}` is `skill`
     * run the harness `goal` skill for the same `{{goal_text}}` only as the continuation driver if the harness requires that entry
-    * require the harness goal body to follow this skill's MDScript workflow (parse → start → pursue → capture → compose gabe-review → complete)
+    * require the harness goal body to follow this skill's MDScript workflow (parse → start → pursue → capture → compose multi-lane review → complete)
   * do not arm, await, or depend on gabe-goal stop/session hooks for this run
 * run [Clarify Goal](workflows/clarify-goal.md#clarify-goal)
 
@@ -83,7 +83,7 @@ description: "ALWAYS use this skill when running a goal loop (/goal or /gabe-goa
 * if artifacts or `{{primary_user_action}}` proof are incomplete
   * refresh `{{goal_mdscript}}` completion_gate notes from the current gaps
   * [Pursue Goal](#pursue-goal)
-* run [Compose Gabe Review](workflows/compose-gabe-review.md#compose-gabe-review) which execs gabe-review multi-lane adversarial blind (always-on rules + security + completeness, selected eng-* language/framework lanes from vendored gabewillen/rules, plus deep hsm when a state machine is in scope)
+* run [Compose Multi-Lane Review](workflows/compose-multi-lane-review.md#compose-multi-lane-review) which execs multi-lane review adversarial blind (always-on rules + security + completeness, selected eng-* language/framework lanes from vendored gabewillen/rules, plus deep hsm when a state machine is in scope)
 * if any blind lane fails, gabe-review returns `Not ready for …`, or blocking findings remain
   * fix every blocking finding
   * refresh artifacts and `artifacts/manifest.json` when proof changed

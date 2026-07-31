@@ -16,16 +16,16 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * otherwise set `{{is_root_orchestrator}}` to `false`
 * set `{{can_spawn_subagents}}` to `true` when this runtime exposes a subagent, task, or child-thread creation tool
 * otherwise set `{{can_spawn_subagents}}` to `false`
-* [Route Gabe Request](#route-gabe-request)
+* [Route Agent Request](#route-agent-request)
 
-## Route Gabe Request
+## Route Agent Request
 
 * if `{{agent_position}}` is empty
   * [Detect Agent Position](#detect-agent-position)
 
 * read [boundaries.md](references/boundaries.md) and hold every boundary it names for the routed role
 
-* ask "What would Gabe do?" from the current request, active local instructions, current evidence, and this installed skill family
+* ask "What would the agent do?" from the current request, active local instructions, current evidence, and this installed skill family
 
 * if the installed skills do not carry the needed context, appear stale, or are contradicted by a new human correction
   * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)
@@ -49,7 +49,7 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
   * set `{{gabe_role}}` to `gabe-review`
   * set `{{hsm_in_scope}}` to `true`
   * set `{{forced_lanes}}` to include `hsm` and `eng-hsm` when not already forced
-  * run gabe-review composition on this parent process with HSM lanes selected; do not treat HSM as a separate skill role
+  * run multi-lane review composition on this parent process with HSM lanes selected; do not treat HSM as a separate skill role
   * [Execute Routed Role](#execute-routed-role)
 
 * if the request is a goal-driven proof loop until artifacts and multi-lane adversarial blind review (`/gabe-goal`, `/goal`, or stricter goal-until-signoff work)
@@ -64,7 +64,7 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * if `{{agent_position}}` is `subagent`
   * set `{{gabe_role}}` to `gabe-implement`
   * do not route a subagent into `gabe-review`, `gabe-orchestrate`, or `gabe-goal` as its skill role
-  * if the delegated task is a single blind review lane, run only that lane's MDScript entrypoint from the parent packet, not the full gabe-review skill
+  * if the delegated task is a single blind review lane, run only that lane's MDScript entrypoint from the parent packet, not the full review skill
   * [Execute Routed Role](#execute-routed-role)
 
 * if `{{is_root_orchestrator}}` is `true`

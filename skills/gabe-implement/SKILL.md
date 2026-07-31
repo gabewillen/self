@@ -32,7 +32,7 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
   * set `{{blocker}}` to the exact missing contract field
   * [Report To Orchestrator](#report-to-orchestrator)
 
-* run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context) when project history, Gabe context, or publication context may shape the work
+* run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context) when project history, skill context, or publication context may shape the work
 
 * if the current user message or parent handoff is a durable human correction about how implementers must write, edit, prove, or report
   * set `{{correction_source}}` to that correction
@@ -42,7 +42,7 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 ## Establish Worker Boundary
 
-* act as an implementer under a parent orchestrator, not as the root orchestrator and not as human Gabe
+* act as an implementer under a parent orchestrator, not as the root orchestrator and not as the human principal
 
 * own execution inside `{{granted_permissions}}`
 
@@ -116,9 +116,9 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 * run [Verify Real Proof](workflows/verify-real-proof.md#verify-real-proof)
 
-## Use Gabe Review
+## Use Multi-Lane Review
 
-* run [Use Gabe Review](workflows/recursive-blind-review-loop.md#use-gabe-review)
+* run [Use Multi-Lane Review](workflows/recursive-blind-review-loop.md#use-multi-lane-review)
 
 ## Start Review Round
 
