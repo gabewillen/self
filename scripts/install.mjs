@@ -412,7 +412,13 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/engineering-rules/impl-dbc.mdscript.md",
     "references/implementation-rules-catalog.md",
   ],
-  "gabe-common": ["SKILL.md", "workflows/goal-mdscript.md", "workflows/file-task-comments.md"],
+  "gabe-common": [
+    "SKILL.md",
+    "workflows/goal-mdscript.md",
+    "workflows/file-task-comments.md",
+    "workflows/update-living-skills.md",
+    "workflows/load-operating-context.md",
+  ],
 };
 
 /**

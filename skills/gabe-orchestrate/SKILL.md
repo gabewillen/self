@@ -14,6 +14,10 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)
 
+* if the current user message is a durable human correction about how agents must write, edit, review, route, or coordinate
+  * set `{{correction_source}}` to that correction
+  * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)
+
 * run [Select Configured Model And Reasoning](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{gabe_role}}` set to `orchestrator`
 
 * run [Resolve File Task Root](../gabe-common/workflows/file-task-comments.md#resolve-file-task-root)

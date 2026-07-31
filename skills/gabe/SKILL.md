@@ -29,6 +29,8 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 
 * if the installed skills do not carry the needed context, appear stale, or are contradicted by a new human correction
   * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)
+  * set `{{correction_source}}` to the human correction or named skill gap
+  * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)
 
 * if the request is a standalone interval PR watch that repairs review comments and CI with selected fixer models (`/gabe-watch`, interval+PR babysit, merge-ready watch loop)
   * set `{{gabe_role}}` to `gabe-watch`

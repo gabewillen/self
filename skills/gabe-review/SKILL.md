@@ -44,8 +44,12 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * force the review to name the narrowest claim actually supported by the supplied proof
   * preserve broader proof gaps as `{{proof_not_claimed}}` or `{{remaining_blockers}}`
 
-* if broader Gabe-shaped judgment, delegation, permission, or coordination is needed
+* if broader judgment, delegation, permission, or coordination is needed
   * run `/mdscript-exec {{repo_root}}/skills/gabe/SKILL.md`
+
+* if the current request is a durable human correction about how reviewers must judge, falsify, or grade
+  * set `{{correction_source}}` to that correction
+  * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)
 
 * use this skill to falsify readiness, not to rubber-stamp the author's narrative
 
@@ -201,4 +205,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * set `{{stop_reason}}` to `review-complete`
   * report the stop reason, final scoped grade, `proof_not_claimed`, and exact `cleanup_status=...` or cleanup blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before the reviewer is closed
   * include the reviewer thread or subagent cleanup status expected from the parent as the literal `cleanup_status` field
-* never bury a failed Gabe correction pattern in a summary
+* never bury a failed correction pattern in a summary
+* if a failed correction pattern or durable review-policy gap remains after the verdict
+  * set `{{correction_source}}` to that pattern or gap
+  * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)

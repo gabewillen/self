@@ -25,7 +25,7 @@ This package ships Agent Skills (`SKILL.md` + workflows) so they can be installe
 | `gabe-watch` / `gabe-unwatch` | Interval PR repair watch |
 | `gabe-voice` | Gabe-shaped reply drafting |
 | `gabe-goal` | Goal-driven loop until proof + multi-lane gabe-review. When the harness has `/goal` (Grok host `/goal`, Cursor `goal` skill), prefers that for multi-round continuation and **skips gabe-goal hooks** while still following the MDScript workflow |
-| `gabe-common` | Shared workflows used by the family |
+| `gabe-common` | Shared workflows used by the family, including living-skills updates when a human correction should strengthen implement/review |
 
 All coordination artifacts for Gabe work are **MDScript** (tasks, comments, plans, goals, instructions) under `~/.agents/projects/<project>/`.
 

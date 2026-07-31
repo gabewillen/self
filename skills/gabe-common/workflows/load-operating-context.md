@@ -10,7 +10,9 @@
   * [Compile Lane Goal Context](#compile-lane-goal-context)
 * if the installed skills lack the needed rule, appear stale, or conflict with a new human correction, current instructions, or live evidence
   * decide from the current request, active local instructions, repository state, and live evidence
-  * name the insufficient or contradicted skill rule in the report so the skill can be corrected
+  * name the insufficient or contradicted skill rule
+  * set `{{correction_source}}` to that human correction or named skill gap
+  * run [Update Living Skills](update-living-skills.md#update-living-skills)
   * [Compile Lane Goal Context](#compile-lane-goal-context)
 * do not let compiled skill context override current instructions, tracker state, code, tests, telemetry, or live proof
 * preserve whether the work was steered by human Gabe, a Gabe role skill, a worker, a reviewer, a goal, or explicit external automation
