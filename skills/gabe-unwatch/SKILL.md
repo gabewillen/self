@@ -1,9 +1,6 @@
 ---
 name: gabe-unwatch
-description: >-
-  Stop a persistent gabe-watch PR interval loop. Kills the while-true sentinel
-  process, marks watch state inactive, and updates the goal MDScript. Use when
-  the user runs /gabe-unwatch, asks to stop watching a PR, or cancel gabe-watch.
+description: "ALWAYS use this skill when the user runs /gabe-unwatch, asks to stop watching a PR, or cancels gabe-watch: kill the detached ticker/sentinel, mark watch state inactive, and update the watch goal MDScript."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

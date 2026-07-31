@@ -1,6 +1,6 @@
 ---
 name: gabe-review
-description: "Compose multi-lane adversarial review on the parent process (main chat, implementer lane, or goal orchestrator). Never assign this whole skill to a nested worker subagent — fan out only per-lane blind MDScripts under workflows/blind-reviewers/. Terminal readiness selects lanes via workflows/select-review-lanes.md: always rules, security, and completeness; plus eng-* engineering-rules lanes from vendored gabewillen/rules; plus deep hsm when a state machine is in scope. Each lane subagent runs one MDScript and writes an independent sign-off; the parent aggregates. Use for rolling code review, single-pass non-code review, final multi-lane blind review, DBC proof decisions, scoped verdicts, and publication hygiene. Treat MDScripts exactly like documentation for review. The primary delegated worker skill remains gabe-implement."
+description: "ALWAYS use this skill when reviewing code, PRs/MRs, MDScripts, docs, instructions, automations, publications, or readiness claims on a parent process: compose multi-lane blind review in-process (never nest the full skill), always run rules/security/completeness plus selected eng-* packs and deep hsm when a state machine is in scope, aggregate independent lane sign-offs, and emit scoped Proven-for or Blocked-for verdicts."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

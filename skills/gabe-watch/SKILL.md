@@ -1,18 +1,6 @@
 ---
 name: gabe-watch
-description: >-
-  Watch a GitHub PR on a persistent fixed interval for unresolved review
-  comments, CI/CD failures, and base-branch drift. Arms one detached ticker that
-  survives harness cleanup and keeps ticking until /gabe-unwatch (or PR
-  merged/closed). Arming is a standing grant: it fixes findings, pushes, and
-  resolves threads itself instead of asking per fix. Selects a fast model for
-  routine fixes and a high-effort model for hard repairs, marks valid threads
-  resolved, and
-  keeps the branch in sync. Watch state is MDScript-only:
-  one goals/gabe-watch-<N>.mdscript.md whose YAML front matter is the sole
-  authoritative state and whose body is the loop resume target. Use for
-  /gabe-watch, interval+PR babysitting, review-comment watching, or CI repair
-  loops.
+description: "ALWAYS use this skill when the user runs /gabe-watch or wants interval PR babysitting for review comments, CI repair, or base-branch drift: arm one detached ticker with a standing grant to fix/push/resolve until /gabe-unwatch or PR merge/close, keep state only in goals/gabe-watch-<N>.mdscript.md, and pick fast vs high-effort models by repair difficulty."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

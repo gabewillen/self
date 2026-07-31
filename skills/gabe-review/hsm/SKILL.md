@@ -1,13 +1,6 @@
 ---
 name: gabe-review-hsm
-description: >-
-  Adversarially review hierarchical state machines against UML 2.5 semantics
-  (library-agnostic): the ownership gate that decides whether a machine should
-  exist, actor/RTC data boundaries, explicit guards and choice control flow,
-  side-effect-free guards and behaviors, activities for long-running work,
-  actors instead of orthogonal regions, and hierarchy to eliminate duplicate
-  same-event transitions. Internal HSM/UML audit pack for the gabe-review hsm blind lane.
-  Invoked via mdscript-exec on this file or workflows; not a top-level agent skill.
+description: "ALWAYS use this skill when the gabe-review hsm blind lane audits hierarchical state machines: apply UML 2.5 ownership, actor/RTC, control-flow, purity, activity, hierarchy, and reachability gates via mdscript-exec on this internal pack (not a top-level agent skill)."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

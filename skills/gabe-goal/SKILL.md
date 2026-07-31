@@ -1,13 +1,6 @@
 ---
 name: gabe-goal
-description: >-
-  Run a goal-driven MDScript loop until reproducible proof artifacts exist and
-  gabe-review composes a Proven-for verdict with empty blocking findings.
-  Enforces parallel subagent multitasking, append-only logs, immutable
-  runs/<run_id>/ dirs, proof type by proof_kind, and MDScript-only run state.
-  When the harness already has a /goal ability (Grok host /goal, Cursor goal
-  skill, etc.), prefer that for multi-round continuation and skip gabe-goal
-  hooks while still following this workflow. Use for /gabe-goal or /goal.
+description: "ALWAYS use this skill when running /gabe-goal or /goal until proof artifacts exist and multi-lane gabe-review returns Proven-for with empty blocking findings: prefer a harness /goal ability for multi-round continuation and skip gabe-goal hooks when available, keep MDScript-only run state under runs/<run_id>/, and drive parallel subagent work with append-only logs."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

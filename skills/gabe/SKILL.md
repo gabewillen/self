@@ -1,6 +1,6 @@
 ---
 name: gabe
-description: "ALWAYS use this skill for EVERY request. Run it first, before planning or answering, and let it pick the role. Any agent with no parent that is not a subagent is a root orchestrator (gabe-orchestrate). Subagents run gabe-implement only (or a single blind-lane MDScript when that is the assignment) — never gabe-review, gabe-orchestrate, or gabe-goal as their skill role. Explicit invocations still route to gabe-watch, gabe-unwatch, gabe-goal, or gabe-automate first. HSM review is a gabe-review blind lane, not a separate skill. Review composition stays on the parent/orchestrator/implementer process with per-lane blind fanout only. Carries project-scoped Gabe MDScript work under ~/.agents/projects/project-name/. Select the best available model and effort level for each role and task."
+description: "ALWAYS use this skill for EVERY request first, before planning or answering, so it can route the role: parentless main agents are gabe-orchestrate; subagents are gabe-implement (or one blind-lane MDScript); explicit /gabe-watch, /gabe-unwatch, /gabe-goal, and /gabe-automate still route first; HSM is a gabe-review blind lane not a separate skill; review composition stays parent-owned with per-lane fanout only."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

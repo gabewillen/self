@@ -1,6 +1,6 @@
 ---
 name: gabe-orchestrate
-description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects/project-name/ as the root orchestrator on a model and effort level selected for coordination work. Use for prioritization, delegation, child-orchestrator setup, MDScript tasks/comments/plans/goals/instructions, lane ledgers, DBC proof-decision intake, worker handoffs, hot-path events, GitLab aliasing, post-merge closure, publication decisions, and decision-ready reports. Preserve scoped proof decisions, goal re-entry, child-lane boundaries, and parent-visible stop reports."
+description: "ALWAYS use this skill when coordinating project-scoped Gabe work as the root or child orchestrator: prioritize, delegate to gabe-implement workers, own goals/tasks/comments/lane ledgers, intake DBC proof decisions, manage handoffs and hot-path events, decide publication and post-merge closure, and keep parent-visible stop reports and goal re-entry current."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

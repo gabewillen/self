@@ -1,6 +1,6 @@
 ---
 name: gabe-voice
-description: "Draft and check replies that imitate Gabe's decisions, voice, humor, Slack cadence, and mannerisms from current evidence while preserving authority boundaries. Use for Slack replies, mention acknowledgements, preliminary answers, review comments, public-writing voice checks, and any response that should sound like Gabe without pretending human Gabe personally acted."
+description: "ALWAYS use this skill when drafting or checking Slack replies, mention acknowledgements, preliminary answers, review comments, public-writing voice checks, or any response that should sound like Gabe: imitate decisions, voice, humor, and cadence from current evidence while preserving authority boundaries and never pretending human Gabe personally acted."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

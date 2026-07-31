@@ -1,6 +1,6 @@
 ---
 name: gabe-automate
-description: "Design and create Gabe-shaped automations as MDScript-driven continuations backed by file-based tasks and comments. Use before any Gabe-shaped agent calls automation_update or any automation creation/update tool, and when an agent creates, updates, reviews, or hands off recurring monitors, reminders, PR/MR watchers, blocker watchers, lane-management wakeups, or thread follow-ups so the automation has an exact mdscript-exec re-entry point, preferably a task-local hot-path MDScript for watched lanes, role boundary, cadence, owner, stop condition, evidence/reporting contract, file task/comment source of truth, and a model and effort level selected for the resumed role and its task."
+description: "ALWAYS use this skill before any Gabe-shaped agent calls automation_update or creates/updates/reviews/hands off monitors, reminders, PR/MR watchers, blocker watchers, lane wakeups, or thread follow-ups: design MDScript-driven automations with an exact mdscript-exec re-entry, role boundary, cadence, owner, stop condition, evidence/reporting contract, and file-task source of truth."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

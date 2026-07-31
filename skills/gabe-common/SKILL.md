@@ -1,10 +1,6 @@
 ---
 name: gabe-common
-description: >-
-  Shared MDScript workflows used by the Gabe skill family (goal MDScripts,
-  lane ledger, return scripts, thread events, operating-context load, report
-  boundary, and related coordination primitives). Use when a Gabe skill links
-  into gabe-common/workflows or when installing the Gabe skill pack.
+description: "ALWAYS use this skill when a Gabe skill links into gabe-common/workflows or when installing the Gabe skill pack: shared MDScript primitives for goals, lane ledgers, return scripts, thread events, operating-context load, report boundaries, and related coordination."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
