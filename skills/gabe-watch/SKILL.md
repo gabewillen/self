@@ -40,7 +40,9 @@ description: "ALWAYS use this skill when the user runs /gabe-watch or wants inte
 * if a legacy `~/.agents/projects/{{project_name}}/gabe-watch/pr-{{pr_number}}.json` exists and `{{watch_mdscript}}` does not
   * read that legacy state once to recover `loop_pid`, `sentinel`, and contract fields
 * write `{{watch_mdscript}}` from [watch.mdscript.md](assets/watch.mdscript.md)
-* fill every front-matter field on `{{watch_mdscript}}` with the resolved values for this watch
+* set `{{owner_conversation_id}}` to this chat's harness session id when known (Cursor `conversation_id`, Claude/Codex `session_id`, Grok `sessionId` / `GROK_SESSION_ID`); leave empty only when the harness gives no session id
+* set `{{owner_dialect}}` to `cursor`, `claude`, `codex`, or `grok` for the arming harness
+* fill every front-matter field on `{{watch_mdscript}}` with the resolved values for this watch, including `owner_conversation_id` and `owner_dialect`
 * leave legacy `pr-{{pr_number}}.json` unread for new writes
 * treat legacy `pr-{{pr_number}}.json` as read-only fallback only
 * run [Establish Watch Grant](#establish-watch-grant)
@@ -82,7 +84,7 @@ description: "ALWAYS use this skill when the user runs /gabe-watch or wants inte
 * set `{{ticker_pgid}}` from `ps -o pgid= -p {{ticker_pid}}`
 * confirm the ticker is detached: `ps -o ppid= -p {{ticker_pid}}` is `1` (or a reparenting supervisor) and `{{ticker_pgid}}` is not this agent shell's process group
 * do not require a new session id
-* set front matter on `{{watch_mdscript}}` with `watch_active: true`, `status: active`, `resume_heading: resume-watch`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `owner_pid`, `ticker_pid`, `ticker_pgid`, `tick_spool`, `ticker_pid_file`, `stop_file`, `skill_root`, `easy_model`, `hard_model`, and `armed_at`
+* set front matter on `{{watch_mdscript}}` with `watch_active: true`, `status: active`, `resume_heading: resume-watch`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `owner_pid`, `ticker_pid`, `ticker_pgid`, `tick_spool`, `ticker_pid_file`, `stop_file`, `skill_root`, `easy_model`, `hard_model`, `armed_at`, `owner_conversation_id`, and `owner_dialect`
 * [Reattach Tick Listener](#reattach-tick-listener)
 
 ## Establish Watch Grant

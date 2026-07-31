@@ -58,7 +58,9 @@ on errors.
 
 ### Living install (default)
 
-By default install **clones or reuses a git checkout** and **symlinks** each skill into agent skill dirs. Agents edit the live tree, then commit/push upstream.
+By default install **clones or reuses a git checkout**, **checks out a long-lived working branch**, and **symlinks** each skill into agent skill dirs.
+
+The working branch is `live/<user>-<host>` (override with `GABE_AGENTS_LIVE_BRANCH`; set to `0` to skip). It syncs from `origin/main` (or the remote default). **Global skill changes commit on that branch and open a PR into main** — do not push straight to the default branch. Project-specific rules belong in the product repo under `<repo>/.agents/`, not the global pack.
 
 ```bash
 cd /path/to/agents
@@ -81,20 +83,20 @@ Symlink targets (when the agent home exists):
 After install:
 
 ```bash
-# edit a living skill
+# edit a living skill on the live/* branch
 $EDITOR ~/.agents/repos/gabewillen-agents/skills/gabe-review/hsm/SKILL.md
 # or, when installed from this checkout, edit here directly
 
 git -C ~/.agents/repos/gabewillen-agents add -A
 git -C ~/.agents/repos/gabewillen-agents commit -m "Update skill"
-git -C ~/.agents/repos/gabewillen-agents push
+# post-commit hook: push live/* + open/update PR into main (GABE_AGENTS_SKIP_PR_HOOK=1 to disable)
 
-# refresh from remote + re-symlink
+# fetch origin + merge origin/main into the live branch + re-symlink
 node ./scripts/install.mjs --live --pull
 # or: npm run install-skills:pull
 ```
 
-Marker file: `~/.agents/gabe-agents-live.json`.
+Marker file: `~/.agents/gabe-agents-live.json` (includes `live_branch`, `upstream_base`, and howto).
 
 ### Snapshot copy install
 

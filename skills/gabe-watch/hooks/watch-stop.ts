@@ -1,11 +1,18 @@
 /**
- * Cursor Stop hook: if an active gabe-watch has unprocessed spool ticks,
+ * Stop hook: if this session's gabe-watch has unprocessed spool ticks,
  * force resume before the turn can end (listener is often already dead).
+ *
+ * Never inject watches armed by a different conversation_id — that is the
+ * main cross-session leak users see as "hooks going to the wrong chat".
  */
-import { continueWorkingPayload, finishHook, readHookInput } from "../../gabe-common/hooks/learn-lib.ts";
+import {
+  continueWorkingPayload,
+  finishHook,
+  readHookInput,
+} from "../../gabe-common/hooks/learn-lib.ts";
 import {
   formatPendingWatchFollowup,
-  listPendingWatches,
+  listPendingWatchesForSession,
 } from "./watch-lib.ts";
 
 const input = readHookInput();
@@ -26,12 +33,23 @@ if (input.status !== "completed") {
   finishHook();
 }
 
-const pending = listPendingWatches();
+// Never chain on our own follow-ups (Cursor re-runs Stop after followup_message).
+if (input.stopHookActive) {
+  finishHook();
+}
+
+if (!input.conversationId) {
+  finishHook();
+}
+
+const pending = listPendingWatchesForSession(
+  input.conversationId,
+  input.dialect,
+);
 if (!pending.length) {
   finishHook();
 }
 
-// Always force resume when ticks are pending — do not require stopHookActive.
 finishHook(
   continueWorkingPayload(input.dialect, formatPendingWatchFollowup(pending)),
 );

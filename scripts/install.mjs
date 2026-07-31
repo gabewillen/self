@@ -22,8 +22,20 @@
  *   node scripts/install.mjs --dry-run
  *   node scripts/install.mjs --no-adapters
  *   node scripts/install.mjs --pull
+ *   node scripts/install.mjs --verify-only   (md5 check installed copies; no write)
  *   GABE_AGENTS_INSTALL=0 npm i
  *   GABE_AGENTS_MODE=copy npm i
+ *
+ * Live branch (default): install creates/checks out a long-lived working branch
+ * (live/<user>-<host>, override GABE_AGENTS_LIVE_BRANCH) that tracks origin's
+ * default branch for sync. Push that branch and open a PR for global skill
+ * changes; do not push straight to main. Set GABE_AGENTS_LIVE_BRANCH=0 to skip.
+ *
+ * Integrity: after every install (and on --verify-only), md5 every managed
+ * script under the live/source skills root and require byte-identical md5 at
+ * every agent skill root, harness hook command path, agent-home script, and
+ * managed git post-commit hook. Mismatch fails the install so stale copies
+ * cannot go green.
  */
 import {
   cpSync,
@@ -41,9 +53,10 @@ import {
   chmodSync,
   realpathSync,
 } from "node:fs";
-import { dirname, join, resolve, delimiter, relative } from "node:path";
+import { createHash } from "node:crypto";
+import { basename, dirname, join, resolve, delimiter, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { homedir } from "node:os";
+import { homedir, hostname, userInfo } from "node:os";
 import { execFileSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -79,6 +92,10 @@ const skipMdscript =
   args.includes("--no-mdscript") ||
   process.env.GABE_AGENTS_MDSCRIPT === "0" ||
   process.env.GABE_AGENTS_MDSCRIPT === "false";
+const verifyOnly =
+  args.includes("--verify-only") ||
+  process.env.GABE_AGENTS_VERIFY_ONLY === "1" ||
+  process.env.GABE_AGENTS_VERIFY_ONLY === "true";
 
 const modeEnv = (process.env.GABE_AGENTS_MODE || "").toLowerCase();
 const mode = args.includes("--copy") || modeEnv === "copy"
@@ -211,6 +228,288 @@ function resolveLiveRoot() {
   return DEFAULT_LIVE_ROOT;
 }
 
+function sanitizeBranchPart(s) {
+  return String(s || "local")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "local";
+}
+
+/** Working branch for live skill edits (not main). */
+function resolveLiveBranchName() {
+  const raw = process.env.GABE_AGENTS_LIVE_BRANCH;
+  if (raw === "0" || raw === "false" || raw === "off") return null;
+  if (raw && raw.trim()) return raw.trim();
+  let user = "local";
+  try {
+    user = userInfo().username || process.env.USER || process.env.LOGNAME || "local";
+  } catch {
+    user = process.env.USER || process.env.LOGNAME || "local";
+  }
+  const host = sanitizeBranchPart(hostname().split(".")[0] || "host");
+  return `live/${sanitizeBranchPart(user)}-${host}`;
+}
+
+function originDefaultBranch(liveRoot) {
+  const sym = trySh("git", [
+    "-C",
+    liveRoot,
+    "symbolic-ref",
+    "refs/remotes/origin/HEAD",
+  ]);
+  if (sym.ok) {
+    const m = /refs\/remotes\/origin\/(.+)/.exec(sym.out.trim());
+    if (m) return m[1];
+  }
+  for (const name of ["main", "master"]) {
+    const r = trySh("git", ["-C", liveRoot, "rev-parse", "--verify", `origin/${name}`]);
+    if (r.ok) return name;
+  }
+  return "main";
+}
+
+function gitIsDirty(root) {
+  const r = trySh("git", ["-C", root, "status", "--porcelain"]);
+  return r.ok && r.out.trim().length > 0;
+}
+
+/**
+ * Stash local dirty state so checkout/merge can proceed; pop after.
+ * Mirrors git pull --autostash for our fetch + checkout + merge sequence.
+ */
+function withAutoStash(root, label, fn) {
+  const dirty = gitIsDirty(root);
+  let stashed = false;
+  if (dirty) {
+    const msg = `gabe-agents autostash: ${label}`;
+    const stash = trySh("git", [
+      "-C",
+      root,
+      "stash",
+      "push",
+      "--include-untracked",
+      "-m",
+      msg,
+    ]);
+    if (stash.ok) {
+      stashed = true;
+      console.log(`[gabe-agents] autostash: stashed dirty tree for ${label}`);
+    } else {
+      console.warn(
+        `[gabe-agents] autostash push failed (continuing dirty): ${stash.err || stash.out}`,
+      );
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    if (stashed) {
+      const pop = trySh("git", ["-C", root, "stash", "pop"]);
+      if (!pop.ok) {
+        console.warn(
+          `[gabe-agents] autostash pop failed (your changes are in stash; run git stash list): ${pop.err || pop.out}`,
+        );
+      } else {
+        console.log(`[gabe-agents] autostash: restored dirty tree`);
+      }
+    }
+  }
+}
+
+/**
+ * Create or check out a long-lived live/* branch and sync it with origin/<base>.
+ * Global skill edits land here; open a PR into origin/<base> (do not push main).
+ * Dirty trees use stash push/pop around checkout and merge (like --autostash).
+ */
+function ensureLiveWorkingBranch(liveRoot, opts = {}) {
+  const branch = resolveLiveBranchName();
+  if (!branch) {
+    return { branch: null, base: null, action: "skipped" };
+  }
+  if (!isGitRepo(liveRoot) && !gitTopLevel(liveRoot)) {
+    return { branch: null, base: null, action: "not-git" };
+  }
+  const root = gitTopLevel(liveRoot) || liveRoot;
+
+  if (dryRun) {
+    console.log(`[dry-run] ensure live working branch ${branch} in ${root}`);
+    return { branch, base: "main", action: "dry-run" };
+  }
+
+  // Ensure origin remote points somewhere fetchable when missing.
+  const remotes = trySh("git", ["-C", root, "remote"]);
+  if (remotes.ok && !remotes.out.split("\n").map((s) => s.trim()).includes("origin")) {
+    const url =
+      process.env.GABE_AGENTS_REPO_URL ||
+      process.env.npm_package_repository_url?.replace(/^git\+/, "") ||
+      DEFAULT_REPO_URL;
+    trySh("git", ["-C", root, "remote", "add", "origin", url]);
+  }
+
+  const fetch = trySh("git", ["-C", root, "fetch", "origin", "--prune"]);
+  if (!fetch.ok) {
+    console.warn(
+      `[gabe-agents] git fetch origin failed (continuing offline): ${fetch.err || fetch.out}`,
+    );
+  }
+
+  const base = originDefaultBranch(root);
+
+  return withAutoStash(root, `live-branch ${branch}`, () => {
+    const current = trySh("git", ["-C", root, "branch", "--show-current"]);
+    const currentBranch = current.ok ? current.out.trim() : "";
+
+    const localExists = trySh("git", [
+      "-C",
+      root,
+      "show-ref",
+      "--verify",
+      "--quiet",
+      `refs/heads/${branch}`,
+    ]).ok;
+    const remoteExists = trySh("git", [
+      "-C",
+      root,
+      "show-ref",
+      "--verify",
+      "--quiet",
+      `refs/remotes/origin/${branch}`,
+    ]).ok;
+
+    let action = "reuse";
+    if (currentBranch !== branch) {
+      if (localExists) {
+        const co = trySh("git", ["-C", root, "checkout", branch]);
+        if (!co.ok) {
+          console.warn(`[gabe-agents] checkout ${branch} failed: ${co.err}`);
+          return { branch: currentBranch || null, base, action: "checkout-failed" };
+        }
+        action = "checkout";
+      } else if (remoteExists) {
+        const co = trySh("git", [
+          "-C",
+          root,
+          "checkout",
+          "-B",
+          branch,
+          `origin/${branch}`,
+        ]);
+        if (!co.ok) {
+          console.warn(`[gabe-agents] checkout origin/${branch} failed: ${co.err}`);
+          return { branch: currentBranch || null, base, action: "checkout-failed" };
+        }
+        action = "checkout-remote";
+      } else {
+        const start =
+          trySh("git", ["-C", root, "rev-parse", "--verify", `origin/${base}`]).ok
+            ? `origin/${base}`
+            : trySh("git", ["-C", root, "rev-parse", "--verify", base]).ok
+              ? base
+              : "HEAD";
+        const co = trySh("git", ["-C", root, "checkout", "-b", branch, start]);
+        if (!co.ok) {
+          console.warn(`[gabe-agents] create branch ${branch} failed: ${co.err}`);
+          return { branch: currentBranch || null, base, action: "create-failed" };
+        }
+        action = "create";
+        console.log(
+          `[gabe-agents] created live working branch ${branch} from ${start}`,
+        );
+      }
+    }
+
+    // Track origin/<base> for "what to sync from"; push target is origin/<branch>.
+    trySh("git", ["-C", root, "config", `branch.${branch}.merge`, `refs/heads/${base}`]);
+    trySh("git", ["-C", root, "config", `branch.${branch}.remote`, "origin"]);
+
+    if (doPull || process.env.GABE_AGENTS_PULL === "1" || opts.sync) {
+      console.log(
+        `[gabe-agents] sync ${branch} with origin/${base} (merge --ff-only, then merge)`,
+      );
+      let sync = trySh("git", [
+        "-C",
+        root,
+        "merge",
+        "--ff-only",
+        `origin/${base}`,
+      ]);
+      if (!sync.ok) {
+        sync = trySh("git", ["-C", root, "merge", "--no-edit", `origin/${base}`]);
+        if (!sync.ok) {
+          console.warn(
+            `[gabe-agents] merge origin/${base} into ${branch} failed (resolve manually): ${sync.err}`,
+          );
+        } else {
+          console.log(`[gabe-agents] merged origin/${base} into ${branch}`);
+        }
+      } else {
+        console.log(`[gabe-agents] fast-forwarded ${branch} to origin/${base}`);
+      }
+    }
+
+    console.log(
+      `[gabe-agents] live branch: ${branch} (sync from origin/${base}; push this branch + open PR for global skill changes)`,
+    );
+    return { branch, base, action, root };
+  });
+}
+
+/**
+ * Install managed git hooks into the live checkout so agents only need to commit.
+ * post-commit on live/*: push + open/update PR into origin default branch.
+ */
+function installLiveGitHooks(liveRoot) {
+  const root = gitTopLevel(liveRoot) || liveRoot;
+  if (!isGitRepo(root) && !gitTopLevel(root)) return null;
+  const hooksDir = join(root, ".git", "hooks");
+  // worktree: .git may be a file
+  let realHooks = hooksDir;
+  const gitPath = join(root, ".git");
+  try {
+    if (existsSync(gitPath) && !statSync(gitPath).isDirectory()) {
+      const text = readFileSync(gitPath, "utf8").trim();
+      const m = /^gitdir:\s*(.+)$/m.exec(text);
+      if (m) realHooks = join(resolve(root, m[1].trim()), "hooks");
+    }
+  } catch {
+    // keep default
+  }
+  ensureDir(realHooks);
+  const src = join(pkgRoot, "scripts", "git-hooks", "post-commit");
+  const dest = join(realHooks, "post-commit");
+  if (!existsSync(src)) {
+    console.warn(`[gabe-agents] missing hook source ${src}`);
+    return null;
+  }
+  if (dryRun) {
+    console.log(`[dry-run] install post-commit hook -> ${dest}`);
+    return dest;
+  }
+  let existing = "";
+  try {
+    if (existsSync(dest)) existing = readFileSync(dest, "utf8");
+  } catch {
+    existing = "";
+  }
+  // Do not clobber an unrelated project hook unless we already own it.
+  if (existing && !existing.includes("gabe-agents:post-commit")) {
+    console.warn(
+      `[gabe-agents] leave existing post-commit hook in place (not gabe-managed): ${dest}`,
+    );
+    return null;
+  }
+  const body = readFileSync(src, "utf8");
+  writeFileSync(dest, body, { mode: 0o755 });
+  try {
+    chmodSync(dest, 0o755);
+  } catch {
+    // ignore
+  }
+  console.log(`[gabe-agents] installed post-commit hook (live/* → push + PR): ${dest}`);
+  return dest;
+}
+
 function ensureLiveCheckout(liveRoot) {
   const repoUrl =
     process.env.GABE_AGENTS_REPO_URL ||
@@ -219,20 +518,23 @@ function ensureLiveCheckout(liveRoot) {
 
   if (dryRun) {
     console.log(`[dry-run] ensure live checkout at ${liveRoot} from ${repoUrl}`);
-    return { liveRoot, repoUrl, action: existsSync(liveRoot) ? "exists" : "clone" };
+    const branchMeta = ensureLiveWorkingBranch(liveRoot);
+    return {
+      liveRoot,
+      repoUrl,
+      action: existsSync(liveRoot) ? "exists" : "clone",
+      ...branchMeta,
+    };
   }
 
   ensureDir(dirname(liveRoot));
 
   if (existsSync(liveRoot) && isGitRepo(liveRoot)) {
-    if (doPull || process.env.GABE_AGENTS_PULL === "1") {
-      console.log(`[gabe-agents] git pull --ff-only in ${liveRoot}`);
-      const r = trySh("git", ["-C", liveRoot, "pull", "--ff-only"]);
-      if (!r.ok) {
-        console.warn(`[gabe-agents] pull failed (continuing with local tree): ${r.err}`);
-      }
-    }
-    return { liveRoot, repoUrl, action: "reuse" };
+    const branchMeta = ensureLiveWorkingBranch(liveRoot, {
+      sync: doPull || process.env.GABE_AGENTS_PULL === "1",
+    });
+    installLiveGitHooks(liveRoot);
+    return { liveRoot, repoUrl, action: "reuse", ...branchMeta };
   }
 
   if (existsSync(liveRoot) && !isGitRepo(liveRoot)) {
@@ -249,7 +551,9 @@ function ensureLiveCheckout(liveRoot) {
   // Clone fresh
   console.log(`[gabe-agents] cloning ${repoUrl} -> ${liveRoot}`);
   sh("git", ["clone", repoUrl, liveRoot], { stdio: ["ignore", "inherit", "inherit"] });
-  return { liveRoot, repoUrl, action: "clone" };
+  const branchMeta = ensureLiveWorkingBranch(liveRoot, { sync: false });
+  installLiveGitHooks(liveRoot);
+  return { liveRoot, repoUrl, action: "clone", ...branchMeta };
 }
 
 /**
@@ -428,6 +732,7 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/load-operating-context.md",
     "workflows/gabe-learn.mdscript.md",
     "hooks/learn-stop.ts",
+    "hooks/learn-session-touch.ts",
     "hooks/learn-lib.ts",
     "adapters/claude/hooks.json",
     "adapters/cursor/hooks.json",
@@ -514,6 +819,493 @@ function reportBrokenSkillDirs(targetRoots, managedSkills) {
     "[gabe-agents] a symlinked skill needs its live root present on THIS machine; re-run install after fixing the source",
   );
   return broken;
+}
+
+/** File names / extensions treated as scripts for md5 integrity. */
+const SCRIPT_NAME_RE = /\.(ts|tsx|js|mjs|cjs|sh)$/i;
+const SCRIPT_BASENAMES = new Set(["post-commit", "pre-commit", "post-merge", "review-snapshot"]);
+const INTEGRITY_SKIP_DIR_NAMES = new Set([
+  ".git",
+  "node_modules",
+  ".DS_Store",
+  "__pycache__",
+  ".install-receipt.json",
+]);
+
+function isScriptPath(name) {
+  if (SCRIPT_BASENAMES.has(name)) return true;
+  return SCRIPT_NAME_RE.test(name);
+}
+
+function md5File(path) {
+  return createHash("md5").update(readFileSync(path)).digest("hex");
+}
+
+function safeRealpath(path) {
+  try {
+    if (existsSync(path)) return realpathSync(path);
+  } catch {
+    // fall through
+  }
+  return path;
+}
+
+/**
+ * Walk a directory tree and return relative paths of every regular file.
+ * Symlinks to files are followed for content hashing; symlink dirs are entered.
+ */
+function walkFiles(root, { scriptsOnly = false } = {}) {
+  const out = [];
+  if (!existsSync(root) && !isSymlink(root)) return out;
+  const stack = [""];
+  while (stack.length) {
+    const rel = stack.pop();
+    const abs = rel ? join(root, rel) : root;
+    let entries;
+    try {
+      entries = readdirSync(abs, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const ent of entries) {
+      if (INTEGRITY_SKIP_DIR_NAMES.has(ent.name)) continue;
+      const childRel = rel ? `${rel}/${ent.name}` : ent.name;
+      const childAbs = join(root, childRel);
+      let isDir = ent.isDirectory();
+      let isFile = ent.isFile();
+      if (ent.isSymbolicLink()) {
+        try {
+          const st = statSync(childAbs);
+          isDir = st.isDirectory();
+          isFile = st.isFile();
+        } catch {
+          continue;
+        }
+      }
+      if (isDir) {
+        stack.push(childRel);
+        continue;
+      }
+      if (!isFile) continue;
+      if (scriptsOnly && !isScriptPath(ent.name)) continue;
+      out.push(childRel.replace(/\\/g, "/"));
+    }
+  }
+  return out.sort();
+}
+
+/**
+ * Source-of-truth md5 map for every managed skill script under skillsRoot.
+ * Keys: "<skill>/<relpath>" → md5 hex.
+ */
+function buildSourceScriptManifest(skillsRoot, managedSkills) {
+  const files = {};
+  for (const skill of managedSkills) {
+    const skillDir = join(skillsRoot, skill);
+    if (!existsSync(skillDir) && !isSymlink(skillDir)) continue;
+    for (const rel of walkFiles(skillDir, { scriptsOnly: true })) {
+      const abs = join(skillDir, rel);
+      try {
+        files[`${skill}/${rel}`] = md5File(abs);
+      } catch (err) {
+        files[`${skill}/${rel}`] = `ERROR:${err?.message || err}`;
+      }
+    }
+  }
+  return files;
+}
+
+/**
+ * Compare every source script against every install destination.
+ * Stale = missing at dest, unreadable, or md5 differs from source.
+ */
+function reportStaleInstalledScripts(targetRoots, managedSkills, skillsRoot, sourceManifest) {
+  const stale = [];
+  for (const root of targetRoots) {
+    for (const skill of managedSkills) {
+      const srcDir = join(skillsRoot, skill);
+      const destDir = join(root, skill);
+      const keys = Object.keys(sourceManifest).filter((k) => k.startsWith(`${skill}/`));
+      if (!keys.length) continue;
+      if (!existsSync(destDir) && !isSymlink(destDir)) {
+        stale.push({
+          kind: "missing-skill",
+          skill,
+          dest: destDir,
+          source: srcDir,
+          detail: "skill not installed at destination",
+        });
+        continue;
+      }
+      for (const key of keys) {
+        const rel = key.slice(skill.length + 1);
+        const expected = sourceManifest[key];
+        const dest = join(destDir, rel);
+        if (!existsSync(dest)) {
+          stale.push({
+            kind: "missing",
+            skill,
+            rel,
+            dest,
+            source: join(srcDir, rel),
+            expected_md5: expected,
+            detail: "script missing at destination",
+          });
+          continue;
+        }
+        let actual;
+        try {
+          actual = md5File(dest);
+        } catch (err) {
+          stale.push({
+            kind: "unreadable",
+            skill,
+            rel,
+            dest,
+            source: join(srcDir, rel),
+            expected_md5: expected,
+            detail: String(err?.message || err),
+          });
+          continue;
+        }
+        if (actual !== expected) {
+          stale.push({
+            kind: "md5-mismatch",
+            skill,
+            rel,
+            dest: safeRealpath(dest),
+            source: safeRealpath(join(srcDir, rel)),
+            expected_md5: expected,
+            actual_md5: actual,
+            detail: "destination content differs from source",
+          });
+        }
+      }
+    }
+  }
+  return stale;
+}
+
+/**
+ * agent-home.mjs is installed next to each skills root (…/scripts/agent-home.mjs).
+ */
+function reportStaleAgentHomeScripts(targetRoots, skillsRoot) {
+  const src = join(dirname(skillsRoot), "scripts", "agent-home.mjs");
+  const stale = [];
+  if (!existsSync(src)) return stale;
+  let expected;
+  try {
+    expected = md5File(src);
+  } catch (err) {
+    stale.push({
+      kind: "unreadable-source",
+      dest: src,
+      source: src,
+      detail: String(err?.message || err),
+    });
+    return stale;
+  }
+  for (const root of targetRoots) {
+    const dest = join(dirname(root), "scripts", "agent-home.mjs");
+    if (!existsSync(dest)) {
+      stale.push({
+        kind: "missing",
+        rel: "scripts/agent-home.mjs",
+        dest,
+        source: src,
+        expected_md5: expected,
+        detail: "agent-home.mjs missing beside skills root",
+      });
+      continue;
+    }
+    let actual;
+    try {
+      actual = md5File(dest);
+    } catch (err) {
+      stale.push({
+        kind: "unreadable",
+        dest,
+        source: src,
+        expected_md5: expected,
+        detail: String(err?.message || err),
+      });
+      continue;
+    }
+    if (actual !== expected) {
+      stale.push({
+        kind: "md5-mismatch",
+        rel: "scripts/agent-home.mjs",
+        dest: safeRealpath(dest),
+        source: safeRealpath(src),
+        expected_md5: expected,
+        actual_md5: actual,
+        detail: "agent-home.mjs content differs from source",
+      });
+    }
+  }
+  return stale;
+}
+
+/**
+ * Managed git post-commit hook must match scripts/git-hooks/post-commit when present.
+ */
+function reportStaleGitPostCommit(liveRoot) {
+  const stale = [];
+  const src = join(pkgRoot, "scripts", "git-hooks", "post-commit");
+  if (!existsSync(src) || !liveRoot) return stale;
+  let expected;
+  try {
+    expected = md5File(src);
+  } catch {
+    return stale;
+  }
+  const root = gitTopLevel(liveRoot) || liveRoot;
+  let realHooks = join(root, ".git", "hooks");
+  const gitPath = join(root, ".git");
+  try {
+    if (existsSync(gitPath) && !statSync(gitPath).isDirectory()) {
+      const text = readFileSync(gitPath, "utf8").trim();
+      const m = /^gitdir:\s*(.+)$/m.exec(text);
+      if (m) realHooks = join(resolve(root, m[1].trim()), "hooks");
+    }
+  } catch {
+    // keep default
+  }
+  const dest = join(realHooks, "post-commit");
+  if (!existsSync(dest)) return stale;
+  let body = "";
+  try {
+    body = readFileSync(dest, "utf8");
+  } catch {
+    return stale;
+  }
+  // Only enforce when we own the hook.
+  if (!body.includes("gabe-agents:post-commit")) return stale;
+  const actual = createHash("md5").update(body).digest("hex");
+  if (actual !== expected) {
+    stale.push({
+      kind: "md5-mismatch",
+      rel: "scripts/git-hooks/post-commit",
+      dest,
+      source: src,
+      expected_md5: expected,
+      actual_md5: actual,
+      detail: "managed git post-commit differs from source",
+    });
+  }
+  return stale;
+}
+
+/**
+ * Extract absolute script paths from harness hook command strings
+ * (`bun /abs/path/to/script.ts` or `node /abs/path`).
+ */
+function extractScriptPathFromHookCommand(command) {
+  if (!command || typeof command !== "string") return null;
+  const parts = command.trim().split(/\s+/);
+  if (parts.length < 2) return null;
+  // last token that looks like a path to a script
+  for (let i = parts.length - 1; i >= 1; i--) {
+    const tok = parts[i];
+    if (tok.startsWith("/") || tok.startsWith("~")) {
+      return tok.replace(/^~(?=\/|$)/, homedir());
+    }
+  }
+  return null;
+}
+
+/**
+ * Collect managed hook config files written by installAdapters.
+ */
+function listHarnessHookConfigPaths() {
+  const home = homedir();
+  const paths = [
+    join(home, ".cursor", "hooks.json"),
+    join(home, ".claude", "settings.json"),
+    join(home, ".codex", "hooks.json"),
+  ];
+  const grokHooksDir = join(home, ".grok", "hooks");
+  if (existsSync(grokHooksDir)) {
+    try {
+      for (const name of readdirSync(grokHooksDir)) {
+        if (name.endsWith(".json")) paths.push(join(grokHooksDir, name));
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return paths.filter((p) => existsSync(p));
+}
+
+/**
+ * Every hook command that points at a managed skill script must md5-match the
+ * source file. Catches "install rewrote skills but left old absolute paths"
+ * and "two trees with the same basename but different content".
+ */
+function reportStaleHookCommandScripts(managedSkills, skillsRoot, sourceManifest) {
+  const stale = [];
+  const skillSet = new Set(managedSkills);
+  for (const configPath of listHarnessHookConfigPaths()) {
+    const cfg = readJson(configPath, null);
+    if (!cfg) continue;
+    const commands = [];
+    // Cursor: hooks.<event>[] = { command }
+    // Nested: hooks.<Event>[].hooks[] = { command }
+    const hooks = cfg.hooks && typeof cfg.hooks === "object" ? cfg.hooks : {};
+    for (const entries of Object.values(hooks)) {
+      if (!Array.isArray(entries)) continue;
+      for (const entry of entries) {
+        if (entry?.command) commands.push(entry.command);
+        if (Array.isArray(entry?.hooks)) {
+          for (const h of entry.hooks) {
+            if (h?.command) commands.push(h.command);
+          }
+        }
+      }
+    }
+    for (const command of commands) {
+      const scriptPath = extractScriptPathFromHookCommand(command);
+      if (!scriptPath) continue;
+      // Only check scripts under a managed skill (…/skills/<skill>/…).
+      const norm = scriptPath.replace(/\\/g, "/");
+      const m = /\/skills\/([^/]+)\/(.+)$/.exec(norm);
+      if (!m) continue;
+      const skill = m[1];
+      const rel = m[2];
+      if (!skillSet.has(skill)) continue;
+      if (!isScriptPath(basename(rel))) continue;
+      const key = `${skill}/${rel}`;
+      const expected = sourceManifest[key];
+      if (!expected) {
+        // Command points at a path under a managed skill that is not in the
+        // source tree (moved/renamed script still referenced).
+        stale.push({
+          kind: "hook-unknown-script",
+          skill,
+          rel,
+          dest: scriptPath,
+          config: configPath,
+          command,
+          detail: "hook command path not present in source skill scripts",
+        });
+        continue;
+      }
+      if (!existsSync(scriptPath)) {
+        stale.push({
+          kind: "hook-missing",
+          skill,
+          rel,
+          dest: scriptPath,
+          config: configPath,
+          expected_md5: expected,
+          command,
+          detail: "hook command path does not exist",
+        });
+        continue;
+      }
+      let actual;
+      try {
+        actual = md5File(scriptPath);
+      } catch (err) {
+        stale.push({
+          kind: "hook-unreadable",
+          skill,
+          rel,
+          dest: scriptPath,
+          config: configPath,
+          expected_md5: expected,
+          detail: String(err?.message || err),
+        });
+        continue;
+      }
+      if (actual !== expected) {
+        stale.push({
+          kind: "hook-md5-mismatch",
+          skill,
+          rel,
+          dest: safeRealpath(scriptPath),
+          source: safeRealpath(join(skillsRoot, skill, rel)),
+          config: configPath,
+          expected_md5: expected,
+          actual_md5: actual,
+          command,
+          detail: "hook command script content differs from source",
+        });
+      }
+    }
+  }
+  return stale;
+}
+
+function printStaleReport(stale) {
+  if (!stale.length) return;
+  console.error(
+    `[gabe-agents] STALE: ${stale.length} script integrity failure(s) (md5 / missing):`,
+  );
+  for (const s of stale.slice(0, 50)) {
+    const where = s.dest || s.config || "?";
+    const hash =
+      s.expected_md5 && s.actual_md5
+        ? ` expected=${s.expected_md5} actual=${s.actual_md5}`
+        : s.expected_md5
+          ? ` expected=${s.expected_md5}`
+          : "";
+    console.error(`    - [${s.kind}] ${where}${hash}`);
+    if (s.detail) console.error(`        ${s.detail}`);
+    if (s.source && s.source !== s.dest) console.error(`        source: ${s.source}`);
+  }
+  if (stale.length > 50) {
+    console.error(`    … and ${stale.length - 50} more`);
+  }
+  console.error(
+    "[gabe-agents] re-run: node scripts/install.mjs --live   (or --copy) to refresh destinations and hook paths",
+  );
+}
+
+/**
+ * Full integrity pass: source md5 map + every install target + harness hooks +
+ * agent-home + managed git hook. Returns { sourceManifest, stale, ok }.
+ */
+function verifyScriptIntegrity({
+  skillsRoot,
+  managedSkills,
+  targetRoots,
+  liveRoot = null,
+}) {
+  const sourceManifest = buildSourceScriptManifest(skillsRoot, managedSkills);
+  const scriptCount = Object.keys(sourceManifest).length;
+  const stale = [
+    ...reportStaleInstalledScripts(targetRoots, managedSkills, skillsRoot, sourceManifest),
+    ...reportStaleAgentHomeScripts(targetRoots, skillsRoot),
+    ...reportStaleHookCommandScripts(managedSkills, skillsRoot, sourceManifest),
+    ...reportStaleGitPostCommit(liveRoot),
+  ];
+  if (stale.length) printStaleReport(stale);
+  else {
+    console.log(
+      `[gabe-agents] script integrity ok (${scriptCount} source script(s), md5 match across ${targetRoots.length} skill root(s) + harness hooks)`,
+    );
+  }
+  return { sourceManifest, stale, ok: stale.length === 0, scriptCount };
+}
+
+function writeIntegrityReceipt(integrity, extra = {}) {
+  const markerPath = join(homedir(), ".agents", "gabe-agents-integrity.json");
+  const body = {
+    verified_at: new Date().toISOString(),
+    ok: integrity.ok,
+    script_count: integrity.scriptCount,
+    source_scripts: integrity.sourceManifest,
+    stale: integrity.stale,
+    ...extra,
+  };
+  try {
+    ensureDir(dirname(markerPath));
+    writeFileSync(markerPath, JSON.stringify(body, null, 2) + "\n");
+  } catch {
+    // ignore when home is not writable
+  }
+  return markerPath;
 }
 
 const ROUTER_DIRECTIVE =
@@ -1081,17 +1873,28 @@ function installAdapters(skills, skillRoots, skillsRoot) {
   return { adapters: report, cursorSkillRoot, skillRoots: roots };
 }
 
-function writeLiveMarker(liveRoot, skills) {
+function writeLiveMarker(liveRoot, skills, liveMeta = {}) {
+  const branch = liveMeta.branch || null;
+  const base = liveMeta.base || "main";
   const marker = {
     mode: "live",
     live_root: liveRoot,
+    live_branch: branch,
+    upstream_base: base,
     skills,
     updated_at: new Date().toISOString(),
     howto: {
       edit: `edit files under ${liveRoot}/skills/<skill>/`,
-      commit: `git -C ${liveRoot} add -A && git -C ${liveRoot} commit && git -C ${liveRoot} push`,
-      update: `node ${join(pkgRoot, "scripts/install.mjs")} --pull`,
+      commit: branch
+        ? `git -C ${liveRoot} add -A && git -C ${liveRoot} commit -m "…"` +
+          `  # post-commit hook pushes ${branch} and opens/updates PR into ${base}`
+        : `git -C ${liveRoot} add -A && git -C ${liveRoot} commit && git -C ${liveRoot} push`,
+      pr: branch
+        ? `automatic on commit via .git/hooks/post-commit (disable: GABE_AGENTS_SKIP_PR_HOOK=1); base ${base} head ${branch}`
+        : `open a PR against ${base} (do not push global skill changes straight to ${base})`,
+      sync: `node ${join(pkgRoot, "scripts/install.mjs")} --live --pull`,
       re_symlink: `node ${join(pkgRoot, "scripts/install.mjs")} --live`,
+      project_rules: `project-specific rules go in <repo>/.agents/ (not the global pack)`,
     },
   };
   const markerPath = join(homedir(), ".agents", "gabe-agents-live.json");
@@ -1106,14 +1909,21 @@ if (mode === "live") {
   liveRoot = resolveLiveRoot();
   // Only clone when live root is the default external path and missing/not pkg
   if (resolve(liveRoot) === resolve(pkgRoot) && existsSync(join(pkgRoot, "skills"))) {
-    liveMeta = { liveRoot, action: "pkg-root", repoUrl: "local-package" };
-    if (doPull && isGitRepo(pkgRoot)) {
-      console.log(`[gabe-agents] --pull on package root ${pkgRoot}`);
-      if (!dryRun) {
-        const r = trySh("git", ["-C", pkgRoot, "pull", "--ff-only"]);
-        if (!r.ok) console.warn(`[gabe-agents] pull failed: ${r.err}`);
-      }
+    if (verifyOnly) {
+      liveMeta = { liveRoot, action: "pkg-root-verify", repoUrl: "local-package" };
+    } else {
+      liveMeta = {
+        liveRoot,
+        action: "pkg-root",
+        repoUrl: "local-package",
+        ...ensureLiveWorkingBranch(pkgRoot, {
+          sync: doPull || process.env.GABE_AGENTS_PULL === "1",
+        }),
+      };
+      installLiveGitHooks(pkgRoot);
     }
+  } else if (verifyOnly) {
+    liveMeta = { liveRoot, action: "verify-only" };
   } else {
     liveMeta = ensureLiveCheckout(liveRoot);
   }
@@ -1129,6 +1939,45 @@ if (skills.length === 0) {
 }
 
 const targets = explicitTarget ? [explicitTarget] : detectAgentSkillRoots();
+
+// --verify-only: md5 every managed script at every destination and harness hook;
+// do not write skills, hooks, or markers.
+if (verifyOnly) {
+  console.log(
+    `[gabe-agents] verify-only: source=${skillsRoot} targets=${targets.length} skills=${skills.length}`,
+  );
+  const integrityRoots = [...targets];
+  // When scanning default agent homes (no --target), also cover the Cursor
+  // skill root if installAdapters would have used it and it is not already listed.
+  if (!explicitTarget) {
+    const cursorSkills = join(homedir(), ".cursor", "skills");
+    if (existsSync(cursorSkills) && !integrityRoots.includes(cursorSkills)) {
+      integrityRoots.push(cursorSkills);
+    }
+  }
+  const integrity = verifyScriptIntegrity({
+    skillsRoot,
+    managedSkills: skills,
+    targetRoots: integrityRoots,
+    liveRoot: mode === "live" ? liveRoot : null,
+  });
+  const integrityPath = writeIntegrityReceipt(integrity, {
+    mode,
+    skills_root: skillsRoot,
+    targets,
+    verify_only: true,
+  });
+  console.log(`[gabe-agents] integrity receipt: ${integrityPath}`);
+  if (!integrity.ok) {
+    console.error(
+      `[gabe-agents] verify failed: ${integrity.stale.length} stale/missing script(s)`,
+    );
+    process.exit(1);
+  }
+  console.log("[gabe-agents] verify-only: all managed scripts match source md5");
+  process.exit(0);
+}
+
 const results = {};
 for (const target of targets) {
   results[target] = installInto(target, skills, skillsRoot);
@@ -1150,6 +1999,8 @@ const adapterReport = installAdapters(skills, [...targets], skillsRoot);
 
 let brokenSkills = [];
 let missingAssets = [];
+let scriptIntegrity = null;
+let integrityPath = null;
 if (!dryRun) {
   // Warn about any unreadable skill dirs (including third-party dangling links).
   brokenSkills = reportBrokenSkillDirs(targets, skills) || [];
@@ -1166,8 +2017,40 @@ if (!dryRun) {
     process.exit(1);
   }
   console.log(
-    `[gabe-agents] install integrity ok (${skills.length} skills, gabe-review multi-lane assets present)`,
+    `[gabe-agents] asset integrity ok (${skills.length} skills, gabe-review multi-lane assets present)`,
   );
+
+  // md5 every managed script at every skill root, harness hook command path,
+  // agent-home copy, and managed git post-commit. Stale copies fail install.
+  const integrityRoots = [...targets];
+  if (adapterReport?.cursorSkillRoot && !integrityRoots.includes(adapterReport.cursorSkillRoot)) {
+    integrityRoots.push(adapterReport.cursorSkillRoot);
+  }
+  if (Array.isArray(adapterReport?.skillRoots)) {
+    for (const r of adapterReport.skillRoots) {
+      if (r && !integrityRoots.includes(r)) integrityRoots.push(r);
+    }
+  }
+  scriptIntegrity = verifyScriptIntegrity({
+    skillsRoot,
+    managedSkills: skills,
+    targetRoots: integrityRoots,
+    liveRoot: mode === "live" ? liveRoot : null,
+  });
+  integrityPath = writeIntegrityReceipt(scriptIntegrity, {
+    mode,
+    skills_root: skillsRoot,
+    targets: integrityRoots,
+    live_root: mode === "live" ? liveRoot : null,
+  });
+  if (!scriptIntegrity.ok) {
+    console.error(
+      `[gabe-agents] install incomplete: ${scriptIntegrity.stale.length} stale/missing script md5 mismatch(es)`,
+    );
+    console.error(`[gabe-agents] integrity receipt: ${integrityPath}`);
+    process.exit(1);
+  }
+  console.log(`[gabe-agents] integrity receipt: ${integrityPath}`);
 }
 
 let instructionReport = [];
@@ -1194,7 +2077,7 @@ if (localState) {
 
 let markerPath = null;
 if (mode === "live") {
-  markerPath = writeLiveMarker(liveRoot, skills);
+  markerPath = writeLiveMarker(liveRoot, skills, liveMeta || {});
 }
 
 const receipt = {
@@ -1211,6 +2094,15 @@ const receipt = {
   targets: results,
   adapters: adapterReport,
   marker_path: markerPath,
+  integrity_path: integrityPath,
+  script_integrity: scriptIntegrity
+    ? {
+        ok: scriptIntegrity.ok,
+        script_count: scriptIntegrity.scriptCount,
+        stale_count: scriptIntegrity.stale.length,
+        source_scripts: scriptIntegrity.sourceManifest,
+      }
+    : null,
   dry_run: dryRun,
 };
 const receiptPath = join(pkgRoot, ".install-receipt.json");
@@ -1247,7 +2139,21 @@ console.log(
 );
 if (mode === "live") {
   console.log(`[gabe-agents] live root: ${liveRoot}`);
-  console.log(`[gabe-agents] edit skills in-place, then: git -C ${liveRoot} commit && git push`);
+  if (liveMeta?.branch) {
+    console.log(
+      `[gabe-agents] live branch: ${liveMeta.branch} (sync origin/${liveMeta.base || "main"} via --pull; push branch + open PR for global skill changes)`,
+    );
+    console.log(
+      `[gabe-agents] edit skills in-place, then: git -C ${liveRoot} add -A && git commit && git push -u origin ${liveMeta.branch}`,
+    );
+    console.log(
+      `[gabe-agents] open PR: gh pr create --base ${liveMeta.base || "main"} --head ${liveMeta.branch}`,
+    );
+  } else {
+    console.log(
+      `[gabe-agents] edit skills in-place, then: git -C ${liveRoot} commit && git push (prefer a PR into main)`,
+    );
+  }
   if (markerPath) console.log(`[gabe-agents] live marker: ${markerPath}`);
 }
 for (const [target, paths] of Object.entries(results)) {

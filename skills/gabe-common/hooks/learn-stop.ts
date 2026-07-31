@@ -1,7 +1,9 @@
 import {
+  clearUserTurn,
   continueWorkingPayload,
   finishHook,
   formatLearnFollowup,
+  hasUserTurn,
   loadLearnPass,
   readHookInput,
   resolveLearnMdscriptPath,
@@ -11,7 +13,7 @@ import {
 } from "./learn-lib.ts";
 import {
   formatPendingWatchFollowup,
-  listPendingWatches,
+  listPendingWatchesForSession,
 } from "../../gabe-watch/hooks/watch-lib.ts";
 
 const input = readHookInput();
@@ -29,20 +31,31 @@ if (input.status !== "completed") {
   finishHook();
 }
 
-// Pending gabe-watch ticks beat learn: Cursor often kills the tick listener, so
-// the spool advances while the chat is idle. Drain watches before reflecting.
+// Never chain on our own follow-ups (Cursor re-runs Stop after followup_message).
+// Watch / learn / goal resumes set stop_hook_active; do not re-inject.
+if (input.stopHookActive) {
+  finishHook();
+}
+
+// Unscoped payload: do not touch shared learn/watch state or inject followups.
+if (!input.conversationId || !input.sessionKey) {
+  finishHook();
+}
+
+// Pending gabe-watch ticks for *this* session only (never steal another chat).
 if (
   process.env.GABE_WATCH_SKIP_HOOKS !== "1" &&
   process.env.GABE_WATCH_SKIP_HOOKS !== "true"
 ) {
-  const pending = listPendingWatches();
+  const pending = listPendingWatchesForSession(
+    input.conversationId,
+    input.dialect,
+  );
   if (pending.length) {
-    finishHook(
-      continueWorkingPayload(
-        input.dialect,
-        formatPendingWatchFollowup(pending),
-      ),
-    );
+    const msg = formatPendingWatchFollowup(pending);
+    if (msg) {
+      finishHook(continueWorkingPayload(input.dialect, msg));
+    }
   }
 }
 
@@ -50,43 +63,32 @@ if (shouldSkipLearnHooks()) {
   finishHook();
 }
 
-const conversationId = input.conversationId || "unknown";
-const passPath = learnPassPath(input.root, conversationId);
+const passPath = learnPassPath(input.root, input.sessionKey);
 const pass = loadLearnPass(passPath);
 const learnMdscript = resolveLearnMdscriptPath();
 const loopCount = input.loopCount || 0;
 
-// After a learn follow-up: allow exit only when the MDScript stamped satisfied.
-if (input.stopHookActive) {
-  if (pass && pass.status === "satisfied" && pass.conversation_id === conversationId) {
-    finishHook();
-  }
-  // Still required or missing stamp — force the learn MDScript again.
-  writeLearnPass(passPath, {
-    conversation_id: conversationId,
-    loop_count: loopCount,
-    status: "required",
-    required_at: pass?.required_at || new Date().toISOString(),
-  });
-  finishHook(
-    continueWorkingPayload(
-      input.dialect,
-      formatLearnFollowup(learnMdscript, passPath, loopCount),
-    ),
-  );
+// Already completed learn for this user cycle → allow stop.
+if (pass && pass.status === "satisfied") {
+  finishHook();
 }
 
-// Fresh end of turn (user turn completed): always require a learn pass.
+// Only user-originated turns may start learn (UserPromptSubmit sets user-turn).
+if (!hasUserTurn(input.conversationId, input.dialect)) {
+  finishHook();
+}
+
+clearUserTurn(input.conversationId, input.dialect);
+
 writeLearnPass(passPath, {
-  conversation_id: conversationId,
+  conversation_id: input.conversationId,
+  dialect: input.dialect,
+  session_key: input.sessionKey,
   loop_count: loopCount,
   status: "required",
   required_at: new Date().toISOString(),
 });
 
 finishHook(
-  continueWorkingPayload(
-    input.dialect,
-    formatLearnFollowup(learnMdscript, passPath, loopCount),
-  ),
+  continueWorkingPayload(input.dialect, formatLearnFollowup(learnMdscript)),
 );
