@@ -40,9 +40,10 @@
     "install-skills:pull": "node ./scripts/install.mjs --live --pull",
     "install-skills:no-adapters": "node ./scripts/install.mjs --live --no-adapters",
     "pack:check": "npm pack --dry-run",
-    "test": "node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs && node scripts/test-gabe-review-install.mjs",
+    "test": "node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs && node scripts/test-gabe-review-install.mjs && node scripts/test-gabe-implement-install.mjs",
     "validate": "node scripts/validate-mdscript.mjs",
-    "test:install-review": "node scripts/test-gabe-review-install.mjs"
+    "test:install-review": "node scripts/test-gabe-review-install.mjs",
+    "test:install-implement": "node scripts/test-gabe-implement-install.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -61,6 +61,12 @@
 
 * prefer explicit contracts, typed events, deterministic transforms, reversible paths, and observable boundaries
 
+* hold every MUST and MUST NOT constraint from selected packs in `{{impl_rule_packs}}` while editing; those packs load the same `gabe-review/references/engineering-rules/*.rules.md` files the matching `eng-*` review lanes will check later
+
+* if `{{impl_rule_packs}}` is empty and the work is code
+  * run [Select Implementation Rules](select-implementation-rules.md#select-implementation-rules)
+  * run [Apply Selected Engineering Rules](apply-selected-engineering-rules.md#apply-selected-engineering-rules)
+
 * do not make unrelated refactors or metadata churn
 
 * if user or orchestrator changes the objective
@@ -70,3 +76,7 @@
 * if the claim scope changes
   * update `{{claim_scope}}`, `{{proof_claim}}`, `{{contract_preconditions}}`, `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{proof_supplied}}`, `{{proof_not_claimed}}`, and `{{remaining_blockers}}`
   * [Define Implementation Contract](#define-implementation-contract)
+
+* if in-scope paths or languages change enough that selected packs are stale
+  * run [Select Implementation Rules](select-implementation-rules.md#select-implementation-rules)
+  * run [Apply Selected Engineering Rules](apply-selected-engineering-rules.md#apply-selected-engineering-rules)

@@ -1,6 +1,6 @@
 ---
 name: gabe-implement
-description: "Execute delegated Gabe-shaped implementation lanes using project control records from ~/.agents/projects/project-name/ and a model and effort level selected for the task. This is the primary skill orchestrators hand to worker subagents. Use when a Gabe orchestrator assigns implementation, repo repair, issue work, MR/PR ownership, verification, review repair, blocker watching, or release prep. State the scoped DBC claim and proof boundaries, try local stacks before infrastructure blockers, execute and directly validate MDScript records, report before stopping, own gabe-review composition in-process (never re-delegate the full gabe-review skill), spawn only per-lane blind reviewers for multi-lane sign-off, preserve GitLab aliasing, and keep gabe-orchestrate updated until merge or close."
+description: "Execute delegated Gabe-shaped implementation lanes using project control records from ~/.agents/projects/project-name/ and a model and effort level selected for the task. This is the primary skill orchestrators hand to worker subagents. Use when a Gabe orchestrator assigns implementation, repo repair, issue work, MR/PR ownership, verification, review repair, blocker watching, or release prep. State the scoped DBC claim and proof boundaries, select and apply the same vendored gabewillen/rules engineering packs that gabe-review eng-* lanes will later check (impl-core, impl-dbc, language/framework packs, optional impl-hsm), try local stacks before infrastructure blockers, execute and directly validate MDScript records, report before stopping, own gabe-review composition in-process (never re-delegate the full gabe-review skill), spawn only per-lane blind reviewers for multi-lane sign-off, preserve GitLab aliasing, and keep gabe-orchestrate updated until merge or close."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -87,9 +87,21 @@ description: "Execute delegated Gabe-shaped implementation lanes using project c
 
 * run [Define Implementation Contract](workflows/implementation-contract.md#define-implementation-contract)
 
+## Select Implementation Rules
+
+* run [Select Implementation Rules](workflows/select-implementation-rules.md#select-implementation-rules)
+
+## Apply Implementation Rules
+
+* run [Apply Selected Engineering Rules](workflows/apply-selected-engineering-rules.md#apply-selected-engineering-rules)
+
 ## Implement Narrowly
 
 * run [Implement Narrowly](workflows/implementation-contract.md#implement-narrowly)
+
+## Recheck Implementation Rules
+
+* run [Recheck Selected Engineering Rules](workflows/apply-selected-engineering-rules.md#recheck-selected-engineering-rules)
 
 ## Verify Real Proof
 

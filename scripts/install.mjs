@@ -402,6 +402,16 @@ const REQUIRED_SKILL_ASSETS = {
     "hsm/SKILL.md",
     "hsm/workflows/triage.mdscript.md",
   ],
+  "gabe-implement": [
+    "SKILL.md",
+    "workflows/select-implementation-rules.md",
+    "workflows/select-language-framework-rules.md",
+    "workflows/apply-selected-engineering-rules.md",
+    "workflows/engineering-rules/apply-engineering-rules.mdscript.md",
+    "workflows/engineering-rules/impl-core.mdscript.md",
+    "workflows/engineering-rules/impl-dbc.mdscript.md",
+    "references/implementation-rules-catalog.md",
+  ],
   "gabe-common": ["SKILL.md", "workflows/goal-mdscript.md", "workflows/file-task-comments.md"],
 };
 

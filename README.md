@@ -19,7 +19,7 @@ This package ships Agent Skills (`SKILL.md` + workflows) so they can be installe
 |-------|------|
 | `gabe` | Compatibility router for Gabe-shaped work |
 | `gabe-orchestrate` | Root coordination, lanes, goals, watchers |
-| `gabe-implement` | Delegated implementation lanes |
+| `gabe-implement` | Delegated implementation lanes; selects and applies the same vendored [gabewillen/rules](https://github.com/gabewillen/rules) packs (`impl-core`, `impl-dbc`, language/framework, optional `impl-hsm`) before and after edits so review eng-* lanes see construction already held to those rules |
 | `gabe-review` | Multi-lane blind / readiness review (agent rules + security + completeness + selected eng-* language/framework lanes from vendored [gabewillen/rules](https://github.com/gabewillen/rules) + optional deep HSM) |
 | `gabe-automate` | External automation design |
 | `gabe-watch` / `gabe-unwatch` | Interval PR repair watch |
@@ -32,17 +32,20 @@ All coordination artifacts for Gabe work are **MDScript** (tasks, comments, plan
 ## Validate
 
 ```bash
-npm test                                        # validator + agent-home + gabe-review install assets
+npm test                                        # validator + agent-home + gabe-review/implement install assets
 node ./scripts/validate-mdscript.mjs            # whole pack
 node ./scripts/validate-mdscript.mjs skills/gabe --json
 node ./scripts/test-agent-home.mjs              # hooks and skills resolve the same home
 node ./scripts/test-gabe-review-install.mjs     # multi-lane gabe-review tree complete
 node ./scripts/test-gabe-review-install.mjs ~/.agents/skills/gabe-review
+node ./scripts/test-gabe-implement-install.mjs  # impl-* engineering-rules construction tree
+node ./scripts/test-gabe-implement-install.mjs ~/.agents/skills/gabe-implement
 ```
 
 Install (`scripts/install.mjs`) hard-fails if a managed destination is missing
 required nested assets (for example `gabe-review` without `references/engineering-rules/`
-or `workflows/blind-reviewers/eng-*.mdscript.md`). Third-party dangling skill
+or `workflows/blind-reviewers/eng-*.mdscript.md`, or `gabe-implement` without
+`workflows/engineering-rules/impl-*.mdscript.md`). Third-party dangling skill
 symlinks are still reported as warnings only.
 
 Checks frontmatter, the execution header, `##`-only states, duplicate anchors,
