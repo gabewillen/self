@@ -3,13 +3,22 @@
   "adapter": "cursor",
   "skill": "gabe-common",
   "runtime": "bun",
-  "runtimeFallbacks": ["bun", "node"],
+  "runtimeFallbacks": [
+    "bun",
+    "node"
+  ],
   "hooks": {
     "stop": [
       {
         "id": "gabe-learn-stop",
         "script": "../../hooks/learn-stop.ts",
         "timeout": 120
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "id": "gabe-learn-session-touch",
+        "script": "../../hooks/learn-session-touch.ts"
       }
     ]
   },

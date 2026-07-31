@@ -10,7 +10,6 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve as resolvePath } from "node:path";
-import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 
@@ -114,48 +113,24 @@ export function shouldSkipLearnHooks(): boolean {
   return v === "1" || v === "true";
 }
 
-function mainRepoRoot(root: string): string {
-  for (const argv of [
-    ["-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"],
-    ["-C", root, "rev-parse", "--git-common-dir"],
-  ] as string[][]) {
-    try {
-      const out = execFileSync("git", argv, {
-        encoding: "utf-8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).trim();
-      if (out) return dirname(resolvePath(root, out));
-    } catch {
-      // not a git repo
-    }
-  }
-  return resolvePath(root);
-}
-
-function projectSlug(root: string): string {
-  const base = mainRepoRoot(root).split(/[/\\]/).filter(Boolean).pop() || "workspace";
-  return (
-    base
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 80) || "workspace"
-  );
-}
-
-export function agentProjectHome(root: string): string {
-  if (process.env.GABE_AGENTS_LOCAL === "1") {
-    return join(root, ".agents");
-  }
+/** Stable learn dir — not project-cwd dependent. */
+export function learnHome(): string {
   const home = process.env.AGENTS_HOME
     ? resolvePath(process.env.AGENTS_HOME)
     : join(homedir(), ".agents");
-  return join(home, "projects", projectSlug(root));
+  return join(home, "learn");
 }
 
-export function learnPassPath(root: string, conversationId: string): string {
-  const id = (conversationId || "unknown").replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120);
-  return join(agentProjectHome(root), "learn", `${id}.json`);
+export function learnPassPath(_root: string, conversationId: string): string {
+  const id = (conversationId || "unknown")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .slice(0, 120);
+  return join(learnHome(), `${id}.json`);
+}
+
+/** Pointer so the MDScript always finds the active stamp without conversation_id. */
+export function learnActivePath(): string {
+  return join(learnHome(), "ACTIVE");
 }
 
 export function loadLearnPass(path: string): LearnPass | null {
@@ -170,12 +145,22 @@ export function loadLearnPass(path: string): LearnPass | null {
 export function writeLearnPass(path: string, pass: LearnPass): void {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(pass, null, 2) + "\n", "utf8");
+  // ACTIVE points at this pass file for the MDScript mark-complete step.
+  writeFileSync(learnActivePath(), path + "\n", "utf8");
 }
 
-/** Resolve the installed gabe-learn MDScript (not a skill). */
+export function clearLearnPass(conversationId: string, root = process.cwd()): void {
+  const path = learnPassPath(root, conversationId);
+  writeLearnPass(path, {
+    conversation_id: conversationId || "unknown",
+    loop_count: 0,
+    status: "required",
+    required_at: new Date().toISOString(),
+  });
+}
+
 export function resolveLearnMdscriptPath(): string {
   const here = dirname(fileURLToPath(import.meta.url));
-  // hooks/ -> gabe-common/ -> workflows/gabe-learn.mdscript.md
   const sibling = join(here, "..", "workflows", "gabe-learn.mdscript.md");
   if (existsSync(sibling)) {
     try {
@@ -193,6 +178,7 @@ export function resolveLearnMdscriptPath(): string {
   return sibling;
 }
 
+/** Stop-hook followup: single mdscript-exec clause only. */
 export function formatLearnFollowup(learnMdscript: string): string {
   return `/mdscript-exec ${learnMdscript}#reflect-and-learn`;
 }

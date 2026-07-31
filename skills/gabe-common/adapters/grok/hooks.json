@@ -4,13 +4,22 @@
   "skill": "gabe-common",
   "target": "grok-hooks",
   "runtime": "bun",
-  "runtimeFallbacks": ["bun", "node"],
+  "runtimeFallbacks": [
+    "bun",
+    "node"
+  ],
   "hooks": {
     "Stop": [
       {
         "id": "gabe-learn-stop",
         "script": "../../hooks/learn-stop.ts",
         "timeout": 120
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "id": "gabe-learn-session-touch",
+        "script": "../../hooks/learn-session-touch.ts"
       }
     ]
   },

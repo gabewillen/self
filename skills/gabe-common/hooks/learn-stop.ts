@@ -29,20 +29,17 @@ if (input.status !== "completed") {
   finishHook();
 }
 
-// Pending gabe-watch ticks beat learn: Cursor often kills the tick listener, so
-// the spool advances while the chat is idle. Drain watches before reflecting.
+// Pending gabe-watch ticks beat learn.
 if (
   process.env.GABE_WATCH_SKIP_HOOKS !== "1" &&
   process.env.GABE_WATCH_SKIP_HOOKS !== "true"
 ) {
   const pending = listPendingWatches();
   if (pending.length) {
-    finishHook(
-      continueWorkingPayload(
-        input.dialect,
-        formatPendingWatchFollowup(pending),
-      ),
-    );
+    const msg = formatPendingWatchFollowup(pending);
+    if (msg) {
+      finishHook(continueWorkingPayload(input.dialect, msg));
+    }
   }
 }
 
@@ -56,32 +53,19 @@ const pass = loadLearnPass(passPath);
 const learnMdscript = resolveLearnMdscriptPath();
 const loopCount = input.loopCount || 0;
 
-// After a learn follow-up: allow exit only when the MDScript stamped satisfied.
-if (input.stopHookActive) {
-  if (pass && pass.status === "satisfied" && pass.conversation_id === conversationId) {
-    finishHook();
-  }
-  // Still required or missing stamp — force the learn MDScript again.
-  writeLearnPass(passPath, {
-    conversation_id: conversationId,
-    loop_count: loopCount,
-    status: "required",
-    required_at: pass?.required_at || new Date().toISOString(),
-  });
-  finishHook(
-    continueWorkingPayload(
-      input.dialect,
-      formatLearnFollowup(learnMdscript),
-    ),
-  );
+// Learn already completed for this conversation → allow the stop.
+// Do not depend on stop_hook_active: Cursor often omits it, which previously
+// re-wrote status=required and re-fired learn forever.
+if (pass && pass.status === "satisfied") {
+  finishHook();
 }
 
-// Fresh end of turn (user turn completed): always require a learn pass.
+// Not satisfied yet: require one learn pass and inject a single mdscript-exec.
 writeLearnPass(passPath, {
   conversation_id: conversationId,
   loop_count: loopCount,
   status: "required",
-  required_at: new Date().toISOString(),
+  required_at: pass?.required_at || new Date().toISOString(),
 });
 
 finishHook(

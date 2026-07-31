@@ -612,6 +612,7 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/load-operating-context.md",
     "workflows/gabe-learn.mdscript.md",
     "hooks/learn-stop.ts",
+    "hooks/learn-session-touch.ts",
     "hooks/learn-lib.ts",
     "adapters/claude/hooks.json",
     "adapters/cursor/hooks.json",
