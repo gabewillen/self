@@ -257,9 +257,58 @@ function originDefaultBranch(liveRoot) {
   return "main";
 }
 
+function gitIsDirty(root) {
+  const r = trySh("git", ["-C", root, "status", "--porcelain"]);
+  return r.ok && r.out.trim().length > 0;
+}
+
+/**
+ * Stash local dirty state so checkout/merge can proceed; pop after.
+ * Mirrors git pull --autostash for our fetch + checkout + merge sequence.
+ */
+function withAutoStash(root, label, fn) {
+  const dirty = gitIsDirty(root);
+  let stashed = false;
+  if (dirty) {
+    const msg = `gabe-agents autostash: ${label}`;
+    const stash = trySh("git", [
+      "-C",
+      root,
+      "stash",
+      "push",
+      "--include-untracked",
+      "-m",
+      msg,
+    ]);
+    if (stash.ok) {
+      stashed = true;
+      console.log(`[gabe-agents] autostash: stashed dirty tree for ${label}`);
+    } else {
+      console.warn(
+        `[gabe-agents] autostash push failed (continuing dirty): ${stash.err || stash.out}`,
+      );
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    if (stashed) {
+      const pop = trySh("git", ["-C", root, "stash", "pop"]);
+      if (!pop.ok) {
+        console.warn(
+          `[gabe-agents] autostash pop failed (your changes are in stash; run git stash list): ${pop.err || pop.out}`,
+        );
+      } else {
+        console.log(`[gabe-agents] autostash: restored dirty tree`);
+      }
+    }
+  }
+}
+
 /**
  * Create or check out a long-lived live/* branch and sync it with origin/<base>.
  * Global skill edits land here; open a PR into origin/<base> (do not push main).
+ * Dirty trees use stash push/pop around checkout and merge (like --autostash).
  */
 function ensureLiveWorkingBranch(liveRoot, opts = {}) {
   const branch = resolveLiveBranchName();
@@ -294,102 +343,104 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
   }
 
   const base = originDefaultBranch(root);
-  const current = trySh("git", ["-C", root, "branch", "--show-current"]);
-  const currentBranch = current.ok ? current.out.trim() : "";
 
-  const localExists = trySh("git", [
-    "-C",
-    root,
-    "show-ref",
-    "--verify",
-    "--quiet",
-    `refs/heads/${branch}`,
-  ]).ok;
-  const remoteExists = trySh("git", [
-    "-C",
-    root,
-    "show-ref",
-    "--verify",
-    "--quiet",
-    `refs/remotes/origin/${branch}`,
-  ]).ok;
+  return withAutoStash(root, `live-branch ${branch}`, () => {
+    const current = trySh("git", ["-C", root, "branch", "--show-current"]);
+    const currentBranch = current.ok ? current.out.trim() : "";
 
-  let action = "reuse";
-  if (currentBranch !== branch) {
-    if (localExists) {
-      const co = trySh("git", ["-C", root, "checkout", branch]);
-      if (!co.ok) {
-        console.warn(`[gabe-agents] checkout ${branch} failed: ${co.err}`);
-        return { branch: currentBranch || null, base, action: "checkout-failed" };
-      }
-      action = "checkout";
-    } else if (remoteExists) {
-      const co = trySh("git", [
-        "-C",
-        root,
-        "checkout",
-        "-B",
-        branch,
-        `origin/${branch}`,
-      ]);
-      if (!co.ok) {
-        console.warn(`[gabe-agents] checkout origin/${branch} failed: ${co.err}`);
-        return { branch: currentBranch || null, base, action: "checkout-failed" };
-      }
-      action = "checkout-remote";
-    } else {
-      const start =
-        trySh("git", ["-C", root, "rev-parse", "--verify", `origin/${base}`]).ok
-          ? `origin/${base}`
-          : trySh("git", ["-C", root, "rev-parse", "--verify", base]).ok
-            ? base
-            : "HEAD";
-      const co = trySh("git", ["-C", root, "checkout", "-b", branch, start]);
-      if (!co.ok) {
-        console.warn(`[gabe-agents] create branch ${branch} failed: ${co.err}`);
-        return { branch: currentBranch || null, base, action: "create-failed" };
-      }
-      action = "create";
-      console.log(
-        `[gabe-agents] created live working branch ${branch} from ${start}`,
-      );
-    }
-  }
-
-  // Track origin/<base> for "what to sync from"; push target is origin/<branch>.
-  trySh("git", ["-C", root, "config", `branch.${branch}.merge`, `refs/heads/${base}`]);
-  trySh("git", ["-C", root, "config", `branch.${branch}.remote`, "origin"]);
-  // Also set push.default simple is fine; document -u on first push of live branch.
-
-  if (doPull || process.env.GABE_AGENTS_PULL === "1" || opts.sync) {
-    console.log(
-      `[gabe-agents] sync ${branch} with origin/${base} (merge --ff-only, then merge)`,
-    );
-    let sync = trySh("git", [
+    const localExists = trySh("git", [
       "-C",
       root,
-      "merge",
-      "--ff-only",
-      `origin/${base}`,
-    ]);
-    if (!sync.ok) {
-      sync = trySh("git", ["-C", root, "merge", "--no-edit", `origin/${base}`]);
-      if (!sync.ok) {
-        console.warn(
-          `[gabe-agents] merge origin/${base} into ${branch} failed (resolve manually): ${sync.err}`,
-        );
-      } else {
-        console.log(`[gabe-agents] merged origin/${base} into ${branch}`);
-      }
-    } else {
-      console.log(`[gabe-agents] fast-forwarded ${branch} to origin/${base}`);
-    }
-  }
+      "show-ref",
+      "--verify",
+      "--quiet",
+      `refs/heads/${branch}`,
+    ]).ok;
+    const remoteExists = trySh("git", [
+      "-C",
+      root,
+      "show-ref",
+      "--verify",
+      "--quiet",
+      `refs/remotes/origin/${branch}`,
+    ]).ok;
 
-  console.log(
-    `[gabe-agents] live branch: ${branch} (sync from origin/${base}; push this branch + open PR for global skill changes)`,
-  );
-  return { branch, base, action, root };
+    let action = "reuse";
+    if (currentBranch !== branch) {
+      if (localExists) {
+        const co = trySh("git", ["-C", root, "checkout", branch]);
+        if (!co.ok) {
+          console.warn(`[gabe-agents] checkout ${branch} failed: ${co.err}`);
+          return { branch: currentBranch || null, base, action: "checkout-failed" };
+        }
+        action = "checkout";
+      } else if (remoteExists) {
+        const co = trySh("git", [
+          "-C",
+          root,
+          "checkout",
+          "-B",
+          branch,
+          `origin/${branch}`,
+        ]);
+        if (!co.ok) {
+          console.warn(`[gabe-agents] checkout origin/${branch} failed: ${co.err}`);
+          return { branch: currentBranch || null, base, action: "checkout-failed" };
+        }
+        action = "checkout-remote";
+      } else {
+        const start =
+          trySh("git", ["-C", root, "rev-parse", "--verify", `origin/${base}`]).ok
+            ? `origin/${base}`
+            : trySh("git", ["-C", root, "rev-parse", "--verify", base]).ok
+              ? base
+              : "HEAD";
+        const co = trySh("git", ["-C", root, "checkout", "-b", branch, start]);
+        if (!co.ok) {
+          console.warn(`[gabe-agents] create branch ${branch} failed: ${co.err}`);
+          return { branch: currentBranch || null, base, action: "create-failed" };
+        }
+        action = "create";
+        console.log(
+          `[gabe-agents] created live working branch ${branch} from ${start}`,
+        );
+      }
+    }
+
+    // Track origin/<base> for "what to sync from"; push target is origin/<branch>.
+    trySh("git", ["-C", root, "config", `branch.${branch}.merge`, `refs/heads/${base}`]);
+    trySh("git", ["-C", root, "config", `branch.${branch}.remote`, "origin"]);
+
+    if (doPull || process.env.GABE_AGENTS_PULL === "1" || opts.sync) {
+      console.log(
+        `[gabe-agents] sync ${branch} with origin/${base} (merge --ff-only, then merge)`,
+      );
+      let sync = trySh("git", [
+        "-C",
+        root,
+        "merge",
+        "--ff-only",
+        `origin/${base}`,
+      ]);
+      if (!sync.ok) {
+        sync = trySh("git", ["-C", root, "merge", "--no-edit", `origin/${base}`]);
+        if (!sync.ok) {
+          console.warn(
+            `[gabe-agents] merge origin/${base} into ${branch} failed (resolve manually): ${sync.err}`,
+          );
+        } else {
+          console.log(`[gabe-agents] merged origin/${base} into ${branch}`);
+        }
+      } else {
+        console.log(`[gabe-agents] fast-forwarded ${branch} to origin/${base}`);
+      }
+    }
+
+    console.log(
+      `[gabe-agents] live branch: ${branch} (sync from origin/${base}; push this branch + open PR for global skill changes)`,
+    );
+    return { branch, base, action, root };
+  });
 }
 
 function ensureLiveCheckout(liveRoot) {
