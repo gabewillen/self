@@ -39,6 +39,8 @@ armed_at: "{{armed_at}}"
 stopped_at: ""
 stop_reason: ""
 blocker: ""
+owner_conversation_id: "{{owner_conversation_id}}"
+owner_dialect: "{{owner_dialect}}"
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

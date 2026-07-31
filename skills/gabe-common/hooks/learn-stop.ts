@@ -13,7 +13,7 @@ import {
 } from "./learn-lib.ts";
 import {
   formatPendingWatchFollowup,
-  listPendingWatches,
+  listPendingWatchesForSession,
 } from "../../gabe-watch/hooks/watch-lib.ts";
 
 const input = readHookInput();
@@ -31,12 +31,26 @@ if (input.status !== "completed") {
   finishHook();
 }
 
-// Pending gabe-watch ticks beat learn.
+// Never chain on our own follow-ups (Cursor re-runs Stop after followup_message).
+// Watch / learn / goal resumes set stop_hook_active; do not re-inject.
+if (input.stopHookActive) {
+  finishHook();
+}
+
+// Unscoped payload: do not touch shared learn/watch state or inject followups.
+if (!input.conversationId || !input.sessionKey) {
+  finishHook();
+}
+
+// Pending gabe-watch ticks for *this* session only (never steal another chat).
 if (
   process.env.GABE_WATCH_SKIP_HOOKS !== "1" &&
   process.env.GABE_WATCH_SKIP_HOOKS !== "true"
 ) {
-  const pending = listPendingWatches();
+  const pending = listPendingWatchesForSession(
+    input.conversationId,
+    input.dialect,
+  );
   if (pending.length) {
     const msg = formatPendingWatchFollowup(pending);
     if (msg) {
@@ -49,36 +63,30 @@ if (shouldSkipLearnHooks()) {
   finishHook();
 }
 
-const conversationId = input.conversationId || "unknown";
-const passPath = learnPassPath(input.root, conversationId);
+const passPath = learnPassPath(input.root, input.sessionKey);
 const pass = loadLearnPass(passPath);
 const learnMdscript = resolveLearnMdscriptPath();
 const loopCount = input.loopCount || 0;
-const userOriginated = hasUserTurn(conversationId);
-const learnPending = pass?.status === "required";
 
-// Already completed learn for this cycle → allow stop.
+// Already completed learn for this user cycle → allow stop.
 if (pass && pass.status === "satisfied") {
   finishHook();
 }
 
-// Watch / loop / stop-hook resumes never set USER_TURN. Skip learn unless we
-// already asked for a pass (status=required) and are waiting for the stamp.
-if (!userOriginated && !learnPending) {
+// Only user-originated turns may start learn (UserPromptSubmit sets user-turn).
+if (!hasUserTurn(input.conversationId, input.dialect)) {
   finishHook();
 }
 
-// Consuming USER_TURN here so the learn follow-up's own stop is not treated as
-// a new user message (it still re-fires while status stays required until stamp).
-if (userOriginated) {
-  clearUserTurn();
-}
+clearUserTurn(input.conversationId, input.dialect);
 
 writeLearnPass(passPath, {
-  conversation_id: conversationId,
+  conversation_id: input.conversationId,
+  dialect: input.dialect,
+  session_key: input.sessionKey,
   loop_count: loopCount,
   status: "required",
-  required_at: pass?.required_at || new Date().toISOString(),
+  required_at: new Date().toISOString(),
 });
 
 finishHook(

@@ -1,6 +1,7 @@
 /**
  * Cursor/macOS helpers for gabe-watch wake paths.
- * Pending-tick scan is used by Stop hooks so a dead listener can still resume.
+ * Pending-tick scan is used by Stop hooks so a dead listener can still resume
+ * — but only in the conversation that armed the watch (owner_conversation_id).
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
@@ -13,6 +14,9 @@ export interface PendingWatch {
   newestSeq: number;
   lastProcessedSeq: number;
   tickSpool: string;
+  /** Chat/session that armed this watch (empty = unscoped legacy). */
+  ownerConversationId: string;
+  ownerDialect: string;
 }
 
 function agentsHome(): string {
@@ -112,10 +116,52 @@ export function listPendingWatches(): PendingWatch[] {
         newestSeq: newest,
         lastProcessedSeq: lastProcessed,
         tickSpool: spool,
+        ownerConversationId: firstNonEmpty(
+          fm.owner_conversation_id,
+          fm.conversation_id,
+          fm.session_id,
+        ),
+        ownerDialect: firstNonEmpty(fm.owner_dialect, fm.dialect),
       });
     }
   }
   return pending;
+}
+
+function firstNonEmpty(...values: string[]): string {
+  for (const v of values) {
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
+/**
+ * Pending watches that may inject a Stop followup into *this* session.
+ *
+ * Rules:
+ * - Watch with owner_conversation_id matching this conversation → yes
+ * - Watch with no owner (legacy) → never auto-inject (avoids wrong-chat resume);
+ *   sessionStart still surfaces them as additional context
+ */
+export function listPendingWatchesForSession(
+  conversationId: string,
+  dialect?: string,
+): PendingWatch[] {
+  const id = (conversationId || "").trim();
+  if (!id || id === "unknown") return [];
+  return listPendingWatches().filter((w) => {
+    if (!w.ownerConversationId) return false;
+    if (w.ownerConversationId !== id) return false;
+    if (
+      dialect &&
+      w.ownerDialect &&
+      w.ownerDialect !== dialect &&
+      w.ownerDialect !== "any"
+    ) {
+      return false;
+    }
+    return true;
+  });
 }
 
 export function formatPendingWatchFollowup(watches: PendingWatch[]): string {

@@ -134,7 +134,9 @@ One artifact holds the whole watch: `~/.agents/projects/<project>/goals/gabe-wat
 | `gabe-watch/pr-<N>.json` | Legacy only — read fallback; not written for new watches |
 | `lane-ledger.jsonl` | Append-only per-tick ledger |
 
-Front matter is authoritative: `watch_active`, `status`, `resume_heading`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `loop_pid`, `skill_root`, `easy_model`, `hard_model`, `tick_count`, `last_head_sha`, `last_tick_at`, `armed_at`, `stopped_at`, `stop_reason`, `blocker`.
+Front matter is authoritative: `watch_active`, `status`, `resume_heading`, `pr_number`, `pr_url`, `repo`, `repo_root`, `head_ref`, `base_ref`, `interval`, `interval_seconds`, `sentinel`, `loop_pid`, `skill_root`, `easy_model`, `hard_model`, `tick_count`, `last_head_sha`, `last_tick_at`, `armed_at`, `stopped_at`, `stop_reason`, `blocker`, `owner_conversation_id`, `owner_dialect`.
+
+Stop-hook auto-resume only fires in the chat whose `owner_conversation_id` matches the current harness session id. Legacy watches without that field are listed at session start but never force-resume into a random chat.
 
 Required headings: `Watch Contract`, `Resume Goal`, `Resume Watch`, `Watch Tick`, `Report Blocker`, `Stop Watch`, `Loop Resume Command`.
 

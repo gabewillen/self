@@ -1899,12 +1899,20 @@ export function shouldSkipGoalHooks(
  * Codex, and grok all take `{"decision":"block","reason":...}`. Cursor and
  * Claude/Codex send snake_case input, grok sends camelCase. One normalizer
  * beats four near-identical hook scripts.
+ *
+ * Session ids (do not cross-use):
+ * - Cursor: conversation_id
+ * - Claude Code: session_id
+ * - Codex: session_id (+ turn_id is per-turn only)
+ * - Grok: sessionId / GROK_SESSION_ID
  */
 export type HookDialect = "cursor" | "claude" | "codex" | "grok";
 
 export interface HookInput {
   dialect: HookDialect;
   conversationId: string;
+  /** "<dialect>:<conversationId>" when conversationId is set. */
+  sessionKey: string;
   root: string;
   /** completed | aborted | error — synthesized for harnesses that only fire on completion. */
   status: "completed" | "aborted" | "error";
@@ -1917,9 +1925,21 @@ export interface HookInput {
 }
 
 function detectDialect(raw: Record<string, unknown>): HookDialect {
-  if (process.env.GROK_HOOK_EVENT) return "grok";
-  if (raw.hookEventName !== undefined || raw.sessionId !== undefined) return "grok";
-  if (raw.conversation_id !== undefined || raw.workspace_roots !== undefined) {
+  if (
+    process.env.GROK_HOOK_EVENT ||
+    process.env.GROK_SESSION_ID ||
+    process.env.GROK_HOOK_NAME
+  ) {
+    return "grok";
+  }
+  if (raw.hookEventName !== undefined || raw.sessionId !== undefined) {
+    return "grok";
+  }
+  if (
+    raw.conversation_id !== undefined ||
+    raw.workspace_roots !== undefined ||
+    raw.generation_id !== undefined
+  ) {
     return "cursor";
   }
   if (raw.turn_id !== undefined) return "codex";
@@ -1933,6 +1953,25 @@ function firstString(...values: unknown[]): string {
   return "";
 }
 
+function resolveConversationId(
+  dialect: HookDialect,
+  raw: Record<string, unknown>,
+): string {
+  // Cursor common schema: conversation_id; sessionStart also documents session_id
+  // as the same value as conversation_id (cursor.com/docs/hooks).
+  if (dialect === "cursor") {
+    return firstString(raw.conversation_id, raw.session_id);
+  }
+  if (dialect === "grok") {
+    return firstString(
+      raw.sessionId,
+      process.env.GROK_SESSION_ID,
+      raw.session_id,
+    );
+  }
+  return firstString(raw.session_id, raw.sessionId, process.env.GROK_SESSION_ID);
+}
+
 export function readHookInput(): HookInput {
   const raw = readStdinJson<Record<string, unknown>>();
   const dialect = detectDialect(raw);
@@ -1942,9 +1981,17 @@ export function readHookInput(): HookInput {
       )
     : [];
   const status = firstString(raw.status);
+  const conversationId = resolveConversationId(dialect, raw);
+  const loopCount =
+    typeof raw.loop_count === "number"
+      ? raw.loop_count
+      : typeof raw.loopCount === "number"
+        ? raw.loopCount
+        : 0;
   return {
     dialect,
-    conversationId: firstString(raw.conversation_id, raw.session_id, raw.sessionId),
+    conversationId,
+    sessionKey: conversationId ? `${dialect}:${conversationId}` : "",
     root: firstString(
       roots[0],
       raw.workspaceRoot,
@@ -1957,7 +2004,7 @@ export function readHookInput(): HookInput {
       status === "aborted" || status === "error"
         ? (status as "aborted" | "error")
         : "completed",
-    loopCount: typeof raw.loop_count === "number" ? raw.loop_count : 0,
+    loopCount,
     stopHookActive: Boolean(raw.stop_hook_active ?? raw.stopHookActive),
     reason: firstString(raw.reason) || undefined,
     model: firstString(raw.model) || undefined,
