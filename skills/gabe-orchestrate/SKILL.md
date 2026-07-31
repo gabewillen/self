@@ -1,6 +1,6 @@
 ---
 name: gabe-orchestrate
-description: "ALWAYS use this skill unless you are a subagent: prioritize work, delegate writing and editing to implement workers, own goals/tasks/comments/lane ledgers, intake DBC proof decisions, manage handoffs and hot-path events, decide publication and post-merge closure, and keep parent-visible stop reports and goal re-entry current."
+description: "ALWAYS use this skill unless you are a subagent: prioritize work, delegate writing and editing to implement workers, own goals/tasks/comments/lane ledgers, intake DBC proof decisions, manage handoffs and hot-path events, decide publication and post-merge closure, and keep stop reports and goal re-entry current."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
