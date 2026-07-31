@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Goal"
+  short_description: "Goal loop until proof + triple blind review"
+  default_prompt: "Run /self-goal until reproducible artifacts exist and three adversarial blind reviewers sign off with empty p_findings."

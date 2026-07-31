@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "adapter": "cursor",
+  "skill": "self-watch",
+  "runtime": "bun",
+  "runtimeFallbacks": [
+    "bun",
+    "node"
+  ],
+  "hooks": {
+    "sessionStart": [
+      {
+        "id": "self-watch-session-start",
+        "script": "../../hooks/watch-session-start.ts"
+      }
+    ],
+    "stop": [
+      {
+        "id": "self-watch-stop",
+        "script": "../../hooks/watch-stop.ts",
+        "timeout": 120
+      }
+    ]
+  },
+  "replaceLegacyCommands": [
+    "skills/self-watch/hooks/watch-stop.ts",
+    "skills/self-watch/hooks/watch-session-start.ts",
+    "skills/gabe-watch/hooks/watch-stop.ts",
+    "skills/gabe-watch/hooks/watch-session-start.ts",
+    "skills/gabe-watch/",
+    "skills/gabe-watch/hooks/",
+    "skills/self-watch/hooks/"
+  ]
+}

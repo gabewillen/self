@@ -1,0 +1,2070 @@
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, dirname, join, resolve as resolvePath } from "node:path";
+import { execFileSync } from "node:child_process";
+import { homedir } from "node:os";
+
+export interface GoalState {
+  active: boolean;
+  /** Front-matter status: active | completed | stopped | blocked. */
+  status?: string;
+  goal: string;
+  conversation_id: string;
+  started_at?: string;
+  ended_at?: string;
+  run_id?: string;
+  /** tui = terminal captures; ui = visual images; default = logs sufficient */
+  proof_kind?: ProofKind;
+  /**
+   * When required (default for tui/ui and runtime default goals), manifest must include
+   * at least one live-tier artifact that exercises the primary user/runtime path.
+   */
+  live_proof?: "required" | "optional";
+  /** End-to-end user/runtime path required when live proof is on. */
+  primary_user_action?: string;
+  /** Durable MDScript tracking file for this run (relative or absolute). */
+  goal_mdscript?: string;
+  /** Heading slug the stop hook / resume should enter next. */
+  resume_heading?: string;
+  /** Last stop-hook iteration written into the run MDScript. */
+  iteration?: number;
+  /**
+   * When true, self-goal stop/session hooks no-op for this run.
+   * Used when the harness owns multi-round continuation via `/goal`
+   * (Grok host goal mode, Cursor `goal` skill, etc.).
+   */
+  skip_hooks?: boolean;
+  /** How the loop is driven: harness-goal | self-hooks. */
+  loop_driver?: "harness-goal" | "self-hooks" | "gabe-hooks";
+}
+
+export type ProofKind = "tui" | "ui" | "default";
+export type ProofTier = "unit" | "integration" | "live";
+
+export type GoalReviewerId = "rules" | "security" | "completeness" | "hsm";
+
+export interface GoalPFinding {
+  severity?: string;
+  location?: string;
+  summary?: string;
+  contract?: string;
+  remediation?: string;
+  [key: string]: unknown;
+}
+
+export interface GoalSignoff {
+  goal: string;
+  conversation_id: string;
+  signed_off: boolean;
+  reviewer_id?: GoalReviewerId;
+  verifier_summary?: string;
+  signed_off_at?: string;
+  evidence?: string[];
+  commands_run?: string[];
+  /** Documented attempts to prove the change broken or AGENTS.md-violating. */
+  attack_attempts?: string[];
+  /** All P0–P3 findings; must be empty for a valid signed-off review. */
+  p_findings?: Array<string | GoalPFinding>;
+  rules_reviewed?: string[];
+  artifact_paths?: string[];
+  objectives_checked?: string[];
+  remaining_gaps?: string[];
+}
+
+export interface GoalArtifactEntry {
+  path: string;
+  kind: "log" | "screenshot" | "capture" | "image" | "recording" | "output" | "other";
+  reproduce: string;
+  proves: string;
+  /** unit = isolated tests; integration = multi-component without full stack; live = real stack / user path */
+  tier?: ProofTier;
+}
+
+export interface GoalArtifactsManifest {
+  goal: string;
+  conversation_id: string;
+  /** The primary user-visible or runtime action this goal must prove (e.g. "send @mention message in TUI"). */
+  primary_user_action?: string;
+  artifacts: GoalArtifactEntry[];
+  updated_at: string;
+}
+
+export interface GoalSessionPaths {
+  directory: string;
+  runDirectory: string;
+  runId: string | null;
+  sessionLog: string;
+  runsDirectory: string;
+  /** Executable MDScript run tracker — sole run state + resume target. */
+  goalMdscript: string;
+  reviewPacket: string;
+  signoffReviewerRulesMdscript: string;
+  signoffReviewerSecurityMdscript: string;
+  signoffReviewerCompletenessMdscript: string;
+  signoffReviewerHsmMdscript: string;
+  reviewVerdictMdscript: string;
+  artifacts: string;
+  artifactsManifest: string;
+  progressLog: string;
+}
+
+export interface GoalCompletionStatus {
+  complete: boolean;
+  reasons: string[];
+}
+
+/** Durable completion record produced by composing self-review. */
+export interface GoalReviewVerdict {
+  goal: string;
+  conversation_id: string;
+  run_id?: string;
+  reviewer_skill?: string;
+  proof_scope?: string;
+  grade?: string;
+  proof_decision?: string;
+  blocking_severities?: string;
+  blocking_findings?: Array<string | GoalPFinding>;
+  residual_findings?: Array<string | GoalPFinding>;
+  proof_supplied?: string[];
+  proof_not_claimed?: string[];
+  artifact_paths?: string[];
+  commands_run?: string[];
+  review_round?: number;
+  reviewed_at?: string;
+  multi_lane_blind?: boolean;
+  /** Older synonym for multi_lane_blind (still accepted when reading verdicts). */
+  triple_blind?: boolean;
+  lanes?: string[];
+  signoff_paths?: string[];
+}
+
+export const MIN_SUMMARY_LENGTH = 40;
+/** Blind-lane sign-offs and verdicts are re-enterable MDScript only. */
+export const SIGNOFF_RULES_MDSCRIPT = "signoff-reviewer-rules.mdscript.md";
+export const SIGNOFF_SECURITY_MDSCRIPT = "signoff-reviewer-security.mdscript.md";
+export const SIGNOFF_COMPLETENESS_MDSCRIPT = "signoff-reviewer-completeness.mdscript.md";
+export const SIGNOFF_HSM_MDSCRIPT = "signoff-reviewer-hsm.mdscript.md";
+export const REVIEW_VERDICT_MDSCRIPT = "review-verdict.mdscript.md";
+export const ARTIFACTS_MANIFEST_FILE = "manifest.json";
+export const SESSION_LOG_FILE = "session-log.jsonl";
+export const PROGRESS_LOG_FILE = "progress.jsonl";
+export const GOAL_MDSCRIPT_FILE = "goal.mdscript.md";
+export const REVIEW_PACKET_FILE = "review-packet.md";
+export const RUNS_DIR_NAME = "runs";
+export const DEFAULT_RESUME_HEADING = "pursue-goal";
+export const MDSCRIPT_EXEC_HEADER =
+  "<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->";
+/**
+ * Agent state lives under ~/.agents (or $AGENTS_HOME), not in the working
+ * repository. SELF_AGENTS_LOCAL=1 — set by installing with --local — keeps it
+ * beside the project instead, under <repo>/.agents.
+ */
+export function agentProjectHome(root: string): string {
+  if (process.env.SELF_AGENTS_LOCAL === "1") {
+    return join(root, ".agents");
+  }
+  const home = process.env.AGENTS_HOME
+    ? resolvePath(process.env.AGENTS_HOME)
+    : join(homedir(), ".agents");
+  return join(home, "projects", projectSlug(root));
+}
+
+/**
+ * Same derivation as scripts/agent-home.mjs: a worktree resolves to its main
+ * repository, so every worktree of a project shares one home. Keep the two in
+ * step — a hook that looks somewhere the skill did not write finds nothing.
+ */
+function mainRepoRoot(root: string): string {
+  for (const argv of [
+    ["-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+    ["-C", root, "rev-parse", "--git-common-dir"],
+  ]) {
+    try {
+      const out = execFileSync("git", argv, {
+        encoding: "utf-8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (out) return dirname(resolvePath(root, out));
+    } catch {
+      // Older git, or not a repository.
+    }
+  }
+  return resolvePath(root);
+}
+
+function projectSlug(root: string): string {
+  const base = basename(mainRepoRoot(root)) || "project";
+  return base.replace(/[^A-Za-z0-9._-]+/g, "-") || "project";
+}
+
+export const PROJECT_GOAL_LOG_PATH = "goal/goal-log.jsonl";
+export const SESSIONS_DIR = "goal/sessions";
+
+export function safeSessionId(conversationId: string): string {
+  const sanitized = conversationId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return sanitized.slice(0, 128) || "unknown";
+}
+
+/**
+ * Find this conversation's session under a different project slug.
+ *
+ * The slug comes from the repository name, so it moves when a repo is renamed,
+ * when an older install resolved a worktree to its own directory instead of the
+ * main repository, or when an agent derived it by hand. A conversation id is
+ * unique, so a session filed under the wrong slug is still unambiguously this
+ * run — adopt it rather than starting over somewhere the writer will not look.
+ */
+export function findSessionElsewhere(
+  root: string,
+  conversationId: string,
+): string | null {
+  if (process.env.SELF_AGENTS_LOCAL === "1") {
+    return null;
+  }
+  const home = agentProjectHome(root);
+  const projectsRoot = dirname(home);
+  if (!existsSync(projectsRoot)) {
+    return null;
+  }
+  const mine = basename(home);
+  const id = safeSessionId(conversationId);
+  let found: string | null = null;
+  for (const entry of readdirSync(projectsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name === mine) {
+      continue;
+    }
+    const candidate = join(projectsRoot, entry.name, SESSIONS_DIR, id);
+    if (!existsSync(candidate)) {
+      continue;
+    }
+    if (found) {
+      // Two homes hold the same conversation; picking one silently would hide
+      // the split. Report and let the caller start clean at the correct home.
+      console.error(
+        `[self-goal] conversation ${id} exists under multiple project homes; ignoring both: ${found}, ${candidate}`,
+      );
+      return null;
+    }
+    found = candidate;
+  }
+  if (found) {
+    console.error(
+      `[self-goal] adopting session from ${found}; expected it under ${join(home, SESSIONS_DIR, id)}`,
+    );
+  }
+  return found;
+}
+
+export function sessionDirectory(root: string, conversationId: string): string {
+  const id = safeSessionId(conversationId);
+  const home = join(agentProjectHome(root), SESSIONS_DIR, id);
+  if (existsSync(home)) {
+    return home;
+  }
+  // A run filed under a slug this process does not derive is still this run.
+  const elsewhere = findSessionElsewhere(root, conversationId);
+  if (elsewhere) {
+    return elsewhere;
+  }
+  return home;
+}
+
+export function projectGoalLogPath(root: string): string {
+  return join(agentProjectHome(root), PROJECT_GOAL_LOG_PATH);
+}
+
+function extendRunPaths(
+  sessionDirectoryPath: string,
+  runDirectoryPath: string,
+  runId: string | null,
+): GoalSessionPaths {
+  const artifactsDirectory = join(runDirectoryPath, "artifacts");
+  return {
+    directory: sessionDirectoryPath,
+    runDirectory: runDirectoryPath,
+    runId,
+    sessionLog: join(sessionDirectoryPath, SESSION_LOG_FILE),
+    runsDirectory: join(sessionDirectoryPath, RUNS_DIR_NAME),
+    goalMdscript: join(runDirectoryPath, GOAL_MDSCRIPT_FILE),
+    reviewPacket: join(runDirectoryPath, REVIEW_PACKET_FILE),
+    signoffReviewerRulesMdscript: join(runDirectoryPath, SIGNOFF_RULES_MDSCRIPT),
+    signoffReviewerSecurityMdscript: join(runDirectoryPath, SIGNOFF_SECURITY_MDSCRIPT),
+    signoffReviewerCompletenessMdscript: join(runDirectoryPath, SIGNOFF_COMPLETENESS_MDSCRIPT),
+    signoffReviewerHsmMdscript: join(runDirectoryPath, SIGNOFF_HSM_MDSCRIPT),
+    reviewVerdictMdscript: join(runDirectoryPath, REVIEW_VERDICT_MDSCRIPT),
+    artifacts: artifactsDirectory,
+    artifactsManifest: join(artifactsDirectory, ARTIFACTS_MANIFEST_FILE),
+    progressLog: join(runDirectoryPath, PROGRESS_LOG_FILE),
+  };
+}
+
+function extendSessionPaths(directory: string): GoalSessionPaths {
+  return extendRunPaths(directory, directory, null);
+}
+
+export function newRunId(): string {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+export function appendJsonLine(path: string, entry: Record<string, unknown>): void {
+  mkdirSync(join(path, ".."), { recursive: true });
+  appendFileSync(path, `${JSON.stringify(entry)}\n`, "utf-8");
+}
+
+export function recordGoalEvent(
+  root: string,
+  conversationId: string,
+  event: string,
+  payload: Record<string, unknown> = {},
+): void {
+  const recordedAt = new Date().toISOString();
+  const entry = {
+    event,
+    conversation_id: conversationId,
+    recorded_at: recordedAt,
+    ...payload,
+  };
+
+  const sessionRoot = sessionDirectory(root, conversationId);
+  mkdirSync(sessionRoot, { recursive: true });
+  appendJsonLine(join(sessionRoot, SESSION_LOG_FILE), entry);
+
+  mkdirSync(dirname(projectGoalLogPath(root)), { recursive: true });
+  appendJsonLine(projectGoalLogPath(root), entry);
+}
+
+export function appendProgressLog(
+  paths: GoalSessionPaths,
+  entry: Record<string, unknown>,
+): void {
+  appendJsonLine(paths.progressLog, {
+    recorded_at: new Date().toISOString(),
+    run_id: paths.runId,
+    ...entry,
+  });
+}
+
+function buildRunPaths(sessionRoot: string, runId: string): GoalSessionPaths {
+  const runDirectory = join(sessionRoot, RUNS_DIR_NAME, runId);
+  return extendRunPaths(sessionRoot, runDirectory, runId);
+}
+
+function ensureRunArtifactDirectories(paths: GoalSessionPaths): void {
+  mkdirSync(join(paths.artifacts, "logs"), { recursive: true });
+  mkdirSync(join(paths.artifacts, "screenshots"), { recursive: true });
+  mkdirSync(join(paths.artifacts, "captures"), { recursive: true });
+  mkdirSync(join(paths.artifacts, "images"), { recursive: true });
+  mkdirSync(join(paths.artifacts, "live"), { recursive: true });
+}
+
+export function sessionPaths(root: string, conversationId: string): GoalSessionPaths {
+  return extendSessionPaths(sessionDirectory(root, conversationId));
+}
+
+/**
+ * Read a record authored as re-enterable MDScript (YAML front matter is the state).
+ */
+export function loadMdscriptRecord<T>(mdscriptPath: string): T | null {
+  if (!existsSync(mdscriptPath)) {
+    return null;
+  }
+  try {
+    const fm = parseMdscriptFrontMatter(readFileSync(mdscriptPath));
+    return fm ? (fm as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function loadJson<T>(path: string): T | null {
+  if (!existsSync(path)) {
+    return null;
+  }
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function writeJson(path: string, value: unknown): void {
+  writeFileSync(path, JSON.stringify(value, null, 2) + "\n", "utf-8");
+}
+
+function parseYamlScalar(raw: string): string | number | boolean | null {
+  const value = raw.trim();
+  if (value === "" || value === "null" || value === "~") {
+    return null;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  if (/^-?\d+(\.\d+)?$/.test(value)) {
+    return Number(value);
+  }
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    try {
+      return JSON.parse(value.replace(/^'/, '"').replace(/'$/, '"')) as string;
+    } catch {
+      return value.slice(1, -1);
+    }
+  }
+  return value;
+}
+
+/** Minimal front-matter reader for the scalars/lists emitted by writeGoalMdscript. */
+export function parseMdscriptFrontMatter(
+  text: string,
+): Record<string, unknown> | null {
+  const normalized = text.replace(/^\uFEFF/, "");
+  if (!normalized.startsWith("---")) {
+    return null;
+  }
+  const end = normalized.indexOf("\n---", 3);
+  if (end < 0) {
+    return null;
+  }
+  const block = normalized.slice(4, end).replace(/^\n/, "");
+  const result: Record<string, unknown> = {};
+  const lines = block.split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim() || line.trimStart().startsWith("#")) {
+      i += 1;
+      continue;
+    }
+    const match = /^(?: {0,2})([A-Za-z0-9_]+):\s*(.*)$/.exec(line);
+    if (!match) {
+      i += 1;
+      continue;
+    }
+    const key = match[1];
+    const rest = match[2];
+    if (rest === "|" || rest === ">" || rest === "|-") {
+      const collected: string[] = [];
+      i += 1;
+      while (i < lines.length) {
+        const next = lines[i];
+        if (next === "" || next.startsWith("  ") || next.startsWith("\t")) {
+          collected.push(next.replace(/^  /, ""));
+          i += 1;
+          continue;
+        }
+        break;
+      }
+      result[key] = collected.join("\n").replace(/\n$/, "");
+      continue;
+    }
+    if (rest === "" || rest === "[]") {
+      // Either empty scalar, empty list marker, or a following list/block.
+      if (rest === "[]") {
+        result[key] = [];
+        i += 1;
+        continue;
+      }
+      const listItems: string[] = [];
+      let j = i + 1;
+      while (j < lines.length) {
+        const next = lines[j];
+        const item = /^ {2}-\s+(.*)$/.exec(next);
+        if (!item) {
+          break;
+        }
+        listItems.push(String(parseYamlScalar(item[1]) ?? ""));
+        j += 1;
+      }
+      if (listItems.length > 0) {
+        result[key] = listItems;
+        i = j;
+        continue;
+      }
+      result[key] = "";
+      i += 1;
+      continue;
+    }
+    result[key] = parseYamlScalar(rest);
+    i += 1;
+  }
+  return result;
+}
+
+export function goalStateFromFrontMatter(
+  fm: Record<string, unknown>,
+): GoalState | null {
+  const goalRaw = fm.goal;
+  const goal =
+    typeof goalRaw === "string"
+      ? goalRaw.trim()
+      : goalRaw == null
+        ? ""
+        : String(goalRaw).trim();
+  const conversationId =
+    typeof fm.conversation_id === "string" ? fm.conversation_id.trim() : "";
+  if (!goal && !conversationId) {
+    return null;
+  }
+
+  const status = typeof fm.status === "string" ? fm.status : undefined;
+  const activeExplicit = fm.active;
+  const active =
+    typeof activeExplicit === "boolean"
+      ? activeExplicit
+      : status
+        ? status === "active"
+        : true;
+
+  const proofKind =
+    fm.proof_kind === "tui" || fm.proof_kind === "ui" || fm.proof_kind === "default"
+      ? fm.proof_kind
+      : undefined;
+  const liveProof =
+    fm.live_proof === "required" || fm.live_proof === "optional"
+      ? fm.live_proof
+      : undefined;
+
+  return {
+    active,
+    goal: goal || "(unspecified goal)",
+    conversation_id: conversationId,
+    run_id: typeof fm.run_id === "string" ? fm.run_id : undefined,
+    started_at: typeof fm.started_at === "string" ? fm.started_at : undefined,
+    ended_at: typeof fm.ended_at === "string" ? fm.ended_at : undefined,
+    proof_kind: proofKind,
+    live_proof: liveProof,
+    primary_user_action:
+      typeof fm.primary_user_action === "string" ? fm.primary_user_action : undefined,
+    goal_mdscript:
+      typeof fm.goal_mdscript === "string" ? fm.goal_mdscript : undefined,
+    status: typeof fm.status === "string" ? fm.status : undefined,
+    resume_heading:
+      typeof fm.resume_heading === "string" ? fm.resume_heading : undefined,
+    iteration:
+      typeof fm.iteration === "number"
+        ? fm.iteration
+        : typeof fm.iteration === "string" && /^-?\d+$/.test(fm.iteration)
+          ? Number(fm.iteration)
+          : undefined,
+    skip_hooks:
+      fm.skip_hooks === true ||
+      fm.skip_hooks === "true" ||
+      fm.loop_driver === "harness-goal"
+        ? true
+        : fm.skip_hooks === false || fm.skip_hooks === "false"
+          ? false
+          : undefined,
+    loop_driver:
+      fm.loop_driver === "harness-goal" || fm.loop_driver === "self-hooks" || fm.loop_driver === "gabe-hooks"
+        ? fm.loop_driver
+        : undefined,
+  };
+}
+
+export function loadGoalState(paths: GoalSessionPaths): GoalState | null {
+  if (!existsSync(paths.goalMdscript)) {
+    return null;
+  }
+  try {
+    const body = readFileSync(paths.goalMdscript, "utf-8");
+    const fm = parseMdscriptFrontMatter(body);
+    if (!fm) {
+      return null;
+    }
+    const state = goalStateFromFrontMatter(fm);
+    if (!state) {
+      return null;
+    }
+    if (!state.goal_mdscript) {
+      state.goal_mdscript = paths.goalMdscript;
+    }
+    if (!state.run_id && paths.runId) {
+      state.run_id = paths.runId;
+    }
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+export function runStateExists(paths: GoalSessionPaths): boolean {
+  return existsSync(paths.goalMdscript);
+}
+
+export function ensureSessionDirectory(
+  root: string,
+  conversationId: string,
+): GoalSessionPaths {
+  const sessionRoot = sessionDirectory(root, conversationId);
+  mkdirSync(sessionRoot, { recursive: true });
+  mkdirSync(join(sessionRoot, RUNS_DIR_NAME), { recursive: true });
+  mkdirSync(dirname(projectGoalLogPath(root)), { recursive: true });
+
+  if (!existsSync(join(sessionRoot, SESSION_LOG_FILE))) {
+    writeFileSync(join(sessionRoot, SESSION_LOG_FILE), "", "utf-8");
+  }
+  if (!existsSync(projectGoalLogPath(root))) {
+    mkdirSync(dirname(projectGoalLogPath(root)), { recursive: true });
+    writeFileSync(projectGoalLogPath(root), "", "utf-8");
+  }
+
+  return extendSessionPaths(sessionRoot);
+}
+
+export function startGoalRun(
+  root: string,
+  conversationId: string,
+  state: GoalState,
+): GoalSessionPaths {
+  ensureSessionDirectory(root, conversationId);
+  const sessionRoot = sessionDirectory(root, conversationId);
+
+  const priorPaths = resolveActiveGoalPaths(root, conversationId);
+  if (priorPaths && runStateExists(priorPaths)) {
+    const priorState = loadGoalState(priorPaths);
+    // Supersede only a still-active run. Completed runs are left as-is — the next goal is unrelated.
+    if (priorState?.active) {
+      deactivateGoal(root, priorPaths, priorState);
+      recordGoalEvent(root, conversationId, "goal_superseded", {
+        run_id: priorPaths.runId,
+        goal: priorState.goal,
+        reason: "replaced_by_new_goal",
+        goal_mdscript: relativePath(root, priorPaths.goalMdscript),
+      });
+    }
+  }
+
+  const runId = newRunId();
+  const paths = buildRunPaths(sessionRoot, runId);
+  mkdirSync(paths.runDirectory, { recursive: true });
+  ensureRunArtifactDirectories(paths);
+
+  const startedAt = state.started_at ?? new Date().toISOString();
+  const runState: GoalState = {
+    ...state,
+    conversation_id: conversationId,
+    run_id: runId,
+    started_at: startedAt,
+    active: true,
+    resume_heading: normalizeResumeHeading(
+      state.resume_heading ?? DEFAULT_RESUME_HEADING,
+    ),
+    iteration: 0,
+  };
+  const goalMdscript = writeGoalMdscript(root, paths, runState, {
+    iteration: 0,
+    resumeHeading: runState.resume_heading,
+    status: "active",
+  });
+  recordGoalEvent(root, conversationId, "goal_started", {
+    run_id: runId,
+    goal: runState.goal,
+    proof_kind: resolveProofKind(runState),
+    goal_mdscript: goalMdscript,
+  });
+
+  return paths;
+}
+
+/**
+ * Find the current run from run front matter.
+ *
+ * Run state lives in runs/<run_id>/goal.mdscript.md front matter, so a pointer
+ * file would be a second copy of run_id, active, and started_at that can
+ * disagree with it. Prefer an active run; otherwise take the newest, since run
+ * ids are timestamps and sort lexicographically.
+ */
+function findCurrentRun(sessionRoot: string): GoalSessionPaths | null {
+  const runsRoot = join(sessionRoot, RUNS_DIR_NAME);
+  if (!existsSync(runsRoot)) {
+    return null;
+  }
+  const runIds = readdirSync(runsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+    .reverse();
+  let newest: GoalSessionPaths | null = null;
+  for (const runId of runIds) {
+    const paths = buildRunPaths(sessionRoot, runId);
+    if (!runStateExists(paths)) {
+      continue;
+    }
+    if (!newest) {
+      newest = paths;
+    }
+    if (loadGoalState(paths)?.active) {
+      return paths;
+    }
+  }
+  return newest;
+}
+
+function resolveRunPathsFromSession(
+  root: string,
+  conversationId: string,
+): GoalSessionPaths | null {
+  const sessionRoot = sessionDirectory(root, conversationId);
+  if (!existsSync(sessionRoot)) {
+    return null;
+  }
+  return findCurrentRun(sessionRoot);
+}
+
+function activeSessionPaths(
+  paths: GoalSessionPaths,
+  conversationId: string,
+): GoalSessionPaths | null {
+  const state = loadGoalState(paths);
+  if (!state?.active) {
+    return null;
+  }
+  if (state.conversation_id && state.conversation_id !== conversationId) {
+    return null;
+  }
+  return paths;
+}
+
+/**
+ * Resolve this conversation's current run WITHOUT requiring it to be active.
+ * The stop hook needs it so a run deactivated in its own front matter is still
+ * checked against the self-review gate instead of silently ending the loop.
+ */
+export function resolveGoalPathsIgnoringActive(
+  root: string,
+  conversationId: string,
+): GoalSessionPaths | null {
+  return resolveRunPathsFromSession(root, conversationId);
+}
+
+export function resolveActiveGoalPaths(
+  root: string,
+  conversationId?: string,
+): GoalSessionPaths | null {
+  if (!conversationId) {
+    return null;
+  }
+  const goalPaths = resolveRunPathsFromSession(root, conversationId);
+  if (!goalPaths) {
+    return null;
+  }
+  return activeSessionPaths(goalPaths, conversationId);
+}
+
+function citesAgentsMd(rulesReviewed: string[]): boolean {
+  return rulesReviewed.some((item) => {
+    const normalized = item.trim().replace(/\\/g, "/").toLowerCase();
+    return (
+      normalized === "agents.md" ||
+      normalized.endsWith("/agents.md") ||
+      normalized.includes("agents.md")
+    );
+  });
+}
+
+export function countPFindings(
+  pFindings: Array<string | GoalPFinding> | undefined,
+): number {
+  if (!pFindings) {
+    return -1;
+  }
+  return pFindings.filter((item) => {
+    if (typeof item === "string") {
+      return item.trim().length > 0;
+    }
+    if (!item || typeof item !== "object") {
+      return false;
+    }
+    const summary =
+      typeof item.summary === "string"
+        ? item.summary
+        : typeof item.severity === "string"
+          ? item.severity
+          : "";
+    return summary.trim().length > 0 || Object.keys(item).length > 0;
+  }).length;
+}
+
+export function isValidSignoff(
+  signoff: GoalSignoff,
+  goal: string,
+  conversationId: string,
+  expectedReviewerId?: GoalReviewerId,
+  root?: string,
+): boolean {
+  if (!signoff.signed_off) {
+    return false;
+  }
+  if (signoff.goal.trim() !== goal.trim()) {
+    return false;
+  }
+  if (signoff.conversation_id.trim() !== conversationId.trim()) {
+    return false;
+  }
+  if (expectedReviewerId && signoff.reviewer_id !== expectedReviewerId) {
+    return false;
+  }
+
+  const summary = signoff.verifier_summary?.trim() ?? "";
+  if (summary.length < MIN_SUMMARY_LENGTH) {
+    return false;
+  }
+
+  const evidence = signoff.evidence?.filter((item) => item.trim().length > 0) ?? [];
+  if (evidence.length < 2) {
+    return false;
+  }
+
+  const commandsRun =
+    signoff.commands_run?.filter((item) => item.trim().length > 0) ?? [];
+  if (commandsRun.length < 1) {
+    return false;
+  }
+
+  const remainingGaps =
+    signoff.remaining_gaps?.filter((item) => item.trim().length > 0) ?? [];
+  if (remainingGaps.length > 0) {
+    return false;
+  }
+
+  if (expectedReviewerId) {
+    const attackAttempts =
+      signoff.attack_attempts?.filter((item) => item.trim().length > 0) ?? [];
+    if (attackAttempts.length < 2) {
+      return false;
+    }
+
+    // Present + empty required for signed-off adversarial reviews.
+    if (countPFindings(signoff.p_findings) !== 0) {
+      return false;
+    }
+
+    const rulesReviewed =
+      signoff.rules_reviewed?.filter((item) => item.trim().length > 0) ?? [];
+    if (rulesReviewed.length < 1) {
+      return false;
+    }
+    const requiresAgentsCitation =
+      !expectedReviewerId || expectedReviewerId === "rules";
+    if (
+      requiresAgentsCitation &&
+      root &&
+      existsSync(join(root, "AGENTS.md")) &&
+      !citesAgentsMd(rulesReviewed)
+    ) {
+      return false;
+    }
+
+    const artifactPaths =
+      signoff.artifact_paths?.filter((item) => item.trim().length > 0) ?? [];
+    if (artifactPaths.length < 1) {
+      return false;
+    }
+
+    const objectivesChecked =
+      signoff.objectives_checked?.filter((item) => item.trim().length > 0) ?? [];
+    if (objectivesChecked.length < 1) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function artifactExists(root: string, sessionDirectoryPath: string, relativePath: string): boolean {
+  const normalized = relativePath.replace(/^\.?\//, "");
+  const candidates = [
+    join(root, sessionDirectoryPath, normalized),
+    join(sessionDirectoryPath, normalized),
+    join(root, normalized),
+  ];
+  return candidates.some((candidate) => existsSync(candidate));
+}
+
+export function relativePath(root: string, absolutePath: string): string {
+  return absolutePath.startsWith(`${root}/`)
+    ? absolutePath.replace(`${root}/`, "")
+    : absolutePath;
+}
+
+export function countBlockedIterations(paths: GoalSessionPaths): number {
+  if (!existsSync(paths.progressLog)) {
+    return 0;
+  }
+
+  let count = 0;
+  for (const line of readFileSync(paths.progressLog, "utf-8").split("\n")) {
+    if (!line.trim()) {
+      continue;
+    }
+    try {
+      const entry = JSON.parse(line) as { event?: string };
+      if (entry.event === "iteration_blocked") {
+        count += 1;
+      }
+    } catch {
+      // Ignore malformed progress lines.
+    }
+  }
+  return count;
+}
+
+export function nextGoalIteration(
+  loopCount: number,
+  paths: GoalSessionPaths,
+): number {
+  return Math.max(loopCount + 1, countBlockedIterations(paths) + 1);
+}
+
+function yamlScalar(value: string | number | boolean | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "\"\"";
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  const text = String(value);
+  if (text === "") {
+    return "\"\"";
+  }
+  if (/^[A-Za-z0-9_./:@+-]+$/.test(text) && !/^[-?]/.test(text)) {
+    return text;
+  }
+  return JSON.stringify(text);
+}
+
+function yamlBlockScalar(value: string): string {
+  const lines = value.replace(/\r\n/g, "\n").split("\n");
+  return ["|", ...lines.map((line) => `  ${line}`)].join("\n");
+}
+
+function normalizeResumeHeading(heading?: string): string {
+  const trimmed = heading?.trim() ?? "";
+  if (!trimmed) {
+    return DEFAULT_RESUME_HEADING;
+  }
+  return trimmed
+    .replace(/^#+\s*/, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || DEFAULT_RESUME_HEADING;
+}
+
+function resumeHeadingTitle(heading: string): string {
+  return normalizeResumeHeading(heading)
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export function mdscriptResumeCommand(
+  root: string,
+  paths: GoalSessionPaths,
+  resumeHeading = DEFAULT_RESUME_HEADING,
+): string {
+  const scriptPath = relativePath(root, paths.goalMdscript);
+  const heading = normalizeResumeHeading(resumeHeading);
+  return `/mdscript-exec ${scriptPath}#${heading}`;
+}
+
+export function writeGoalMdscript(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+  options: {
+    iteration?: number;
+    reasons?: string[];
+    resumeHeading?: string;
+    status?: "active" | "blocked" | "completed" | "stopped";
+  } = {},
+): string {
+  const goal = state.goal.trim() || "(unspecified goal)";
+  const runRelative = relativePath(root, paths.runDirectory);
+  const sessionRelative = relativePath(root, paths.directory);
+  const scriptRelative = relativePath(root, paths.goalMdscript);
+  const resumeHeading = normalizeResumeHeading(
+    options.resumeHeading ?? state.resume_heading ?? DEFAULT_RESUME_HEADING,
+  );
+  const resumeTitle = resumeHeadingTitle(resumeHeading);
+  const iteration = options.iteration ?? state.iteration ?? 0;
+  const status =
+    options.status ??
+    (state.active === false ? "stopped" : "active");
+  const proofKind = resolveProofKind(state);
+  const liveProof = isLiveProofRequired(state) ? "required" : "optional";
+  const primaryAction = state.primary_user_action?.trim() ?? "";
+  const reasons = options.reasons ?? [];
+  const resumeCommand = mdscriptResumeCommand(root, paths, resumeHeading);
+  const reasonsYaml =
+    reasons.length > 0
+      ? reasons.map((reason) => `  - ${yamlScalar(reason)}`).join("\n")
+      : "  []";
+  const reasonsBullets =
+    reasons.length > 0
+      ? reasons.map((reason) => `* completion gate: ${reason}`).join("\n")
+      : "* completion gate: none recorded yet — evaluate artifacts and multi-lane self-review before stopping";
+
+  const body = `---
+id: ${yamlScalar(paths.runId ?? "run")}
+conversation_id: ${yamlScalar(state.conversation_id)}
+run_id: ${yamlScalar(paths.runId ?? "")}
+session_dir: ${yamlScalar(sessionRelative)}
+run_dir: ${yamlScalar(runRelative)}
+goal_mdscript: ${yamlScalar(scriptRelative)}
+status: ${yamlScalar(status)}
+active: ${yamlScalar(Boolean(state.active))}
+iteration: ${yamlScalar(iteration)}
+resume_heading: ${yamlScalar(resumeHeading)}
+proof_kind: ${yamlScalar(proofKind)}
+live_proof: ${yamlScalar(state.live_proof ?? liveProof)}
+primary_user_action: ${yamlScalar(primaryAction)}
+skip_hooks: ${yamlScalar(Boolean(state.skip_hooks))}
+loop_driver: ${yamlScalar(state.loop_driver ?? (state.skip_hooks ? "harness-goal" : "self-hooks"))}
+reviewer_skill: self-review
+goal: ${yamlBlockScalar(goal)}
+completion_gate:
+${reasonsYaml}
+started_at: ${yamlScalar(state.started_at ?? new Date().toISOString())}
+ended_at: ${yamlScalar(state.ended_at ?? "")}
+updated_at: ${yamlScalar(new Date().toISOString())}
+---
+
+${MDSCRIPT_EXEC_HEADER}
+
+## Goal Contract
+
+* goal text is exactly:
+  > ${goal.replace(/\n/g, " ")}
+* conversation_id is \`${state.conversation_id}\`
+* run_dir is \`${runRelative}\`
+* goal_mdscript is \`${scriptRelative}\` — this file is the durable tracker and resume target
+* proof_kind is \`${proofKind}\`; live_proof is \`${state.live_proof ?? liveProof}\`
+* primary_user_action is \`${primaryAction || "(unset)"}\`
+* append-only surfaces: \`${runRelative}/progress.jsonl\`, session-log.jsonl, and the project goal-log.jsonl
+* immutable run rule: never reuse or delete prior runs/<run_id>/ directories
+* review rule: compose self-review for completion; orchestrator never self-authors a Proven verdict
+* completion requires on-disk artifacts/manifest matching proof_kind/live_proof and a durable multi-lane self-review verdict with empty blocking_findings
+
+## Resume Goal
+
+* treat this file as the active goal tracker — restore variables from front matter before acting
+* set \`{{goal_text}}\` from front-matter \`goal\`
+* set \`{{conversation_id}}\` from front-matter \`conversation_id\`
+* set \`{{run_id}}\` from front-matter \`run_id\`
+* set \`{{session_dir}}\` from front-matter \`session_dir\` (resolve under repo root)
+* set \`{{run_dir}}\` from front-matter \`run_dir\`
+* set \`{{goal_mdscript}}\` from front-matter \`goal_mdscript\`
+* set \`{{proof_kind}}\` / \`{{live_proof}}\` / \`{{primary_user_action}}\` from front matter
+* set \`{{orchestrator_model}}\` to this chat's model slug
+* set \`{{iteration}}\` from front-matter \`iteration\`
+* read this file's front matter as authoritative run state, latest \`progress.jsonl\` lines, artifacts/manifest.json, and any self-review findings / remaining blockers
+* if front-matter \`active\` is false and status is completed/stopped, stop and report the terminal state — do not resume work
+* otherwise continue at [Resume Heading](#${resumeHeading})
+
+## ${resumeTitle}
+
+* this is a stop-hook / tracker resume into heading \`${resumeHeading}\` — not a completion report
+* do real work this turn: artifacts, tests, fixes, or reviews — never summary-only stop
+${reasonsBullets}
+* append one JSON line to \`{{run_dir}}/progress.jsonl\` with commands run, new artifact paths, and pass/fail evidence
+* add new timestamped artifact files under \`{{run_dir}}/artifacts/\` when proof changes; never overwrite prior artifact files
+* when proof is ready, write neutral \`{{run_dir}}/review-packet.md\` and compose multi-lane self-review in this process via mdscript-exec
+* spawn only per-lane blind subagents (never a nested full self-review skill worker)
+* persist self-review's decision to \`{{run_dir}}/review-verdict.mdscript.md\` — only multi-lane Proven-for (selected blind lanes signed off + empty blocking_findings) completes the goal
+* resolve every blocking finding before re-review
+* wait for all background subagents / reviewer work to finish before attempting to stop
+* do not ask the user to re-prompt — continue via harness /goal or re-exec this MDScript until self-review proves the goal; setting active:false without a self-review verdict is not complete
+* if still incomplete after this wave, keep front-matter active:true and leave this MDScript current
+* if complete, jump to [Complete Goal](#complete-goal)
+* if blocked by a missing external resource that cannot be stood up, jump to [Manual Stop](#manual-stop)
+
+## Complete Goal
+
+* verify \`{{run_dir}}/review-verdict.mdscript.md\` front matter exists from self-review with matching goal/conversation_id, grade starting with Proven for, empty blocking_findings, and proof_supplied referencing run artifacts
+* set front-matter active:false / status:completed on this MDScript
+* update \`{{session_dir}}/active-run.json\` to mark the run inactive when applicable
+* append goal_completed / run_completed to the append-only logs
+* stop and report the completed goal, \`{{run_dir}}\`, artifact summary, and the multi-lane self-review Proven-for verdict
+
+## Manual Stop
+
+* set front-matter active:false and status stopped/blocked on this MDScript when the user stops the goal or an external blocker cannot be cleared
+* append goal_stopped with the blocker summary to progress.jsonl and both append-only logs
+* stop and report progress, \`{{run_dir}}\`, and the blocker
+
+## Stop Hook Resume Command
+
+* exact resume command for this tracker:
+  \`${resumeCommand}\`
+`;
+
+  mkdirSync(paths.runDirectory, { recursive: true });
+  writeFileSync(paths.goalMdscript, `${body.trimEnd()}
+`, "utf-8");
+  return scriptRelative;
+}
+
+export function ensureGoalMdscript(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+  options: {
+    iteration?: number;
+    reasons?: string[];
+    resumeHeading?: string;
+    status?: "active" | "blocked" | "completed" | "stopped";
+  } = {},
+): string {
+  if (!existsSync(paths.goalMdscript) || options.reasons || options.iteration !== undefined) {
+    return writeGoalMdscript(root, paths, state, options);
+  }
+  return relativePath(root, paths.goalMdscript);
+}
+
+export function formatGoalFollowupMessage(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+  iteration: number,
+  reasons: string[],
+): string {
+  const resumeHeading = normalizeResumeHeading(
+    state.resume_heading ?? DEFAULT_RESUME_HEADING,
+  );
+  const scriptRelative = writeGoalMdscript(root, paths, state, {
+    iteration,
+    reasons,
+    resumeHeading,
+    status: "active",
+  });
+  // Still write the run MDScript (side effect above) so resume state is current.
+  // Stop-hook followups are a single mdscript-exec clause only.
+  void scriptRelative;
+  void reasons;
+  void iteration;
+  return mdscriptResumeCommand(root, paths, resumeHeading);
+}
+
+export function buildActiveGoalContext(
+  root: string,
+  conversationId: string,
+  orchestratorModel?: string,
+): string | null {
+  const paths = resolveActiveGoalPaths(root, conversationId);
+  if (!paths) {
+    return null;
+  }
+
+  const state = loadGoalState(paths);
+  if (!state?.active) {
+    return null;
+  }
+
+  const completion = evaluateGoalCompletion(root, paths, conversationId);
+  if (completion.complete) {
+    return null;
+  }
+
+  const nextIteration = nextGoalIteration(0, paths);
+  const resumeHeading = normalizeResumeHeading(
+    state.resume_heading ?? DEFAULT_RESUME_HEADING,
+  );
+  const scriptRelative = ensureGoalMdscript(root, paths, state, {
+    reasons: completion.reasons,
+    resumeHeading,
+    status: "active",
+  });
+  const resumeCommand = mdscriptResumeCommand(root, paths, resumeHeading);
+  const runRelative = relativePath(root, paths.runDirectory);
+
+  return [
+    MDSCRIPT_EXEC_HEADER,
+    "",
+    "## Active Goal Session",
+    "",
+    "* active goal session is incomplete — stop hook will block early exit",
+    `* goal: ${state.goal.trim() || "(unspecified)"}`,
+    `* run: ${runRelative}`,
+    paths.runId ? `* run_id: ${paths.runId}` : "",
+    `* goal_mdscript: ${scriptRelative}`,
+    `* resume_heading: ${resumeHeading}`,
+    `* blocked_iterations: ${countBlockedIterations(paths)}`,
+    `* next_iteration_if_stopped: ${nextIteration}`,
+    orchestratorModel?.trim()
+      ? `* orchestrator_model: ${orchestratorModel.trim()} — pass model="${orchestratorModel.trim()}" on worker Task subagents (implementation, proof, explore, shell, CI)`
+      : "",
+    "* reviewer_skill: self-review — compose in this process via mdscript-exec; spawn only per-lane blind subagents; persist review-verdict.mdscript.md",
+    ...completion.reasons.map((reason) => `* completion_gate: ${reason}`),
+    "* while active: produce artifacts, compose self-review before stopping, append progress.jsonl only",
+    "* only a multi-lane self-review Proven-for verdict with empty blocking_findings completes the goal",
+    "* worker Task subagents use the orchestrator model; completion review is self-review composition",
+    "* treat any stop-hook MDScript message or incomplete active run as mandatory continue — not done",
+    `* exact resume command: ${resumeCommand}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+const IMAGE_EXTENSIONS = /\.(png|jpe?g|webp|gif|bmp|svg)$/i;
+
+export function inferProofKind(goal: string): ProofKind {
+  const text = goal.toLowerCase();
+  if (
+    /\b(tui|textual|terminal ui|terminal app|chat tui|ncurses|curses|ink\.js)\b/.test(text) ||
+    (/\bchat\b/.test(text) && /\b(textual|tui|terminal)\b/.test(text))
+  ) {
+    return "tui";
+  }
+  if (
+    /\b(ui|ux|web ui|browser|figma|mockup|frontend|visual design|page layout|design match|component library|shadcn|tailwind ui)\b/.test(
+      text,
+    )
+  ) {
+    return "ui";
+  }
+  return "default";
+}
+
+export function resolveProofKind(state: GoalState): ProofKind {
+  if (state.proof_kind === "tui" || state.proof_kind === "ui" || state.proof_kind === "default") {
+    return state.proof_kind;
+  }
+  return inferProofKind(state.goal);
+}
+
+function isLogArtifact(entry: GoalArtifactEntry): boolean {
+  return (
+    entry.kind === "log" ||
+    entry.kind === "output" ||
+    entry.path.includes("/logs/")
+  );
+}
+
+function isCaptureArtifact(entry: GoalArtifactEntry): boolean {
+  return (
+    entry.kind === "capture" ||
+    entry.kind === "screenshot" ||
+    entry.path.includes("/captures/") ||
+    entry.path.includes("/screenshots/")
+  );
+}
+
+function isImageArtifact(entry: GoalArtifactEntry): boolean {
+  return (
+    entry.kind === "image" ||
+    entry.kind === "screenshot" ||
+    entry.path.includes("/images/") ||
+    entry.path.includes("/screenshots/") ||
+    IMAGE_EXTENSIONS.test(entry.path)
+  );
+}
+
+const LIVE_REPRODUCE_PATTERNS = [
+  /tests\/live\//i,
+  /@pytest\.mark\.live/i,
+  /run-chat-textual-tests\.sh/i,
+  /run-chat\.sh/i,
+  /textual.*pilot/i,
+  /playwright/i,
+  /cypress/i,
+  /nats.*4222/i,
+];
+
+const UNIT_REPRODUCE_PATTERNS = [
+  /\buv run pytest tests\/(?!live\/)/i,
+  /\bpytest tests\/(?!live\/)/i,
+  /\bnpm test\b/i,
+  /\bvitest\b/i,
+  /\bjest\b/i,
+];
+
+export function inferArtifactTier(entry: GoalArtifactEntry): ProofTier {
+  if (entry.tier === "unit" || entry.tier === "integration" || entry.tier === "live") {
+    return entry.tier;
+  }
+
+  const haystack = `${entry.path} ${entry.reproduce} ${entry.proves}`;
+  if (entry.path.includes("/live/") || /\/live\//i.test(haystack)) {
+    return "live";
+  }
+  if (LIVE_REPRODUCE_PATTERNS.some((pattern) => pattern.test(haystack))) {
+    return "live";
+  }
+  if (UNIT_REPRODUCE_PATTERNS.some((pattern) => pattern.test(entry.reproduce))) {
+    return "unit";
+  }
+  return "integration";
+}
+
+export function impliesRuntimeBehavior(goal: string): boolean {
+  const text = goal.toLowerCase();
+  return /\b(notify|notification|message|send|reply|inference|typing|mention|nats|websocket|stream|publish|subscribe|live|e2e|integration|runtime|dispatch|deliver|chat|tui|ui|browser|click|submit|composer|modal|sidebar)\b/.test(
+    text,
+  );
+}
+
+export function isLiveProofRequired(state: GoalState): boolean {
+  if (state.live_proof === "optional") {
+    return false;
+  }
+  if (state.live_proof === "required") {
+    return true;
+  }
+
+  const proofKind = resolveProofKind(state);
+  if (proofKind === "tui" || proofKind === "ui") {
+    return true;
+  }
+  return impliesRuntimeBehavior(state.goal);
+}
+
+function isLiveArtifact(entry: GoalArtifactEntry): boolean {
+  return inferArtifactTier(entry) === "live";
+}
+
+function artifactProvesPrimaryAction(
+  entry: GoalArtifactEntry,
+  primaryAction: string,
+): boolean {
+  const proves = entry.proves.toLowerCase();
+  const action = primaryAction.toLowerCase();
+  const tokens = action.split(/\W+/).filter((token) => token.length >= 4);
+  if (tokens.length === 0) {
+    return proves.includes(action);
+  }
+  const matchedTokens = tokens.filter((token) => proves.includes(token));
+  return matchedTokens.length >= Math.min(2, tokens.length);
+}
+
+export function validateArtifactsManifest(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+): GoalCompletionStatus {
+  const goal = state.goal;
+  const conversationId = state.conversation_id;
+  const proofKind = resolveProofKind(state);
+  const reasons: string[] = [];
+  const manifest = loadJson<GoalArtifactsManifest>(paths.artifactsManifest);
+
+  if (!manifest) {
+    reasons.push(
+      `Missing \`${relativePath(root, paths.artifactsManifest)}\`. Write reproducible proof artifacts and \`artifacts/manifest.json\` before reviewers sign off.`,
+    );
+    return { complete: false, reasons };
+  }
+
+  if (manifest.goal.trim() !== goal.trim()) {
+    reasons.push("artifacts/manifest.json goal does not match the run goal.");
+  }
+  if (manifest.conversation_id.trim() !== conversationId.trim()) {
+    reasons.push("artifacts/manifest.json conversation_id does not match this chat.");
+  }
+
+  const entries = manifest.artifacts?.filter((entry) => entry.path?.trim()) ?? [];
+  if (entries.length < 1) {
+    reasons.push("artifacts/manifest.json must list at least one proof artifact.");
+  }
+
+  for (const entry of entries) {
+    if (!entry.reproduce?.trim()) {
+      reasons.push(`Artifact ${entry.path}: missing reproduce command.`);
+    }
+    if (!entry.proves?.trim()) {
+      reasons.push(`Artifact ${entry.path}: missing proves description.`);
+    }
+    if (!entry.kind?.trim()) {
+      reasons.push(`Artifact ${entry.path}: missing kind (log, screenshot, etc.).`);
+    }
+    const runRelative = paths.runDirectory.replace(`${root}/`, "");
+    if (!artifactExists(root, runRelative, entry.path)) {
+      reasons.push(`Artifact file missing on disk: ${entry.path}`);
+    }
+  }
+
+  const hasLog = entries.some(isLogArtifact);
+  const hasCapture = entries.some(isCaptureArtifact);
+  const hasImage = entries.some(isImageArtifact);
+
+  if (proofKind === "tui" && !hasCapture) {
+    reasons.push(
+      "TUI goal (proof_kind: tui) requires at least one terminal capture — save under artifacts/captures/ or artifacts/screenshots/ with kind capture or screenshot.",
+    );
+  } else if (proofKind === "ui" && !hasImage) {
+    reasons.push(
+      "UI goal (proof_kind: ui) requires at least one image — save under artifacts/images/ or artifacts/screenshots/ with kind image or screenshot.",
+    );
+  } else if (proofKind === "default" && !hasLog) {
+    reasons.push(
+      "Non-visual goal (proof_kind: default) requires at least one log — save under artifacts/logs/ with kind log or output.",
+    );
+  }
+
+  if (isLiveProofRequired(state)) {
+    const liveArtifacts = entries.filter(isLiveArtifact);
+    if (liveArtifacts.length < 1) {
+      reasons.push(
+        "Live proof required — add at least one artifact with tier: \"live\" (or reproduce via tests/live/, run-chat-textual-tests.sh, run-chat.sh, browser E2E). Unit tests and partial UI captures alone are not sufficient.",
+      );
+    }
+
+    const primaryAction = manifest.primary_user_action?.trim() ?? "";
+    if (!primaryAction) {
+      reasons.push(
+        "Live proof required — artifacts/manifest.json must set primary_user_action describing the exact user/runtime path proven (e.g. \"send @Elon message in dm-elon-musk without crash\").",
+      );
+    } else if (liveArtifacts.length > 0) {
+      const liveProvesPrimary = liveArtifacts.some((entry) =>
+        artifactProvesPrimaryAction(entry, primaryAction),
+      );
+      if (!liveProvesPrimary) {
+        reasons.push(
+          `Live proof required — at least one live-tier artifact must prove primary_user_action ("${primaryAction}"). Partial steps (e.g. autocomplete only) do not satisfy the goal.`,
+        );
+      }
+    }
+
+    const unitOnlyProof =
+      entries.length > 0 && entries.every((entry) => inferArtifactTier(entry) === "unit");
+    if (unitOnlyProof) {
+      reasons.push(
+        "Live proof required — all artifacts are unit-tier only. Run tests/live/ or an equivalent real-stack repro and add the output under artifacts/live/.",
+      );
+    }
+  }
+
+  return { complete: reasons.length === 0, reasons };
+}
+
+export function signoffRejectionReason(
+  signoff: GoalSignoff | null,
+  goal: string,
+  conversationId: string,
+  signoffPath: string,
+  expectedReviewerId?: GoalReviewerId,
+  root?: string,
+): string {
+  const label = expectedReviewerId
+    ? `Reviewer ${expectedReviewerId.toUpperCase()}`
+    : "Verifier";
+
+  if (!signoff) {
+    return `No sign-off at \`${signoffPath}\`. Compose multi-lane adversarial blind self-review; each subagent mdscript-execs its own blind-reviewer MDScript.`;
+  }
+  if (!signoff.signed_off) {
+    const pCount = countPFindings(signoff.p_findings);
+    if (pCount > 0) {
+      return `${label} rejected sign-off: ${pCount} P-level finding(s) remain — all P0–P3 must be resolved. ${signoff.verifier_summary?.trim() || ""}`.trim();
+    }
+    return `${label} rejected sign-off: ${signoff.verifier_summary?.trim() || "unspecified gaps."}`;
+  }
+  if (expectedReviewerId && signoff.reviewer_id !== expectedReviewerId) {
+    return `${label} sign-off has wrong reviewer_id (expected "${expectedReviewerId}").`;
+  }
+  if (signoff.conversation_id.trim() !== conversationId.trim()) {
+    return `${label} sign-off conversation_id does not match this chat.`;
+  }
+  if (signoff.goal.trim() !== goal.trim()) {
+    return `${label} sign-off goal does not match this run's goal.`;
+  }
+  if ((signoff.verifier_summary?.trim().length ?? 0) < MIN_SUMMARY_LENGTH) {
+    return `${label} sign-off rejected: verifier_summary too vague.`;
+  }
+  if ((signoff.evidence?.filter((item) => item.trim()).length ?? 0) < 2) {
+    return `${label} sign-off rejected: need at least 2 specific evidence items.`;
+  }
+  if ((signoff.commands_run?.filter((item) => item.trim()).length ?? 0) < 1) {
+    return `${label} sign-off rejected: no commands_run recorded.`;
+  }
+  if ((signoff.remaining_gaps?.filter((item) => item.trim()).length ?? 0) > 0) {
+    return `${label} sign-off rejected: remaining_gaps not empty.`;
+  }
+  if (expectedReviewerId) {
+    if ((signoff.attack_attempts?.filter((item) => item.trim()).length ?? 0) < 2) {
+      return `${label} sign-off rejected: need at least 2 attack_attempts documenting attempts to falsify the change.`;
+    }
+    if (countPFindings(signoff.p_findings) !== 0) {
+      return `${label} sign-off rejected: p_findings must be present and empty (all P0–P3 resolved).`;
+    }
+    if ((signoff.rules_reviewed?.filter((item) => item.trim()).length ?? 0) < 1) {
+      return `${label} sign-off rejected: rules_reviewed must cite AGENTS.md (when present) and project rules checked.`;
+    }
+    const requiresAgentsCitation =
+      !expectedReviewerId || expectedReviewerId === "rules";
+    if (
+      requiresAgentsCitation &&
+      root &&
+      existsSync(join(root, "AGENTS.md")) &&
+      !citesAgentsMd(signoff.rules_reviewed ?? [])
+    ) {
+      return `${label} sign-off rejected: rules_reviewed must cite AGENTS.md when that file exists.`;
+    }
+    if ((signoff.artifact_paths?.filter((item) => item.trim()).length ?? 0) < 1) {
+      return `${label} sign-off rejected: artifact_paths must reference session artifacts verified.`;
+    }
+    if ((signoff.objectives_checked?.filter((item) => item.trim()).length ?? 0) < 1) {
+      return `${label} sign-off rejected: objectives_checked must map to goal criteria.`;
+    }
+  }
+  return `${label} sign-off rejected: invalid or incomplete response.`;
+}
+
+export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
+  for (const file of [
+    paths.signoffReviewerRulesMdscript,
+    paths.signoffReviewerSecurityMdscript,
+    paths.signoffReviewerCompletenessMdscript,
+    paths.signoffReviewerHsmMdscript,
+    paths.reviewVerdictMdscript,
+  ]) {
+    if (existsSync(file)) {
+      unlinkSync(file);
+    }
+  }
+}
+
+export function isProvenGrade(grade: string | undefined): boolean {
+  const text = grade?.trim() ?? "";
+  return /^proven for\b/i.test(text);
+}
+
+export function countBlockingFindings(
+  findings: Array<string | GoalPFinding> | undefined,
+): number {
+  if (!findings) {
+    return -1;
+  }
+  return findings.filter((item) => {
+    if (typeof item === "string") {
+      return item.trim().length > 0;
+    }
+    if (!item || typeof item !== "object") {
+      return false;
+    }
+    const summary =
+      typeof item.summary === "string"
+        ? item.summary
+        : typeof item.severity === "string"
+          ? item.severity
+          : "";
+    return summary.trim().length > 0 || Object.keys(item).length > 0;
+  }).length;
+}
+
+export function isValidSelfReviewVerdict(
+  verdict: GoalReviewVerdict,
+  goal: string,
+  conversationId: string,
+): boolean {
+  if (!isProvenGrade(verdict.grade) && !isProvenGrade(verdict.proof_decision)) {
+    return false;
+  }
+  if (verdict.goal.trim() !== goal.trim()) {
+    return false;
+  }
+  if (verdict.conversation_id.trim() !== conversationId.trim()) {
+    return false;
+  }
+  if ((verdict.reviewer_skill?.trim() || "self-review") !== "self-review") {
+    return false;
+  }
+  // multi_lane_blind is current; triple_blind accepted as synonym for the always-on trio
+  if (verdict.multi_lane_blind !== true && verdict.triple_blind !== true) {
+    return false;
+  }
+  const lanes = verdict.lanes ?? [];
+  const required = ["rules", "security", "completeness"];
+  if (!required.every((lane) => lanes.includes(lane))) {
+    return false;
+  }
+  if (countBlockingFindings(verdict.blocking_findings) !== 0) {
+    return false;
+  }
+  const supplied =
+    verdict.proof_supplied?.filter((item) => item.trim().length > 0) ??
+    verdict.artifact_paths?.filter((item) => item.trim().length > 0) ??
+    [];
+  if (supplied.length < 1) {
+    return false;
+  }
+  return true;
+}
+
+export function selfReviewRejectionReason(
+  verdict: GoalReviewVerdict | null,
+  goal: string,
+  conversationId: string,
+  verdictPath: string,
+): string {
+  if (!verdict) {
+    return `No self-review verdict at \`${verdictPath}\`. Compose multi-lane adversarial blind self-review and persist review-verdict.mdscript.md with multi_lane_blind:true.`;
+  }
+  if (verdict.goal.trim() !== goal.trim()) {
+    return "self-review verdict goal does not match this run's goal.";
+  }
+  if (verdict.conversation_id.trim() !== conversationId.trim()) {
+    return "self-review verdict conversation_id does not match this chat.";
+  }
+  const grade = verdict.grade?.trim() || verdict.proof_decision?.trim() || "";
+  if (/^blocked for\b/i.test(grade)) {
+    return `self-review blocked completion: ${grade}`;
+  }
+  if (/^not ready for\b/i.test(grade)) {
+    const count = countBlockingFindings(verdict.blocking_findings);
+    return `self-review not ready: ${grade}${count > 0 ? ` (${count} blocking finding(s))` : ""}`;
+  }
+  if (!isProvenGrade(grade)) {
+    return `self-review verdict is not Proven-for (grade=${grade || "missing"}).`;
+  }
+  if (countBlockingFindings(verdict.blocking_findings) !== 0) {
+    return "self-review verdict still has blocking_findings — resolve and re-compose self-review.";
+  }
+  const supplied =
+    verdict.proof_supplied?.filter((item) => item.trim().length > 0) ??
+    verdict.artifact_paths?.filter((item) => item.trim().length > 0) ??
+    [];
+  if (supplied.length < 1) {
+    return "self-review verdict missing proof_supplied/artifact_paths.";
+  }
+  return "self-review verdict rejected: invalid or incomplete response.";
+}
+
+
+export function validateTripleBlindSignoffs(
+  root: string,
+  paths: GoalSessionPaths,
+  goal: string,
+  conversationId: string,
+): GoalCompletionStatus {
+  const lanes: Array<{ id: GoalReviewerId; path: string }> = [
+    { id: "rules", path: paths.signoffReviewerRulesMdscript },
+    { id: "security", path: paths.signoffReviewerSecurityMdscript },
+    { id: "completeness", path: paths.signoffReviewerCompletenessMdscript },
+  ];
+  const reasons: string[] = [];
+  const signoffs: GoalSignoff[] = [];
+
+  for (const lane of lanes) {
+    const signoff = loadMdscriptRecord<GoalSignoff>(lane.path);
+    if (!signoff || !isValidSignoff(signoff)) {
+      reasons.push(
+        signoffRejectionReason(
+          signoff,
+          goal,
+          conversationId,
+          relativePath(root, lane.path),
+          lane.id,
+          root,
+        ),
+      );
+      continue;
+    }
+    signoffs.push(signoff);
+  }
+
+  if (reasons.length > 0) {
+    return { complete: false, reasons };
+  }
+
+  if (signoffs.length === 3) {
+    const summaries = signoffs.map((s) => s.verifier_summary?.trim() ?? "");
+    const identicalPair =
+      (summaries[0].length > 0 && summaries[0] === summaries[1]) ||
+      (summaries[0].length > 0 && summaries[0] === summaries[2]) ||
+      (summaries[1].length > 0 && summaries[1] === summaries[2]);
+    if (identicalPair) {
+      invalidateReviewerSignoffs(paths);
+      return {
+        complete: false,
+        reasons: [
+          "Two or more blind lane summaries are identical — rules/security/completeness reviewers must scrutinize independently. Cleared sign-offs; re-run multi-lane adversarial blind self-review.",
+        ],
+      };
+    }
+  }
+
+  return { complete: true, reasons: [] };
+}
+
+export function evaluateGoalCompletion(
+  root: string,
+  paths: GoalSessionPaths,
+  conversationId: string,
+): GoalCompletionStatus {
+  const state = loadGoalState(paths);
+  if (!state) {
+    return {
+      complete: false,
+      reasons: [
+        `Missing run tracker at \`${relativePath(root, paths.goalMdscript)}\`.`,
+      ],
+    };
+  }
+
+  const goal = state.goal.trim() || "(unspecified goal)";
+  const reasons: string[] = [];
+
+  const artifactsStatus = validateArtifactsManifest(root, paths, state);
+  if (!artifactsStatus.complete) {
+    reasons.push(...artifactsStatus.reasons);
+  }
+
+  const triple = validateTripleBlindSignoffs(root, paths, goal, conversationId);
+  if (!triple.complete) {
+    reasons.push(...triple.reasons);
+  }
+
+  const verdict = loadMdscriptRecord<GoalReviewVerdict>(paths.reviewVerdictMdscript);
+  if (!verdict || !isValidSelfReviewVerdict(verdict)) {
+    reasons.push(
+      selfReviewRejectionReason(
+        verdict,
+        goal,
+        conversationId,
+        relativePath(root, paths.reviewVerdictMdscript),
+      ),
+    );
+  }
+
+  return { complete: reasons.length === 0, reasons };
+}
+
+export function deactivateGoal(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+): void {
+  const deactivated: GoalState = {
+    ...state,
+    active: false,
+    ended_at: new Date().toISOString(),
+  };
+  writeGoalMdscript(root, paths, deactivated, {
+    status: "stopped",
+    resumeHeading: state.resume_heading ?? "manual-stop",
+  });
+}
+
+/**
+ * Re-open a run that was marked inactive or completed without self-review
+ * having closed it. Only a multi-lane Proven-for verdict ends a goal; an agent
+ * editing its own front matter must not be able to end the loop.
+ */
+export function reopenGoalRun(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+): void {
+  const reopened: GoalState = {
+    ...state,
+    active: true,
+    ended_at: undefined,
+  };
+  writeGoalMdscript(root, paths, reopened, {
+    status: "active",
+    resumeHeading: DEFAULT_RESUME_HEADING,
+  });
+}
+
+export function completeGoalRun(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+): void {
+  const completed: GoalState = {
+    ...state,
+    active: false,
+    ended_at: new Date().toISOString(),
+  };
+  writeGoalMdscript(root, paths, completed, {
+    status: "completed",
+    resumeHeading: "complete-goal",
+    reasons: [],
+  });
+  recordGoalEvent(root, state.conversation_id, "goal_completed", {
+    run_id: paths.runId,
+    goal: state.goal,
+    goal_mdscript: relativePath(root, paths.goalMdscript),
+  });
+}
+
+export function abortGoalRun(
+  root: string,
+  paths: GoalSessionPaths,
+  state: GoalState,
+  reason: "aborted" | "error" | "stopped",
+): void {
+  const stopped: GoalState = {
+    ...state,
+    active: false,
+    ended_at: new Date().toISOString(),
+  };
+  writeGoalMdscript(root, paths, stopped, {
+    status: reason === "stopped" ? "stopped" : "blocked",
+    resumeHeading: "manual-stop",
+    reasons: [`goal_${reason}`],
+  });
+  recordGoalEvent(root, state.conversation_id, `goal_${reason}`, {
+    run_id: paths.runId,
+    goal: state.goal,
+    goal_mdscript: relativePath(root, paths.goalMdscript),
+  });
+}
+
+export function workspaceRootFromInput(workspaceRoots?: string[]): string {
+  const roots = workspaceRoots?.filter(Boolean) ?? [];
+  return roots.length > 0 ? roots[0] : process.cwd();
+}
+
+export function readStdinJson<T>(): T {
+  const text = readFileSync(0, "utf-8");
+  if (!text.trim()) {
+    return {} as T;
+  }
+  return JSON.parse(text) as T;
+}
+
+/**
+ * Whether this harness already owns a multi-round `/goal` ability that
+ * continues work without self-goal Stop hooks.
+ *
+ * - Grok: host-owned `/goal` runs before the stop gate (see grok hooks docs).
+ * - Cursor/Claude/Codex: a skill named `goal` (not `self-goal`) is present.
+ *
+ * Override with `SELF_GOAL_FORCE_HOOKS=1` to force self-goal hooks even when a
+ * harness `/goal` ability exists, or `SELF_GOAL_SKIP_HOOKS=1` to always skip.
+ */
+export function harnessHasGoalAbility(dialect: HookDialect): boolean {
+  if (
+    process.env.SELF_GOAL_SKIP_HOOKS === "1" ||
+    process.env.SELF_GOAL_SKIP_HOOKS === "true"
+  ) {
+    return true;
+  }
+  if (
+    process.env.SELF_GOAL_FORCE_HOOKS === "1" ||
+    process.env.SELF_GOAL_FORCE_HOOKS === "true"
+  ) {
+    return false;
+  }
+  if (dialect === "grok") {
+    // Grok's /goal is a host feature, not a Stop hook. Using both double-loops.
+    return true;
+  }
+  const skillHomes = [
+    join(homedir(), ".agents", "skills", "goal"),
+    join(homedir(), ".cursor", "skills", "goal"),
+    join(homedir(), ".claude", "skills", "goal"),
+    join(homedir(), ".codex", "skills", "goal"),
+    join(homedir(), ".copilot", "skills", "goal"),
+    join(homedir(), ".grok", "skills", "goal"),
+  ];
+  return skillHomes.some((dir) => existsSync(join(dir, "SKILL.md")));
+}
+
+/**
+ * Hooks should no-op when the run opts out, or when the harness owns `/goal`.
+ */
+export function shouldSkipGoalHooks(
+  dialect: HookDialect,
+  state?: GoalState | null,
+): boolean {
+  if (state?.skip_hooks === true || state?.loop_driver === "harness-goal") {
+    return true;
+  }
+  if (state?.skip_hooks === false || state?.loop_driver === "self-hooks" || state?.loop_driver === "gabe-hooks") {
+    return false;
+  }
+  return harnessHasGoalAbility(dialect);
+}
+
+/**
+ * Which harness is calling.
+ *
+ * Cursor takes `followup_message` to keep the agent working; Claude Code,
+ * Codex, and grok all take `{"decision":"block","reason":...}`. Cursor and
+ * Claude/Codex send snake_case input, grok sends camelCase. One normalizer
+ * beats four near-identical hook scripts.
+ *
+ * Session ids (do not cross-use):
+ * - Cursor: conversation_id
+ * - Claude Code: session_id
+ * - Codex: session_id (+ turn_id is per-turn only)
+ * - Grok: sessionId / GROK_SESSION_ID
+ */
+export type HookDialect = "cursor" | "claude" | "codex" | "grok";
+
+export interface HookInput {
+  dialect: HookDialect;
+  conversationId: string;
+  /** "<dialect>:<conversationId>" when conversationId is set. */
+  sessionKey: string;
+  root: string;
+  /** completed | aborted | error — synthesized for harnesses that only fire on completion. */
+  status: "completed" | "aborted" | "error";
+  loopCount: number;
+  stopHookActive: boolean;
+  /** grok only: "end_turn" for a real turn end, else a session-end observe fire. */
+  reason?: string;
+  /** Orchestrator model when the harness reports one. */
+  model?: string;
+}
+
+function detectDialect(raw: Record<string, unknown>): HookDialect {
+  if (
+    process.env.GROK_HOOK_EVENT ||
+    process.env.GROK_SESSION_ID ||
+    process.env.GROK_HOOK_NAME
+  ) {
+    return "grok";
+  }
+  if (raw.hookEventName !== undefined || raw.sessionId !== undefined) {
+    return "grok";
+  }
+  if (
+    raw.conversation_id !== undefined ||
+    raw.workspace_roots !== undefined ||
+    raw.generation_id !== undefined
+  ) {
+    return "cursor";
+  }
+  if (raw.turn_id !== undefined) return "codex";
+  return "claude";
+}
+
+function firstString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function resolveConversationId(
+  dialect: HookDialect,
+  raw: Record<string, unknown>,
+): string {
+  // Cursor common schema: conversation_id; sessionStart also documents session_id
+  // as the same value as conversation_id (cursor.com/docs/hooks).
+  if (dialect === "cursor") {
+    return firstString(raw.conversation_id, raw.session_id);
+  }
+  if (dialect === "grok") {
+    return firstString(
+      raw.sessionId,
+      process.env.GROK_SESSION_ID,
+      raw.session_id,
+    );
+  }
+  return firstString(raw.session_id, raw.sessionId, process.env.GROK_SESSION_ID);
+}
+
+export function readHookInput(): HookInput {
+  const raw = readStdinJson<Record<string, unknown>>();
+  const dialect = detectDialect(raw);
+  const roots = Array.isArray(raw.workspace_roots)
+    ? (raw.workspace_roots as unknown[]).filter(
+        (r): r is string => typeof r === "string" && r.length > 0,
+      )
+    : [];
+  const status = firstString(raw.status);
+  const conversationId = resolveConversationId(dialect, raw);
+  const loopCount =
+    typeof raw.loop_count === "number"
+      ? raw.loop_count
+      : typeof raw.loopCount === "number"
+        ? raw.loopCount
+        : 0;
+  return {
+    dialect,
+    conversationId,
+    sessionKey: conversationId ? `${dialect}:${conversationId}` : "",
+    root: firstString(
+      roots[0],
+      raw.workspaceRoot,
+      raw.cwd,
+      process.env.GROK_WORKSPACE_ROOT,
+      process.env.CLAUDE_PROJECT_DIR,
+    ) || process.cwd(),
+    // Only Cursor reports a status; the others fire the gate only on a real end.
+    status:
+      status === "aborted" || status === "error"
+        ? (status as "aborted" | "error")
+        : "completed",
+    loopCount,
+    stopHookActive: Boolean(raw.stop_hook_active ?? raw.stopHookActive),
+    reason: firstString(raw.reason) || undefined,
+    model: firstString(raw.model) || undefined,
+  };
+}
+
+/**
+ * Inject context in the calling harness's vocabulary. Cursor reads a top-level
+ * `additional_context`; Claude Code, Codex, and grok read
+ * `hookSpecificOutput.additionalContext`.
+ */
+export function additionalContextPayload(
+  dialect: HookDialect,
+  hookEventName: string,
+  context: string,
+): Record<string, unknown> {
+  if (dialect === "cursor") {
+    return { continue: true, additional_context: context };
+  }
+  return { hookSpecificOutput: { hookEventName, additionalContext: context } };
+}
+
+/** Translate one keep-working instruction into the calling harness's vocabulary. */
+export function continueWorkingPayload(
+  dialect: HookDialect,
+  message: string,
+): Record<string, unknown> {
+  if (dialect === "cursor") {
+    return { followup_message: message };
+  }
+  return { decision: "block", reason: message };
+}
+
+export function respond(payload: Record<string, unknown>): void {
+  process.stdout.write(JSON.stringify(payload) + "\n");
+}
+
+/** Stop hooks must exit immediately after respond — do not leave Bun waiting on open stdin. */
+export function finishHook(payload: Record<string, unknown> = {}): never {
+  respond(payload);
+  process.exit(0);
+}
+
+export function listSessionArtifactFiles(artifactsDirectory: string): string[] {
+  if (!existsSync(artifactsDirectory)) {
+    return [];
+  }
+
+  const files: string[] = [];
+  const walk = (directory: string, prefix: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const absolute = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(absolute, relative);
+      } else if (entry.name !== ARTIFACTS_MANIFEST_FILE) {
+        files.push(`artifacts/${relative}`);
+      }
+    }
+  };
+  walk(artifactsDirectory, "");
+  return files;
+}

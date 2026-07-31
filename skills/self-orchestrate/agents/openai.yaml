@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Orchestrate"
+  short_description: "Root agent orchestration"
+  default_prompt: "Use $self-orchestrate on a model and effort level selected for coordination work to coordinate agent-shaped work from installed skill context and live evidence, create child orchestrators for subticket-owning scopes, delegate bounded execution and review ownership with a model and effort level selected for each delegated task, write tasks, comments, plans, goals, durable instructions, handoffs, and continuations as executable MDScript under ~/.agents/projects/project-name/ with stable headings and exact re-entry commands, never put that control plane in the working repository, preserve scoped DBC proof decisions, reject untested infrastructure blockers, use hot-path MDScript events, write return scripts before authority prompts, require every lane to report before stopping, and report decision-ready status."

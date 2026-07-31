@@ -20,12 +20,12 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
-const learnLib = join(pkgRoot, "skills/gabe-common/hooks/learn-lib.ts");
-const learnTouch = join(pkgRoot, "skills/gabe-common/hooks/learn-session-touch.ts");
-const learnStop = join(pkgRoot, "skills/gabe-common/hooks/learn-stop.ts");
+const learnLib = join(pkgRoot, "skills/self-common/hooks/learn-lib.ts");
+const learnTouch = join(pkgRoot, "skills/self-common/hooks/learn-session-touch.ts");
+const learnStop = join(pkgRoot, "skills/self-common/hooks/learn-stop.ts");
 const bun = process.env.BUN_BIN || "bun";
 
-const home = mkdtempSync(join(tmpdir(), "gabe-hook-scope-"));
+const home = mkdtempSync(join(tmpdir(), "self-hook-scope-"));
 const agentsHome = join(home, ".agents");
 mkdirSync(join(agentsHome, "learn"), { recursive: true });
 
@@ -37,8 +37,8 @@ function runHook(script, payload, envExtra = {}) {
       ...process.env,
       AGENTS_HOME: agentsHome,
       HOME: home,
-      GABE_LEARN_SKIP_HOOKS: "0",
-      GABE_WATCH_SKIP_HOOKS: "1",
+      SELF_LEARN_SKIP_HOOKS: "0",
+      SELF_WATCH_SKIP_HOOKS: "1",
       ...envExtra,
     },
   });
@@ -220,7 +220,7 @@ const touchFollowup = runHook(learnTouch, {
   workspace_roots: [pkgRoot],
   generation_id: "gen-2",
   prompt:
-    "/mdscript-exec /tmp/skills/gabe-common/workflows/gabe-learn.mdscript.md#reflect-and-learn",
+    "/mdscript-exec /tmp/skills/self-common/workflows/self-learn.mdscript.md#reflect-and-learn",
 });
 assert(touchFollowup.status === 0, "synthetic followup touch exits 0");
 const stopAfterSynthetic = runHook(learnStop, {

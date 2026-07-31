@@ -43,7 +43,7 @@ export function projectSlug(root) {
 }
 
 export function projectHome(root) {
-  if (process.env.GABE_AGENTS_LOCAL === "1") return join(resolve(root), ".agents");
+  if (process.env.SELF_AGENTS_LOCAL === "1") return join(resolve(root), ".agents");
   const home = process.env.AGENTS_HOME
     ? resolve(process.env.AGENTS_HOME)
     : join(homedir(), ".agents");

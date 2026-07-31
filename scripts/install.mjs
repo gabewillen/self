@@ -8,8 +8,8 @@
  *   copy            Snapshot-copy skills (immutable install; no shared git tree)
  *
  * Living checkout default: ~/.agents/repos/gabewillen-agents
- * Override: GABE_AGENTS_LIVE_ROOT, --live-root <path>
- * Repo URL: GABE_AGENTS_REPO_URL (default github.com/gabewillen/agents.git)
+ * Override: SELF_AGENTS_LIVE_ROOT, --live-root <path>
+ * Repo URL: SELF_AGENTS_REPO_URL (default github.com/gabewillen/agents.git)
  *
  * Usage:
  *   node scripts/install.mjs
@@ -23,13 +23,13 @@
  *   node scripts/install.mjs --no-adapters
  *   node scripts/install.mjs --pull
  *   node scripts/install.mjs --verify-only   (md5 check installed copies; no write)
- *   GABE_AGENTS_INSTALL=0 npm i
- *   GABE_AGENTS_MODE=copy npm i
+ *   SELF_AGENTS_INSTALL=0 npm i
+ *   SELF_AGENTS_MODE=copy npm i
  *
  * Live branch (default): install creates/checks out a long-lived working branch
- * (live/<user>-<host>, override GABE_AGENTS_LIVE_BRANCH) that tracks origin's
+ * (live/<user>-<host>, override SELF_AGENTS_LIVE_BRANCH) that tracks origin's
  * default branch for sync. Push that branch and open a PR for global skill
- * changes; do not push straight to main. Set GABE_AGENTS_LIVE_BRANCH=0 to skip.
+ * changes; do not push straight to main. Set SELF_AGENTS_LIVE_BRANCH=0 to skip.
  *
  * Integrity: after every install (and on --verify-only), md5 every managed
  * script under the live/source skills root and require byte-identical md5 at
@@ -83,29 +83,29 @@ const explicitMdscriptRoot =
 // ~/.agents by default. --local puts it beside the project instead.
 const localState =
   args.includes("--local") ||
-  process.env.GABE_AGENTS_LOCAL === "1" ||
-  process.env.GABE_AGENTS_LOCAL === "true";
+  (process.env.SELF_AGENTS_LOCAL ?? process.env.GABE_AGENTS_LOCAL) === "1" ||
+  (process.env.SELF_AGENTS_LOCAL ?? process.env.GABE_AGENTS_LOCAL) === "true";
 const skipInstructions =
   args.includes("--no-instructions") ||
-  process.env.GABE_AGENTS_INSTRUCTIONS === "0";
+  (process.env.SELF_AGENTS_INSTRUCTIONS ?? process.env.GABE_AGENTS_INSTRUCTIONS) === "0";
 const skipMdscript =
   args.includes("--no-mdscript") ||
-  process.env.GABE_AGENTS_MDSCRIPT === "0" ||
-  process.env.GABE_AGENTS_MDSCRIPT === "false";
+  (process.env.SELF_AGENTS_MDSCRIPT ?? process.env.GABE_AGENTS_MDSCRIPT) === "0" ||
+  (process.env.SELF_AGENTS_MDSCRIPT ?? process.env.GABE_AGENTS_MDSCRIPT) === "false";
 const verifyOnly =
   args.includes("--verify-only") ||
-  process.env.GABE_AGENTS_VERIFY_ONLY === "1" ||
-  process.env.GABE_AGENTS_VERIFY_ONLY === "true";
+  (process.env.SELF_AGENTS_VERIFY_ONLY ?? process.env.GABE_AGENTS_VERIFY_ONLY) === "1" ||
+  (process.env.SELF_AGENTS_VERIFY_ONLY ?? process.env.GABE_AGENTS_VERIFY_ONLY) === "true";
 
-const modeEnv = (process.env.GABE_AGENTS_MODE || "").toLowerCase();
+const modeEnv = ((process.env.SELF_AGENTS_MODE ?? process.env.GABE_AGENTS_MODE) || "").toLowerCase();
 const mode = args.includes("--copy") || modeEnv === "copy"
   ? "copy"
   : args.includes("--live") || modeEnv === "live" || modeEnv === "" || modeEnv === "symlink"
     ? "live"
     : "live";
 
-if (process.env.GABE_AGENTS_INSTALL === "0" || process.env.GABE_AGENTS_INSTALL === "false") {
-  console.log("[gabe-agents] skip install (GABE_AGENTS_INSTALL=0)");
+if ((process.env.SELF_AGENTS_INSTALL ?? process.env.GABE_AGENTS_INSTALL) === "0" || (process.env.SELF_AGENTS_INSTALL ?? process.env.GABE_AGENTS_INSTALL) === "false") {
+  console.log("[self-agents] skip install (SELF_AGENTS_INSTALL=0)");
   process.exit(0);
 }
 
@@ -213,11 +213,12 @@ function isSymlink(path) {
 
 /**
  * Prefer the package checkout when it is already a git work tree of this project.
- * Else use GABE_AGENTS_LIVE_ROOT / --live-root / default clone path.
+ * Else use SELF_AGENTS_LIVE_ROOT / --live-root / default clone path.
  */
 function resolveLiveRoot() {
   if (explicitLiveRoot) return explicitLiveRoot;
-  if (process.env.GABE_AGENTS_LIVE_ROOT) return resolve(process.env.GABE_AGENTS_LIVE_ROOT);
+  const liveRootEnv = process.env.SELF_AGENTS_LIVE_ROOT || process.env.GABE_AGENTS_LIVE_ROOT;
+  if (liveRootEnv) return resolve(liveRootEnv);
 
   const pkgGit = gitTopLevel(pkgRoot);
   if (pkgGit) {
@@ -238,7 +239,7 @@ function sanitizeBranchPart(s) {
 
 /** Working branch for live skill edits (not main). */
 function resolveLiveBranchName() {
-  const raw = process.env.GABE_AGENTS_LIVE_BRANCH;
+  const raw = (process.env.SELF_AGENTS_LIVE_BRANCH ?? process.env.GABE_AGENTS_LIVE_BRANCH);
   if (raw === "0" || raw === "false" || raw === "off") return null;
   if (raw && raw.trim()) return raw.trim();
   let user = "local";
@@ -282,7 +283,7 @@ function withAutoStash(root, label, fn) {
   const dirty = gitIsDirty(root);
   let stashed = false;
   if (dirty) {
-    const msg = `gabe-agents autostash: ${label}`;
+    const msg = `self-agents autostash: ${label}`;
     const stash = trySh("git", [
       "-C",
       root,
@@ -294,10 +295,10 @@ function withAutoStash(root, label, fn) {
     ]);
     if (stash.ok) {
       stashed = true;
-      console.log(`[gabe-agents] autostash: stashed dirty tree for ${label}`);
+      console.log(`[self-agents] autostash: stashed dirty tree for ${label}`);
     } else {
       console.warn(
-        `[gabe-agents] autostash push failed (continuing dirty): ${stash.err || stash.out}`,
+        `[self-agents] autostash push failed (continuing dirty): ${stash.err || stash.out}`,
       );
     }
   }
@@ -308,10 +309,10 @@ function withAutoStash(root, label, fn) {
       const pop = trySh("git", ["-C", root, "stash", "pop"]);
       if (!pop.ok) {
         console.warn(
-          `[gabe-agents] autostash pop failed (your changes are in stash; run git stash list): ${pop.err || pop.out}`,
+          `[self-agents] autostash pop failed (your changes are in stash; run git stash list): ${pop.err || pop.out}`,
         );
       } else {
-        console.log(`[gabe-agents] autostash: restored dirty tree`);
+        console.log(`[self-agents] autostash: restored dirty tree`);
       }
     }
   }
@@ -341,7 +342,7 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
   const remotes = trySh("git", ["-C", root, "remote"]);
   if (remotes.ok && !remotes.out.split("\n").map((s) => s.trim()).includes("origin")) {
     const url =
-      process.env.GABE_AGENTS_REPO_URL ||
+      (process.env.SELF_AGENTS_REPO_URL ?? process.env.GABE_AGENTS_REPO_URL) ||
       process.env.npm_package_repository_url?.replace(/^git\+/, "") ||
       DEFAULT_REPO_URL;
     trySh("git", ["-C", root, "remote", "add", "origin", url]);
@@ -350,7 +351,7 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
   const fetch = trySh("git", ["-C", root, "fetch", "origin", "--prune"]);
   if (!fetch.ok) {
     console.warn(
-      `[gabe-agents] git fetch origin failed (continuing offline): ${fetch.err || fetch.out}`,
+      `[self-agents] git fetch origin failed (continuing offline): ${fetch.err || fetch.out}`,
     );
   }
 
@@ -382,7 +383,7 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
       if (localExists) {
         const co = trySh("git", ["-C", root, "checkout", branch]);
         if (!co.ok) {
-          console.warn(`[gabe-agents] checkout ${branch} failed: ${co.err}`);
+          console.warn(`[self-agents] checkout ${branch} failed: ${co.err}`);
           return { branch: currentBranch || null, base, action: "checkout-failed" };
         }
         action = "checkout";
@@ -396,7 +397,7 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
           `origin/${branch}`,
         ]);
         if (!co.ok) {
-          console.warn(`[gabe-agents] checkout origin/${branch} failed: ${co.err}`);
+          console.warn(`[self-agents] checkout origin/${branch} failed: ${co.err}`);
           return { branch: currentBranch || null, base, action: "checkout-failed" };
         }
         action = "checkout-remote";
@@ -409,12 +410,12 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
               : "HEAD";
         const co = trySh("git", ["-C", root, "checkout", "-b", branch, start]);
         if (!co.ok) {
-          console.warn(`[gabe-agents] create branch ${branch} failed: ${co.err}`);
+          console.warn(`[self-agents] create branch ${branch} failed: ${co.err}`);
           return { branch: currentBranch || null, base, action: "create-failed" };
         }
         action = "create";
         console.log(
-          `[gabe-agents] created live working branch ${branch} from ${start}`,
+          `[self-agents] created live working branch ${branch} from ${start}`,
         );
       }
     }
@@ -423,9 +424,9 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
     trySh("git", ["-C", root, "config", `branch.${branch}.merge`, `refs/heads/${base}`]);
     trySh("git", ["-C", root, "config", `branch.${branch}.remote`, "origin"]);
 
-    if (doPull || process.env.GABE_AGENTS_PULL === "1" || opts.sync) {
+    if (doPull || (process.env.SELF_AGENTS_PULL ?? process.env.GABE_AGENTS_PULL) === "1" || opts.sync) {
       console.log(
-        `[gabe-agents] sync ${branch} with origin/${base} (merge --ff-only, then merge)`,
+        `[self-agents] sync ${branch} with origin/${base} (merge --ff-only, then merge)`,
       );
       let sync = trySh("git", [
         "-C",
@@ -438,18 +439,18 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
         sync = trySh("git", ["-C", root, "merge", "--no-edit", `origin/${base}`]);
         if (!sync.ok) {
           console.warn(
-            `[gabe-agents] merge origin/${base} into ${branch} failed (resolve manually): ${sync.err}`,
+            `[self-agents] merge origin/${base} into ${branch} failed (resolve manually): ${sync.err}`,
           );
         } else {
-          console.log(`[gabe-agents] merged origin/${base} into ${branch}`);
+          console.log(`[self-agents] merged origin/${base} into ${branch}`);
         }
       } else {
-        console.log(`[gabe-agents] fast-forwarded ${branch} to origin/${base}`);
+        console.log(`[self-agents] fast-forwarded ${branch} to origin/${base}`);
       }
     }
 
     console.log(
-      `[gabe-agents] live branch: ${branch} (sync from origin/${base}; push this branch + open PR for global skill changes)`,
+      `[self-agents] live branch: ${branch} (sync from origin/${base}; push this branch + open PR for global skill changes)`,
     );
     return { branch, base, action, root };
   });
@@ -479,7 +480,7 @@ function installLiveGitHooks(liveRoot) {
   const src = join(pkgRoot, "scripts", "git-hooks", "post-commit");
   const dest = join(realHooks, "post-commit");
   if (!existsSync(src)) {
-    console.warn(`[gabe-agents] missing hook source ${src}`);
+    console.warn(`[self-agents] missing hook source ${src}`);
     return null;
   }
   if (dryRun) {
@@ -493,9 +494,9 @@ function installLiveGitHooks(liveRoot) {
     existing = "";
   }
   // Do not clobber an unrelated project hook unless we already own it.
-  if (existing && !existing.includes("gabe-agents:post-commit")) {
+  if (existing && !existing.includes("self-agents:post-commit")) {
     console.warn(
-      `[gabe-agents] leave existing post-commit hook in place (not gabe-managed): ${dest}`,
+      `[self-agents] leave existing post-commit hook in place (not self-managed): ${dest}`,
     );
     return null;
   }
@@ -506,13 +507,13 @@ function installLiveGitHooks(liveRoot) {
   } catch {
     // ignore
   }
-  console.log(`[gabe-agents] installed post-commit hook (live/* → push + PR): ${dest}`);
+  console.log(`[self-agents] installed post-commit hook (live/* → push + PR): ${dest}`);
   return dest;
 }
 
 function ensureLiveCheckout(liveRoot) {
   const repoUrl =
-    process.env.GABE_AGENTS_REPO_URL ||
+    (process.env.SELF_AGENTS_REPO_URL ?? process.env.GABE_AGENTS_REPO_URL) ||
     process.env.npm_package_repository_url?.replace(/^git\+/, "") ||
     DEFAULT_REPO_URL;
 
@@ -531,7 +532,7 @@ function ensureLiveCheckout(liveRoot) {
 
   if (existsSync(liveRoot) && isGitRepo(liveRoot)) {
     const branchMeta = ensureLiveWorkingBranch(liveRoot, {
-      sync: doPull || process.env.GABE_AGENTS_PULL === "1",
+      sync: doPull || (process.env.SELF_AGENTS_PULL ?? process.env.GABE_AGENTS_PULL) === "1",
     });
     installLiveGitHooks(liveRoot);
     return { liveRoot, repoUrl, action: "reuse", ...branchMeta };
@@ -549,7 +550,7 @@ function ensureLiveCheckout(liveRoot) {
   }
 
   // Clone fresh
-  console.log(`[gabe-agents] cloning ${repoUrl} -> ${liveRoot}`);
+  console.log(`[self-agents] cloning ${repoUrl} -> ${liveRoot}`);
   sh("git", ["clone", repoUrl, liveRoot], { stdio: ["ignore", "inherit", "inherit"] });
   const branchMeta = ensureLiveWorkingBranch(liveRoot, { sync: false });
   installLiveGitHooks(liveRoot);
@@ -564,12 +565,15 @@ function ensureLiveCheckout(liveRoot) {
  */
 function ensureMdscriptSkillsRoot() {
   if (skipMdscript) return null;
+  const mdscriptRootEnv =
+    process.env.SELF_AGENTS_MDSCRIPT_ROOT || process.env.GABE_AGENTS_MDSCRIPT_ROOT;
   const root =
     explicitMdscriptRoot ||
-    (process.env.GABE_AGENTS_MDSCRIPT_ROOT
-      ? resolve(process.env.GABE_AGENTS_MDSCRIPT_ROOT)
-      : DEFAULT_MDSCRIPT_ROOT);
-  const repoUrl = process.env.GABE_AGENTS_MDSCRIPT_REPO_URL || MDSCRIPT_REPO_URL;
+    (mdscriptRootEnv ? resolve(mdscriptRootEnv) : DEFAULT_MDSCRIPT_ROOT);
+  const repoUrl =
+    process.env.SELF_AGENTS_MDSCRIPT_REPO_URL ||
+    process.env.GABE_AGENTS_MDSCRIPT_REPO_URL ||
+    MDSCRIPT_REPO_URL;
   const skillsRoot = join(root, "skills");
 
   if (dryRun) {
@@ -580,23 +584,23 @@ function ensureMdscriptSkillsRoot() {
   }
 
   if (existsSync(root) && isGitRepo(root)) {
-    if (doPull || process.env.GABE_AGENTS_PULL === "1") {
+    if (doPull || (process.env.SELF_AGENTS_PULL ?? process.env.GABE_AGENTS_PULL) === "1") {
       const r = trySh("git", ["-C", root, "pull", "--ff-only"]);
       if (!r.ok) {
-        console.warn(`[gabe-agents] mdscript pull failed (using local tree)`);
+        console.warn(`[self-agents] mdscript pull failed (using local tree)`);
       }
     }
   } else if (existsSync(root)) {
     console.warn(
-      `[gabe-agents] mdscript root exists but is not a git repo: ${root}`,
+      `[self-agents] mdscript root exists but is not a git repo: ${root}`,
     );
   } else {
     ensureDir(dirname(root));
-    console.log(`[gabe-agents] cloning ${repoUrl} -> ${root}`);
+    console.log(`[self-agents] cloning ${repoUrl} -> ${root}`);
     const r = trySh("git", ["clone", "--depth", "1", repoUrl, root]);
     if (!r.ok) {
       console.warn(
-        `[gabe-agents] could not clone mdscript (${repoUrl}); ` +
+        `[self-agents] could not clone mdscript (${repoUrl}); ` +
           `mdscript-exec/mdscript-write not installed. ` +
           `Install them manually or re-run with network access.`,
       );
@@ -605,7 +609,7 @@ function ensureMdscriptSkillsRoot() {
   }
 
   if (!existsSync(skillsRoot)) {
-    console.warn(`[gabe-agents] no skills/ directory in ${root}`);
+    console.warn(`[self-agents] no skills/ directory in ${root}`);
     return null;
   }
   return skillsRoot;
@@ -649,11 +653,11 @@ function installSkillSymlink(src, dest) {
 
 /**
  * Required nested assets for skills that are more than SKILL.md.
- * Missing lane/rules files leave gabe-review "installed" but unable to select
+ * Missing lane/rules files leave self-review "installed" but unable to select
  * engineering or language lanes.
  */
 const REQUIRED_SKILL_ASSETS = {
-  "gabe-review": [
+  "self-review": [
     "SKILL.md",
     "workflows/select-review-lanes.md",
     "workflows/select-language-framework-lanes.md",
@@ -702,11 +706,11 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/blind-reviewers/eng-xstate.mdscript.md",
     "workflows/blind-reviewers/eng-sml.mdscript.md",
     "workflows/blind-reviewers/eng-hsm.mdscript.md",
-    // HSM pack (folded into gabe-review; not a top-level skill)
+    // HSM pack (folded into self-review; not a top-level skill)
     "hsm/SKILL.md",
     "hsm/workflows/triage.mdscript.md",
   ],
-  "gabe-implement": [
+  "self-implement": [
     "SKILL.md",
     "workflows/select-implementation-rules.md",
     "workflows/select-language-framework-rules.md",
@@ -716,21 +720,21 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/engineering-rules/impl-dbc.mdscript.md",
     "references/implementation-rules-catalog.md",
   ],
-  "gabe-watch": [
+  "self-watch": [
     "SKILL.md",
-    "assets/gabe-watch-ticker.sh",
+    "assets/self-watch-ticker.sh",
     "hooks/watch-lib.ts",
     "hooks/watch-stop.ts",
     "hooks/watch-session-start.ts",
     "adapters/cursor/hooks.json",
   ],
-  "gabe-common": [
+  "self-common": [
     "SKILL.md",
     "workflows/goal-mdscript.md",
     "workflows/file-task-comments.md",
     "workflows/update-living-skills.md",
     "workflows/load-operating-context.md",
-    "workflows/gabe-learn.mdscript.md",
+    "workflows/self-learn.mdscript.md",
     "hooks/learn-stop.ts",
     "hooks/learn-session-touch.ts",
     "hooks/learn-lib.ts",
@@ -765,14 +769,14 @@ function reportMissingSkillAssets(targetRoots, managedSkills) {
   }
   if (!missing.length) return [];
   console.error(
-    `[gabe-agents] BROKEN: ${missing.length} required skill asset(s) missing after install:`,
+    `[self-agents] BROKEN: ${missing.length} required skill asset(s) missing after install:`,
   );
   for (const m of missing.slice(0, 40)) console.error(`    - ${m}`);
   if (missing.length > 40) {
     console.error(`    … and ${missing.length - 40} more`);
   }
   console.error(
-    "[gabe-agents] re-run from a checkout that contains the multi-lane gabe-review tree, or use --copy from this package",
+    "[self-agents] re-run from a checkout that contains the multi-lane self-review tree, or use --copy from this package",
   );
   return missing;
 }
@@ -812,11 +816,11 @@ function reportBrokenSkillDirs(targetRoots, managedSkills) {
   }
   if (!broken.length) return;
   console.error(
-    `[gabe-agents] BROKEN: ${broken.length} skill dir(s) have no readable SKILL.md:`,
+    `[self-agents] BROKEN: ${broken.length} skill dir(s) have no readable SKILL.md:`,
   );
   for (const b of broken) console.error(`    - ${b}`);
   console.error(
-    "[gabe-agents] a symlinked skill needs its live root present on THIS machine; re-run install after fixing the source",
+    "[self-agents] a symlinked skill needs its live root present on THIS machine; re-run install after fixing the source",
   );
   return broken;
 }
@@ -1080,7 +1084,7 @@ function reportStaleGitPostCommit(liveRoot) {
     return stale;
   }
   // Only enforce when we own the hook.
-  if (!body.includes("gabe-agents:post-commit")) return stale;
+  if (!body.includes("self-agents:post-commit")) return stale;
   const actual = createHash("md5").update(body).digest("hex");
   if (actual !== expected) {
     stale.push({
@@ -1240,7 +1244,7 @@ function reportStaleHookCommandScripts(managedSkills, skillsRoot, sourceManifest
 function printStaleReport(stale) {
   if (!stale.length) return;
   console.error(
-    `[gabe-agents] STALE: ${stale.length} script integrity failure(s) (md5 / missing):`,
+    `[self-agents] STALE: ${stale.length} script integrity failure(s) (md5 / missing):`,
   );
   for (const s of stale.slice(0, 50)) {
     const where = s.dest || s.config || "?";
@@ -1258,7 +1262,7 @@ function printStaleReport(stale) {
     console.error(`    … and ${stale.length - 50} more`);
   }
   console.error(
-    "[gabe-agents] re-run: node scripts/install.mjs --live   (or --copy) to refresh destinations and hook paths",
+    "[self-agents] re-run: node scripts/install.mjs --live   (or --copy) to refresh destinations and hook paths",
   );
 }
 
@@ -1283,14 +1287,14 @@ function verifyScriptIntegrity({
   if (stale.length) printStaleReport(stale);
   else {
     console.log(
-      `[gabe-agents] script integrity ok (${scriptCount} source script(s), md5 match across ${targetRoots.length} skill root(s) + harness hooks)`,
+      `[self-agents] script integrity ok (${scriptCount} source script(s), md5 match across ${targetRoots.length} skill root(s) + harness hooks)`,
     );
   }
   return { sourceManifest, stale, ok: stale.length === 0, scriptCount };
 }
 
 function writeIntegrityReceipt(integrity, extra = {}) {
-  const markerPath = join(homedir(), ".agents", "gabe-agents-integrity.json");
+  const markerPath = join(homedir(), ".agents", "self-agents-integrity.json");
   const body = {
     verified_at: new Date().toISOString(),
     ok: integrity.ok,
@@ -1309,18 +1313,18 @@ function writeIntegrityReceipt(integrity, extra = {}) {
 }
 
 const ROUTER_DIRECTIVE =
-  "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before " +
+  "- ALWAYS enter through the `self` router skill. Run it first on every request, before " +
   "planning or answering, and let it choose the role: any parentless main agent is a root " +
-  "orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane " +
-  "MDScript); explicit routes cover gabe-watch, gabe-goal, gabe-automate, and gabe-learn " +
-  "(MDScript only); HSM is a gabe-review lane.";
-const ROUTER_BLOCK_START = "<!-- gabe-agents:router -->";
-const ROUTER_BLOCK_END = "<!-- /gabe-agents:router -->";
+  "orchestrator (self-orchestrate); subagents are self-implement (or a single blind-lane " +
+  "MDScript); explicit routes cover self-watch, self-goal, self-automate, and self-learn " +
+  "(MDScript only); HSM is a self-review lane.";
+const ROUTER_BLOCK_START = "<!-- self-agents:router -->";
+const ROUTER_BLOCK_END = "<!-- /self-agents:router -->";
 const ROUTER_BLOCK_RE =
-  /<!-- gabe-agents:router -->[\s\S]*?<!-- \/gabe-agents:router -->\n?/;
+  /<!-- self-agents:router -->[\s\S]*?<!-- \/self-agents:router -->\n?/;
 /** Pre-marker directive, so the first upgrade adopts it instead of duplicating it. */
 const LEGACY_DIRECTIVE_RE =
-  /^.*ALWAYS use (?:the )?[`'"]?gabe[`'"]? router skill.*$\n?/im;
+  /^.*ALWAYS use (?:the )?[`'"]?(?:gabe|self)[`'"]? router skill.*$\n?/im;
 
 /**
  * Global instruction files, by agent home. ~/.agents/AGENTS.md is ours and is
@@ -1340,7 +1344,7 @@ const INSTRUCTION_TARGETS = [
 /**
  * Rewrite the managed block in place when its wording has changed, so an
  * install that reworded the directive actually reaches existing users. Matching
- * on "some gabe-router text is present" would pin everyone to whatever they
+ * on "some self-router text is present" would pin everyone to whatever they
  * installed first.
  */
 function applyRouterDirective(existing, block) {
@@ -1390,7 +1394,7 @@ function ensureRouterDirective() {
 /**
  * Put agent-home.mjs where the skills say it is.
  *
- * gabe-common tells agents to run `{{skills_root}}/../scripts/agent-home.mjs`.
+ * self-common tells agents to run `{{skills_root}}/../scripts/agent-home.mjs`.
  * Installed, {{skills_root}} is ~/.cursor/skills or similar, so the script has
  * to exist at ~/.cursor/scripts — it never did, only in the checkout. The
  * command failed, the agent fell back to deriving the slug by hand, and a
@@ -1408,7 +1412,7 @@ function installAgentHomeScript(targetRoot, skillsRoot) {
 }
 
 /** Top-level skill dirs this pack used to ship and must uninstall. */
-const RETIRED_SKILLS = ["gabe-hsm-review"];
+const RETIRED_SKILLS = ["self-hsm-review", "gabe", "gabe-automate", "gabe-common", "gabe-goal", "gabe-implement", "gabe-orchestrate", "gabe-review", "gabe-unwatch", "gabe-voice", "gabe-watch", "gabe-hsm-review"];
 
 function removeRetiredSkills(targetRoot) {
   const removed = [];
@@ -1422,7 +1426,7 @@ function removeRetiredSkills(targetRoot) {
     }
     removePath(dest);
     removed.push(dest);
-    console.log(`[gabe-agents] removed retired skill ${dest}`);
+    console.log(`[self-agents] removed retired skill ${dest}`);
   }
   return removed;
 }
@@ -1436,7 +1440,7 @@ function installInto(targetRoot, skills, skillsRoot) {
     const src = join(skillsRoot, skill);
     const dest = join(targetRoot, skill);
     if (!existsSync(join(src, "SKILL.md"))) {
-      console.warn(`[gabe-agents] skip missing skill source ${src}`);
+      console.warn(`[self-agents] skip missing skill source ${src}`);
       continue;
     }
     if (mode === "live") installSkillSymlink(src, dest);
@@ -1577,8 +1581,8 @@ function mergeNestedHooks({ skillInstallDir, manifest, runtime, targetPath }) {
   }
 
   existing.metadata = existing.metadata || {};
-  existing.metadata["gabe-agents"] = {
-    ...(existing.metadata["gabe-agents"] || {}),
+  existing.metadata["self-agents"] = {
+    ...(existing.metadata["self-agents"] || {}),
     [manifest.skill]: {
       updated_at: new Date().toISOString(),
       adapter: manifest.adapter,
@@ -1660,7 +1664,7 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
     }
   }
 
-  const managedPrefix = `gabe-agents:${manifest.skill}:`;
+  const managedPrefix = `self-agents:${manifest.skill}:`;
   let added = 0;
   let replaced = 0;
 
@@ -1709,8 +1713,8 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
   }
 
   existing.metadata = existing.metadata || {};
-  existing.metadata["gabe-agents"] = {
-    ...(existing.metadata["gabe-agents"] || {}),
+  existing.metadata["self-agents"] = {
+    ...(existing.metadata["self-agents"] || {}),
     [manifest.skill]: {
       updated_at: new Date().toISOString(),
       adapter: "cursor",
@@ -1748,7 +1752,7 @@ function installGenericAdapterFiles({ skill, adapter, dir, primarySkillRoot }) {
     // Check the source FIRST: creating the destination for a missing source
     // leaves an empty skill directory that looks installed but has no SKILL.md.
     if (!existsSync(from)) {
-      console.warn(`[gabe-agents] adapter source missing, skipping: ${from}`);
+      console.warn(`[self-agents] adapter source missing, skipping: ${from}`);
       continue;
     }
     ensureDir(dirname(to));
@@ -1774,7 +1778,7 @@ function preferCursorSkillRoot(skillRoots) {
 
 function installAdapters(skills, skillRoots, skillsRoot) {
   if (noAdapters) {
-    console.log("[gabe-agents] skip adapters (--no-adapters)");
+    console.log("[self-agents] skip adapters (--no-adapters)");
     return { adapters: [] };
   }
 
@@ -1826,7 +1830,7 @@ function installAdapters(skills, skillRoots, skillsRoot) {
       });
       entry.actions.push({ type: "cursor-hooks", runtime, ...result });
       console.log(
-        `[gabe-agents] cursor hooks for ${skill}: +${result.added} replaced~${result.replaced} -> ${result.hooksPath} (runtime ${runtime.path})`,
+        `[self-agents] cursor hooks for ${skill}: +${result.added} replaced~${result.replaced} -> ${result.hooksPath} (runtime ${runtime.path})`,
       );
     } else if (manifestPath && NESTED_HOOK_TARGETS[readJson(manifestPath, {})?.target]) {
       const manifest = { ...readJson(manifestPath, {}), skill, adapter };
@@ -1834,7 +1838,7 @@ function installAdapters(skills, skillRoots, skillsRoot) {
       const harnessHome = join(homedir(), target.home);
       if (!existsSync(harnessHome)) {
         entry.actions.push({ type: "skipped", note: `${target.home} not installed` });
-        console.log(`[gabe-agents] adapter ${skill}/${adapter}: skipped, no ${target.home}`);
+        console.log(`[self-agents] adapter ${skill}/${adapter}: skipped, no ${target.home}`);
         report.push(entry);
         continue;
       }
@@ -1855,7 +1859,7 @@ function installAdapters(skills, skillRoots, skillsRoot) {
       });
       entry.actions.push({ type: `${adapter}-hooks`, runtime, ...result });
       console.log(
-        `[gabe-agents] ${adapter} hooks for ${skill}: +${result.added} replaced~${result.replaced} -> ${result.hooksPath} (runtime ${runtime.path})`,
+        `[self-agents] ${adapter} hooks for ${skill}: +${result.added} replaced~${result.replaced} -> ${result.hooksPath} (runtime ${runtime.path})`,
       );
     } else if (adapter !== "cursor") {
       entry.actions.push({
@@ -1863,7 +1867,7 @@ function installAdapters(skills, skillRoots, skillsRoot) {
         note: `adapter '${adapter}' files ship inside skill; add adapters/${adapter}/install.json for extra side installs`,
       });
       console.log(
-        `[gabe-agents] adapter ${skill}/${adapter}: shipped with skill (no special wiring)`,
+        `[self-agents] adapter ${skill}/${adapter}: shipped with skill (no special wiring)`,
       );
     }
 
@@ -1890,14 +1894,14 @@ function writeLiveMarker(liveRoot, skills, liveMeta = {}) {
           `  # post-commit hook pushes ${branch} and opens/updates PR into ${base}`
         : `git -C ${liveRoot} add -A && git -C ${liveRoot} commit && git -C ${liveRoot} push`,
       pr: branch
-        ? `automatic on commit via .git/hooks/post-commit (disable: GABE_AGENTS_SKIP_PR_HOOK=1); base ${base} head ${branch}`
+        ? `automatic on commit via .git/hooks/post-commit (disable: SELF_AGENTS_SKIP_PR_HOOK=1); base ${base} head ${branch}`
         : `open a PR against ${base} (do not push global skill changes straight to ${base})`,
       sync: `node ${join(pkgRoot, "scripts/install.mjs")} --live --pull`,
       re_symlink: `node ${join(pkgRoot, "scripts/install.mjs")} --live`,
       project_rules: `project-specific rules go in <repo>/.agents/ (not the global pack)`,
     },
   };
-  const markerPath = join(homedir(), ".agents", "gabe-agents-live.json");
+  const markerPath = join(homedir(), ".agents", "self-agents-live.json");
   writeJson(markerPath, marker);
   return markerPath;
 }
@@ -1917,7 +1921,7 @@ if (mode === "live") {
         action: "pkg-root",
         repoUrl: "local-package",
         ...ensureLiveWorkingBranch(pkgRoot, {
-          sync: doPull || process.env.GABE_AGENTS_PULL === "1",
+          sync: doPull || (process.env.SELF_AGENTS_PULL ?? process.env.GABE_AGENTS_PULL) === "1",
         }),
       };
       installLiveGitHooks(pkgRoot);
@@ -1932,7 +1936,7 @@ if (mode === "live") {
 const skillsRoot = skillsRootForMode(liveRoot);
 const skills = listSkillDirs(skillsRoot);
 if (skills.length === 0) {
-  console.error(`[gabe-agents] no skills found under ${skillsRoot}`);
+  console.error(`[self-agents] no skills found under ${skillsRoot}`);
   const staleRoots = explicitTarget ? [explicitTarget] : detectAgentSkillRoots();
   reportBrokenSkillDirs(staleRoots, []);
   process.exit(1);
@@ -1944,7 +1948,7 @@ const targets = explicitTarget ? [explicitTarget] : detectAgentSkillRoots();
 // do not write skills, hooks, or markers.
 if (verifyOnly) {
   console.log(
-    `[gabe-agents] verify-only: source=${skillsRoot} targets=${targets.length} skills=${skills.length}`,
+    `[self-agents] verify-only: source=${skillsRoot} targets=${targets.length} skills=${skills.length}`,
   );
   const integrityRoots = [...targets];
   // When scanning default agent homes (no --target), also cover the Cursor
@@ -1967,14 +1971,14 @@ if (verifyOnly) {
     targets,
     verify_only: true,
   });
-  console.log(`[gabe-agents] integrity receipt: ${integrityPath}`);
+  console.log(`[self-agents] integrity receipt: ${integrityPath}`);
   if (!integrity.ok) {
     console.error(
-      `[gabe-agents] verify failed: ${integrity.stale.length} stale/missing script(s)`,
+      `[self-agents] verify failed: ${integrity.stale.length} stale/missing script(s)`,
     );
     process.exit(1);
   }
-  console.log("[gabe-agents] verify-only: all managed scripts match source md5");
+  console.log("[self-agents] verify-only: all managed scripts match source md5");
   process.exit(0);
 }
 
@@ -2005,19 +2009,19 @@ if (!dryRun) {
   // Warn about any unreadable skill dirs (including third-party dangling links).
   brokenSkills = reportBrokenSkillDirs(targets, skills) || [];
   // Hard-fail only when THIS pack's required nested assets are incomplete —
-  // e.g. gabe-review without engineering-rules / eng-* lanes.
+  // e.g. self-review without engineering-rules / eng-* lanes.
   missingAssets = reportMissingSkillAssets(targets, skills) || [];
   const managedBroken = brokenSkills.filter((b) =>
     skills.some((s) => b.includes(`/${s}`) || b.includes(`/${s} `) || b.endsWith(`/${s}`)),
   );
   if (missingAssets.length || managedBroken.length) {
     console.error(
-      `[gabe-agents] install incomplete: ${managedBroken.length} managed broken skill dir(s), ${missingAssets.length} missing asset(s)`,
+      `[self-agents] install incomplete: ${managedBroken.length} managed broken skill dir(s), ${missingAssets.length} missing asset(s)`,
     );
     process.exit(1);
   }
   console.log(
-    `[gabe-agents] asset integrity ok (${skills.length} skills, gabe-review multi-lane assets present)`,
+    `[self-agents] asset integrity ok (${skills.length} skills, self-review multi-lane assets present)`,
   );
 
   // md5 every managed script at every skill root, harness hook command path,
@@ -2045,32 +2049,32 @@ if (!dryRun) {
   });
   if (!scriptIntegrity.ok) {
     console.error(
-      `[gabe-agents] install incomplete: ${scriptIntegrity.stale.length} stale/missing script md5 mismatch(es)`,
+      `[self-agents] install incomplete: ${scriptIntegrity.stale.length} stale/missing script md5 mismatch(es)`,
     );
-    console.error(`[gabe-agents] integrity receipt: ${integrityPath}`);
+    console.error(`[self-agents] integrity receipt: ${integrityPath}`);
     process.exit(1);
   }
-  console.log(`[gabe-agents] integrity receipt: ${integrityPath}`);
+  console.log(`[self-agents] integrity receipt: ${integrityPath}`);
 }
 
 let instructionReport = [];
 if (localState) {
   console.log(
-    "[gabe-agents] --local: skipping the global router directive; add it to this project's AGENTS.md yourself",
+    "[self-agents] --local: skipping the global router directive; add it to this project's AGENTS.md yourself",
   );
 } else if (skipInstructions) {
-  console.log("[gabe-agents] skipping the router directive (--no-instructions)");
+  console.log("[self-agents] skipping the router directive (--no-instructions)");
 } else {
   instructionReport = ensureRouterDirective();
   const changed = instructionReport.filter((r) => r.action !== "present");
   if (changed.length) {
     console.log(
-      `[gabe-agents] router directive ${dryRun ? "would be written to" : "written to"} ${changed.length} file(s):`,
+      `[self-agents] router directive ${dryRun ? "would be written to" : "written to"} ${changed.length} file(s):`,
     );
     for (const r of changed) console.log(`    - ${r.path} (${r.action})`);
   } else {
     console.log(
-      `[gabe-agents] router directive already present in ${instructionReport.length} instruction file(s)`,
+      `[self-agents] router directive already present in ${instructionReport.length} instruction file(s)`,
     );
   }
 }
@@ -2116,45 +2120,45 @@ if (!dryRun) {
 
 if (localState) {
   console.log(
-    "[gabe-agents] --local: agent state goes under <repo>/.agents (export GABE_AGENTS_LOCAL=1 for hooks and skills)",
+    "[self-agents] --local: agent state goes under <repo>/.agents (export SELF_AGENTS_LOCAL=1 for hooks and skills)",
   );
 } else {
   console.log(
-    "[gabe-agents] agent state under ~/.agents (or $AGENTS_HOME); working repositories stay clean",
+    "[self-agents] agent state under ~/.agents (or $AGENTS_HOME); working repositories stay clean",
   );
 }
 
 if (mdscriptSkills.length) {
   console.log(
-    `[gabe-agents] + ${mdscriptSkills.length} mdscript skills from ${mdscriptSkillsRoot}`,
+    `[self-agents] + ${mdscriptSkills.length} mdscript skills from ${mdscriptSkillsRoot}`,
   );
 } else if (!skipMdscript) {
   console.warn(
-    `[gabe-agents] mdscript-exec/mdscript-write not installed — every skill header requires mdscript-exec`,
+    `[self-agents] mdscript-exec/mdscript-write not installed — every skill header requires mdscript-exec`,
   );
 }
 
 console.log(
-  `[gabe-agents] mode=${mode} installed ${skills.length + mdscriptSkills.length} skills into ${Object.keys(results).length} target(s)`,
+  `[self-agents] mode=${mode} installed ${skills.length + mdscriptSkills.length} skills into ${Object.keys(results).length} target(s)`,
 );
 if (mode === "live") {
-  console.log(`[gabe-agents] live root: ${liveRoot}`);
+  console.log(`[self-agents] live root: ${liveRoot}`);
   if (liveMeta?.branch) {
     console.log(
-      `[gabe-agents] live branch: ${liveMeta.branch} (sync origin/${liveMeta.base || "main"} via --pull; push branch + open PR for global skill changes)`,
+      `[self-agents] live branch: ${liveMeta.branch} (sync origin/${liveMeta.base || "main"} via --pull; push branch + open PR for global skill changes)`,
     );
     console.log(
-      `[gabe-agents] edit skills in-place, then: git -C ${liveRoot} add -A && git commit && git push -u origin ${liveMeta.branch}`,
+      `[self-agents] edit skills in-place, then: git -C ${liveRoot} add -A && git commit && git push -u origin ${liveMeta.branch}`,
     );
     console.log(
-      `[gabe-agents] open PR: gh pr create --base ${liveMeta.base || "main"} --head ${liveMeta.branch}`,
+      `[self-agents] open PR: gh pr create --base ${liveMeta.base || "main"} --head ${liveMeta.branch}`,
     );
   } else {
     console.log(
-      `[gabe-agents] edit skills in-place, then: git -C ${liveRoot} commit && git push (prefer a PR into main)`,
+      `[self-agents] edit skills in-place, then: git -C ${liveRoot} commit && git push (prefer a PR into main)`,
     );
   }
-  if (markerPath) console.log(`[gabe-agents] live marker: ${markerPath}`);
+  if (markerPath) console.log(`[self-agents] live marker: ${markerPath}`);
 }
 for (const [target, paths] of Object.entries(results)) {
   console.log(`  ${target}`);
@@ -2174,7 +2178,7 @@ for (const [target, paths] of Object.entries(results)) {
 
 try {
   const pkg = JSON.parse(readFileSync(join(pkgRoot, "package.json"), "utf8"));
-  console.log(`[gabe-agents] package ${pkg.name}@${pkg.version}`);
+  console.log(`[self-agents] package ${pkg.name}@${pkg.version}`);
 } catch {
   // ignore
 }

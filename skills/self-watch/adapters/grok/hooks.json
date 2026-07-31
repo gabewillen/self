@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "adapter": "grok",
+  "skill": "self-watch",
+  "target": "grok-hooks",
+  "runtime": "bun",
+  "runtimeFallbacks": [
+    "bun",
+    "node"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "id": "self-watch-session-start",
+        "script": "../../hooks/watch-session-start.ts"
+      }
+    ],
+    "Stop": [
+      {
+        "id": "self-watch-stop",
+        "script": "../../hooks/watch-stop.ts",
+        "timeout": 120
+      }
+    ]
+  },
+  "replaceLegacyCommands": [
+    "skills/self-watch/hooks/watch-stop.ts",
+    "skills/self-watch/hooks/watch-session-start.ts",
+    "skills/gabe-watch/hooks/watch-stop.ts",
+    "skills/gabe-watch/hooks/watch-session-start.ts",
+    "skills/gabe-watch/",
+    "skills/gabe-watch/hooks/",
+    "skills/self-watch/hooks/"
+  ]
+}

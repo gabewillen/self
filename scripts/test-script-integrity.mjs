@@ -26,7 +26,7 @@ const install = join(pkgRoot, "scripts", "install.mjs");
 const learnStop = join(
   pkgRoot,
   "skills",
-  "gabe-common",
+  "self-common",
   "hooks",
   "learn-stop.ts",
 );
@@ -41,8 +41,8 @@ if (!existsSync(learnStop)) {
 }
 
 const expected = md5(learnStop);
-const root = mkdtempSync(join(tmpdir(), "gabe-integrity-"));
-const skillHooks = join(root, "gabe-common", "hooks");
+const root = mkdtempSync(join(tmpdir(), "self-integrity-"));
+const skillHooks = join(root, "self-common", "hooks");
 mkdirSync(skillHooks, { recursive: true });
 cpSync(learnStop, join(skillHooks, "learn-stop.ts"));
 writeFileSync(join(skillHooks, "learn-stop.ts"), "// deliberately stale\n", "utf8");

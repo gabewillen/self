@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "adapter": "grok",
+  "skill": "self-common",
+  "target": "grok-hooks",
+  "runtime": "bun",
+  "runtimeFallbacks": [
+    "bun",
+    "node"
+  ],
+  "hooks": {
+    "Stop": [
+      {
+        "id": "self-learn-stop",
+        "script": "../../hooks/learn-stop.ts",
+        "timeout": 120
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "id": "self-learn-session-touch",
+        "script": "../../hooks/learn-session-touch.ts"
+      }
+    ]
+  },
+  "replaceLegacyCommands": [
+    "skills/self-learn/",
+    "skills/self-common/hooks/learn-stop.ts",
+    "skills/gabe-learn/",
+    "skills/gabe-common/hooks/learn-stop.ts",
+    "skills/gabe-common/",
+    "skills/gabe-common/hooks/",
+    "skills/self-common/hooks/"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "adapter": "codex",
+  "skill": "self-goal",
+  "target": "codex-hooks",
+  "runtime": "bun",
+  "runtimeFallbacks": [
+    "bun",
+    "node"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "id": "self-goal-session-start",
+        "script": "../../hooks/goal-session-start.ts"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "id": "self-goal-session-touch",
+        "script": "../../hooks/goal-session-touch.ts"
+      }
+    ],
+    "Stop": [
+      {
+        "id": "self-goal-stop",
+        "script": "../../hooks/goal-stop.ts",
+        "timeout": 600
+      }
+    ]
+  },
+  "replaceLegacyCommands": [
+    "skills/goal/scripts/goal-session-start.ts",
+    "skills/goal/scripts/goal-session-touch.ts",
+    "skills/goal/scripts/goal-stop.ts",
+    "skills/self-goal/scripts/cursor-hooks/",
+    "skills/self-goal/adapters/cursor/",
+    "skills/gabe-goal/scripts/cursor-hooks/",
+    "skills/gabe-goal/adapters/cursor/",
+    "skills/gabe-goal/",
+    "skills/gabe-goal/hooks/",
+    "skills/self-goal/hooks/"
+  ]
+}

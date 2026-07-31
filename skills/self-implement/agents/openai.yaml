@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Implement"
+  short_description: "Write/edit worker"
+  default_prompt: "ALWAYS use $self-implement when writing or editing anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. Select a task-appropriate model and effort level, state the scoped DBC claim and proof boundaries, apply selected engineering-rules packs, write executable MDScript control records under ~/.agents/projects/project-name/, prove with real paths, compose multi-lane review in-process with per-lane blind fanout only, and report before stopping."

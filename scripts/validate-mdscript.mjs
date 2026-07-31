@@ -84,7 +84,7 @@ for (const { text } of parsed.values()) {
 // Values a caller or runtime supplies rather than a state setting them.
 const INHERITED = new Set([
   "repo_root", "parent_agent", "parent_reporting_path", "project_name", "skill_root",
-  "gabe_role", "conversation_id", "run_id", "run_dir", "session_dir", "goal_text",
+  "self_role", "conversation_id", "run_id", "run_dir", "session_dir", "goal_text",
   "workflow", "home", "task_id", "lane_id", "issue_or_mr", "watched_target",
 ]);
 

@@ -1,7 +1,7 @@
 {
   "name": "@gabewillen/agents",
   "version": "0.1.0",
-  "description": "MDScript agent skills pack (gabe-*, gabe-common) installable via npm and npx skills",
+  "description": "MDScript agent skills pack (self-*, self-common) installable via npm and npx skills",
   "license": "MIT",
   "type": "module",
   "private": false,
@@ -19,7 +19,7 @@
     "agentskills",
     "ai-agent-skill",
     "mdscript",
-    "gabe",
+    "self",
     "skills"
   ],
   "files": [
@@ -30,7 +30,7 @@
     "LICENSE"
   ],
   "bin": {
-    "gabe-agents": "./scripts/install.mjs"
+    "self-agents": "./scripts/install.mjs"
   },
   "scripts": {
     "postinstall": "node ./scripts/install.mjs --live",
@@ -40,10 +40,10 @@
     "install-skills:pull": "node ./scripts/install.mjs --live --pull",
     "install-skills:no-adapters": "node ./scripts/install.mjs --live --no-adapters",
     "pack:check": "npm pack --dry-run",
-    "test": "node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs && node scripts/test-gabe-review-install.mjs && node scripts/test-gabe-implement-install.mjs",
+    "test": "node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs && node scripts/test-self-review-install.mjs && node scripts/test-self-implement-install.mjs",
     "validate": "node scripts/validate-mdscript.mjs",
-    "test:install-review": "node scripts/test-gabe-review-install.mjs",
-    "test:install-implement": "node scripts/test-gabe-implement-install.mjs"
+    "test:install-review": "node scripts/test-self-review-install.mjs",
+    "test:install-implement": "node scripts/test-self-implement-install.mjs"
   },
   "engines": {
     "node": ">=18"
@@ -51,101 +51,101 @@
   "agents": {
     "skills": [
       {
-        "name": "gabe",
-        "path": "./skills/gabe"
+        "name": "self",
+        "path": "./skills/self"
       },
       {
-        "name": "gabe-automate",
-        "path": "./skills/gabe-automate"
+        "name": "self-automate",
+        "path": "./skills/self-automate"
       },
       {
-        "name": "gabe-common",
-        "path": "./skills/gabe-common"
+        "name": "self-common",
+        "path": "./skills/self-common"
       },
       {
-        "name": "gabe-goal",
-        "path": "./skills/gabe-goal"
+        "name": "self-goal",
+        "path": "./skills/self-goal"
       },
       {
-        "name": "gabe-implement",
-        "path": "./skills/gabe-implement"
+        "name": "self-implement",
+        "path": "./skills/self-implement"
       },
       {
-        "name": "gabe-orchestrate",
-        "path": "./skills/gabe-orchestrate"
+        "name": "self-orchestrate",
+        "path": "./skills/self-orchestrate"
       },
       {
-        "name": "gabe-review",
-        "path": "./skills/gabe-review"
+        "name": "self-review",
+        "path": "./skills/self-review"
       },
       {
-        "name": "gabe-unwatch",
-        "path": "./skills/gabe-unwatch"
+        "name": "self-unwatch",
+        "path": "./skills/self-unwatch"
       },
       {
-        "name": "gabe-voice",
-        "path": "./skills/gabe-voice"
+        "name": "self-voice",
+        "path": "./skills/self-voice"
       },
       {
-        "name": "gabe-watch",
-        "path": "./skills/gabe-watch"
+        "name": "self-watch",
+        "path": "./skills/self-watch"
       }
     ]
   },
   "agentskills": {
     "skills": [
       {
-        "name": "gabe",
-        "path": "./skills/gabe"
+        "name": "self",
+        "path": "./skills/self"
       },
       {
-        "name": "gabe-automate",
-        "path": "./skills/gabe-automate"
+        "name": "self-automate",
+        "path": "./skills/self-automate"
       },
       {
-        "name": "gabe-common",
-        "path": "./skills/gabe-common"
+        "name": "self-common",
+        "path": "./skills/self-common"
       },
       {
-        "name": "gabe-goal",
-        "path": "./skills/gabe-goal"
+        "name": "self-goal",
+        "path": "./skills/self-goal"
       },
       {
-        "name": "gabe-implement",
-        "path": "./skills/gabe-implement"
+        "name": "self-implement",
+        "path": "./skills/self-implement"
       },
       {
-        "name": "gabe-orchestrate",
-        "path": "./skills/gabe-orchestrate"
+        "name": "self-orchestrate",
+        "path": "./skills/self-orchestrate"
       },
       {
-        "name": "gabe-review",
-        "path": "./skills/gabe-review"
+        "name": "self-review",
+        "path": "./skills/self-review"
       },
       {
-        "name": "gabe-unwatch",
-        "path": "./skills/gabe-unwatch"
+        "name": "self-unwatch",
+        "path": "./skills/self-unwatch"
       },
       {
-        "name": "gabe-voice",
-        "path": "./skills/gabe-voice"
+        "name": "self-voice",
+        "path": "./skills/self-voice"
       },
       {
-        "name": "gabe-watch",
-        "path": "./skills/gabe-watch"
+        "name": "self-watch",
+        "path": "./skills/self-watch"
       }
     ]
   },
   "aiAgentSkill": [
-    "skills/gabe-automate/SKILL.md",
-    "skills/gabe-common/SKILL.md",
-    "skills/gabe-goal/SKILL.md",
-    "skills/gabe-implement/SKILL.md",
-    "skills/gabe-orchestrate/SKILL.md",
-    "skills/gabe-review/SKILL.md",
-    "skills/gabe-unwatch/SKILL.md",
-    "skills/gabe-voice/SKILL.md",
-    "skills/gabe-watch/SKILL.md",
-    "skills/gabe/SKILL.md"
+    "skills/self-automate/SKILL.md",
+    "skills/self-common/SKILL.md",
+    "skills/self-goal/SKILL.md",
+    "skills/self-implement/SKILL.md",
+    "skills/self-orchestrate/SKILL.md",
+    "skills/self-review/SKILL.md",
+    "skills/self-unwatch/SKILL.md",
+    "skills/self-voice/SKILL.md",
+    "skills/self-watch/SKILL.md",
+    "skills/self/SKILL.md"
   ]
 }
