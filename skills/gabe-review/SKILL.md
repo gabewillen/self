@@ -47,8 +47,8 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
 * if broader judgment, delegation, permission, or coordination is needed
   * run `/mdscript-exec {{repo_root}}/skills/gabe/SKILL.md`
 
-* if the current request is a durable human correction about how reviewers must judge, falsify, or grade
-  * set `{{correction_source}}` to that correction
+* if the current request is a durable **user** correction about how reviewers must judge, falsify, or grade
+  * set `{{correction_source}}` to a quote of the user's words only
   * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)
 
 * use this skill to falsify readiness, not to rubber-stamp the author's narrative
@@ -206,6 +206,4 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * report the stop reason, final scoped grade, `proof_not_claimed`, and exact `cleanup_status=...` or cleanup blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before the reviewer is closed
   * include the reviewer thread or subagent cleanup status expected from the parent as the literal `cleanup_status` field
 * never bury a failed correction pattern in a summary
-* if a failed correction pattern or durable review-policy gap remains after the verdict
-  * set `{{correction_source}}` to that pattern or gap
-  * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)
+* do not run Update Living Skills from reviewer-invented gaps; only the user's own durable corrections may update skills

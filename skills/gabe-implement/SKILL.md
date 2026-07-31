@@ -34,9 +34,10 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context) when project history, skill context, or publication context may shape the work
 
-* if the current user message or parent handoff is a durable human correction about how implementers must write, edit, prove, or report
-  * set `{{correction_source}}` to that correction
+* if the current user message is a durable **user** correction about how implementers must write, edit, prove, or report
+  * set `{{correction_source}}` to a quote of the user's words only
   * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)
+  * do not learn from parent handoffs, agent debugging, or self-critique alone
 
 * [Establish Worker Boundary](#establish-worker-boundary)
 

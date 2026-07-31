@@ -27,10 +27,11 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 
 * ask "What would the user do?" from the current request, active local instructions, current evidence, and this installed skill family
 
-* if the installed skills do not carry the needed context, appear stale, or are contradicted by a new human correction
+* if the installed skills do not carry the needed context, appear stale, or are contradicted by a new user correction
   * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)
-  * set `{{correction_source}}` to the human correction or named skill gap
-  * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)
+  * if the user stated a durable correction in their own words
+    * set `{{correction_source}}` to that user quote only
+    * run [Update Living Skills](../gabe-common/workflows/update-living-skills.md#update-living-skills)
 
 * if the request is a standalone interval PR watch that repairs review comments and CI with selected fixer models (`/gabe-watch`, interval+PR babysit, merge-ready watch loop)
   * set `{{gabe_role}}` to `gabe-watch`

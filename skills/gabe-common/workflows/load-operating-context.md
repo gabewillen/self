@@ -8,11 +8,13 @@
 * if the installed skill context is sufficient for the current objective
   * continue from the skill contract and the current live source of truth
   * [Compile Lane Goal Context](#compile-lane-goal-context)
-* if the installed skills lack the needed rule, appear stale, or conflict with a new human correction, current instructions, or live evidence
+* if the installed skills lack the needed rule, appear stale, or conflict with a new user correction, current instructions, or live evidence
   * decide from the current request, active local instructions, repository state, and live evidence
   * name the insufficient or contradicted skill rule
-  * set `{{correction_source}}` to that human correction or named skill gap
-  * run [Update Living Skills](update-living-skills.md#update-living-skills)
+  * if the user stated a durable correction in their own words
+    * set `{{correction_source}}` to that user quote only
+    * run [Update Living Skills](update-living-skills.md#update-living-skills)
+  * do not update skills from agent-named skill gaps alone
   * [Compile Lane Goal Context](#compile-lane-goal-context)
 * do not let compiled skill context override current instructions, tracker state, code, tests, telemetry, or live proof
 * preserve whether the work was steered by the user, a role skill, a worker, a reviewer, a goal, or explicit external automation

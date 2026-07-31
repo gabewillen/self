@@ -2,11 +2,15 @@
 
 ## Update Living Skills
 
-* set `{{correction_source}}` from the current user message, human correction, named skill gap, failed correction pattern, or file comment that changes how future agents must behave
+* set `{{correction_source}}` only from a **direct user** message, explicit user correction, or user-authored instruction that changes how future agents must behave
+* never set `{{correction_source}}` from the agent's own analysis, debugging, tool logs, model failures, self-critique, evaluation design, or inferred lessons
 * if `{{correction_source}}` is empty
   * return to the caller
-* set `{{correction_kind}}` to one of `new-rule`, `strengthen`, `disambiguate`, `scope-boundary`, or `remove-ambiguity` from the correction
-* set `{{skill_update_summary}}` to one sentence that restates the durable rule without chat-only phrasing
+* if `{{correction_source}}` is not a quote or close paraphrase of user words from this turn
+  * record that the candidate is not user-sourced
+  * return to the caller without editing skills
+* set `{{correction_kind}}` to one of `new-rule`, `strengthen`, `disambiguate`, `scope-boundary`, or `remove-ambiguity` from the **user's** correction
+* set `{{skill_update_summary}}` to one sentence that restates only the durable rule the **user** stated, without adding agent-invented rules
 * if the correction is only one-off task direction for this lane and does not change future agent behavior
   * record that no living skill update is needed
   * return to the caller
@@ -95,7 +99,8 @@
   * add one discrete action bullet or linked workflow step in the owning state, not a rationale paragraph
 * keep MDScript shape: one action per bullet, explicit recovery links, no multi-action narration
 * do not put parent/subagent hierarchy only in the YAML description when the body owns that contract
-* do not invent human intent beyond the correction evidence
+* do not invent user intent beyond the user's words
+* do not add extra MUST rules the user did not state
 * append each edited path to `{{skill_files_changed}}`
 * return to the caller
 

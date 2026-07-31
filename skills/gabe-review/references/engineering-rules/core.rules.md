@@ -80,26 +80,6 @@ Logging, tracing, metrics, and diagnostics SHOULD be bounded, non-blocking, and 
 
 Diagnostics MUST NOT change functional behavior.
 
-# CORE-LOAD-001 MUST Verify External Artifacts Loaded
-
-Loading an external artifact — model weights, checkpoints, fixtures, seed data, migrations, serialized config — MUST be verified structurally at the load boundary, not inferred from downstream output.
-
-Verification MUST be a positive structural check: a strict load, an exact key or row count, a checksum, or a statistical assertion on the loaded values.
-
-Plausible, fluent, or well-formed downstream output MUST NOT be treated as evidence that a load succeeded. A silently failed load frequently produces output that looks correct.
-
-Loaders whose failure mode is a warning plus a usable-but-wrong object MUST be wrapped so that failure raises.
-
-# CORE-EVAL-001 MUST Exercise The Mechanism Under Test
-
-An evaluation, benchmark, or A/B comparison MUST NOT disable the capability it is measuring in any arm that claims to represent the system under test.
-
-Each arm MUST exercise its system's actual mechanism; a "controlled" arm that neutralizes the mechanism to equalize some other variable measures the wrong thing.
-
-When arms cannot be equalized without disabling a mechanism, the remaining confound MUST be stated with the result rather than removed by neutering an arm.
-
-Reported comparisons MUST name the protocol each arm ran, so a reader can tell which capability produced the number.
-
 # CORE-EXC-001 MUST Document Rule Exceptions
 
 Rule exceptions MUST identify the violated rule, owner, rationale, tests covering the risk, expiration condition, and removal plan.
