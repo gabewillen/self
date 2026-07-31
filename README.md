@@ -30,11 +30,20 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 | `self-goal` | Goal loop until real proof + review; prefers harness `/goal` when available |
 | `self-watch` / `self-unwatch` | Interval PR babysit with a standing repair grant |
 | `self-automate` | Design MDScript-backed automations before automation tools |
-| `self-voice` | Proxy voice for Slack/public replies without faking the user |
-| `self-common` | Shared workflows: living skills, goals, ledgers, learn MDScript |
 
-Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-unwatch`.  
-`/self-learn` is an **MDScript only** (`self-common/workflows/self-learn.mdscript.md`), not a skill role.
+**Not skills** (shared / routed MDScripts only):
+
+| Pack | Role |
+|------|------|
+| `self-common/` | Shared MDScripts, templates, learn hooks — linked by other skills |
+| `self-voice/` | Routed MDScript for agent-voice drafts (`/self-voice`) |
+
+Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-unwatch`.
+
+MDScript-only routes (not skills):
+
+- `/self-learn` → `self-common/workflows/self-learn.mdscript.md`
+- `/self-voice` → `self-voice/self-voice.mdscript.md`
 
 Companion skills **`mdscript-exec`** and **`mdscript-write`** live in [gabewillen/mdscript](https://github.com/gabewillen/mdscript). Install pulls them beside this pack so every `<!-- mdscript: … -->` header resolves.
 
@@ -171,8 +180,8 @@ skills/
   self-watch/
   self-unwatch/
   self-automate/
-  self-voice/
-  self-common/          # shared MDScript + hooks/self-lib + self-learn
+  self-common/          # shared MDScripts + hooks (NOT a skill)
+  self-voice/           # routed voice MDScript (NOT a skill)
 scripts/
   install.mjs           # living install, hooks, cutover, integrity
   agent-home.mjs

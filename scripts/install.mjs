@@ -155,6 +155,32 @@ function listSkillDirs(root) {
     .sort();
 }
 
+/**
+ * Non-skill packs: shared MDScripts/hooks (self-common) and routed MDScripts
+ * (self-voice). Installed like skills but not discoverable as agent skills.
+ */
+const SHARED_PACKS = ["self-common", "self-voice"];
+
+function listSharedPackDirs(root) {
+  if (!existsSync(root)) return [];
+  return SHARED_PACKS.filter((name) => {
+    const dir = join(root, name);
+    if (!existsSync(dir)) return false;
+    // Never treat a SKILL.md pack as "shared only" if someone re-adds one.
+    if (existsSync(join(dir, "SKILL.md"))) return false;
+    return (
+      existsSync(join(dir, "workflows")) ||
+      existsSync(join(dir, "hooks")) ||
+      existsSync(join(dir, "adapters")) ||
+      existsSync(join(dir, `${name}.mdscript.md`))
+    );
+  }).sort();
+}
+
+function listInstallUnits(root) {
+  return [...new Set([...listSkillDirs(root), ...listSharedPackDirs(root)])].sort();
+}
+
 function ensureDir(path) {
   if (!existsSync(path)) mkdirSync(path, { recursive: true });
 }
@@ -746,8 +772,8 @@ const REQUIRED_SKILL_ASSETS = {
     "hooks/watch-session-start.ts",
     "adapters/cursor/hooks.json",
   ],
+  // Shared packs (not agent skills — no SKILL.md).
   "self-common": [
-    "SKILL.md",
     "workflows/goal-mdscript.md",
     "workflows/file-task-comments.md",
     "workflows/update-living-skills.md",
@@ -760,6 +786,13 @@ const REQUIRED_SKILL_ASSETS = {
     "adapters/cursor/hooks.json",
     "adapters/codex/hooks.json",
     "adapters/grok/hooks.json",
+  ],
+  "self-voice": [
+    "self-voice.mdscript.md",
+    "workflows/durable-voice-rule.md",
+    "workflows/slack-style.md",
+    "workflows/mention-watch-run.md",
+    "references/slack-samples.md",
   ],
 };
 
@@ -816,6 +849,8 @@ function reportBrokenSkillDirs(targetRoots, managedSkills) {
     }
     for (const name of entries) {
       const dest = join(root, name);
+      // Shared packs (self-common, self-voice) intentionally have no SKILL.md.
+      if (SHARED_PACKS.includes(name)) continue;
       // Check every symlinked entry (we are the ones that symlink) plus any
       // skill this run manages. A resolvable link to a body-less directory is
       // just as broken as a dangling one.
@@ -1715,21 +1750,32 @@ function runGabeToSelfCutover(skillRoots) {
   return report;
 }
 
-function installInto(targetRoot, skills, skillsRoot) {
+function installInto(targetRoot, units, skillsRoot) {
   ensureDir(targetRoot);
   installAgentHomeScript(targetRoot, skillsRoot);
   removeRetiredSkills(targetRoot);
   const installed = [];
-  for (const skill of skills) {
-    const src = join(skillsRoot, skill);
-    const dest = join(targetRoot, skill);
-    if (!existsSync(join(src, "SKILL.md"))) {
-      console.warn(`[self-agents] skip missing skill source ${src}`);
+  for (const unit of units) {
+    const src = join(skillsRoot, unit);
+    const dest = join(targetRoot, unit);
+    const isShared = SHARED_PACKS.includes(unit);
+    if (!existsSync(src)) {
+      console.warn(`[self] skip missing pack source ${src}`);
       continue;
+    }
+    if (!isShared && !existsSync(join(src, "SKILL.md"))) {
+      console.warn(`[self] skip missing skill source ${src}`);
+      continue;
+    }
+    // Shared packs must not ship SKILL.md (they are not agent skills).
+    if (isShared && existsSync(join(src, "SKILL.md"))) {
+      console.warn(
+        `[self] shared pack ${unit} has SKILL.md; remove it so it is not treated as a skill`,
+      );
     }
     if (mode === "live") installSkillSymlink(src, dest);
     else installSkillCopy(src, dest);
-    installed.push({ skill, dest, src, mode });
+    installed.push({ skill: unit, dest, src, mode, shared: isShared });
   }
   return installed;
 }
@@ -2251,8 +2297,10 @@ if (mode === "live") {
 
 const skillsRoot = skillsRootForMode(liveRoot);
 const skills = listSkillDirs(skillsRoot);
+const sharedPacks = listSharedPackDirs(skillsRoot);
+const installUnits = listInstallUnits(skillsRoot);
 if (skills.length === 0) {
-  console.error(`[self-agents] no skills found under ${skillsRoot}`);
+  console.error(`[self] no skills found under ${skillsRoot}`);
   const staleRoots = explicitTarget ? [explicitTarget] : detectAgentSkillRoots();
   reportBrokenSkillDirs(staleRoots, []);
   process.exit(1);
@@ -2264,7 +2312,7 @@ const targets = explicitTarget ? [explicitTarget] : detectAgentSkillRoots();
 // do not write skills, hooks, or markers.
 if (verifyOnly) {
   console.log(
-    `[self-agents] verify-only: source=${skillsRoot} targets=${targets.length} skills=${skills.length}`,
+    `[self] verify-only: source=${skillsRoot} targets=${targets.length} skills=${skills.length} shared=${sharedPacks.length}`,
   );
   const integrityRoots = [...targets];
   // When scanning default agent homes (no --target), also cover the Cursor
@@ -2277,7 +2325,7 @@ if (verifyOnly) {
   }
   const integrity = verifyScriptIntegrity({
     skillsRoot,
-    managedSkills: skills,
+    managedSkills: installUnits,
     targetRoots: integrityRoots,
     liveRoot: mode === "live" ? liveRoot : null,
   });
@@ -2300,7 +2348,7 @@ if (verifyOnly) {
 
 const results = {};
 for (const target of targets) {
-  results[target] = installInto(target, skills, skillsRoot);
+  results[target] = installInto(target, installUnits, skillsRoot);
 }
 
 // Companion install: the mdscript executor/writer this pack's headers require.
@@ -2315,7 +2363,8 @@ if (mdscriptSkills.length && !dryRun) {
   }
 }
 
-const adapterReport = installAdapters(skills, [...targets], skillsRoot);
+// Adapters/hooks live on real skills and shared packs (e.g. self-common).
+const adapterReport = installAdapters(installUnits, [...targets], skillsRoot);
 
 // Full gabe→self cutover on every reinstall so nothing dangling remains.
 const cutoverRoots = [...targets];
@@ -2340,18 +2389,19 @@ if (!dryRun) {
   brokenSkills = reportBrokenSkillDirs(targets, skills) || [];
   // Hard-fail only when THIS pack's required nested assets are incomplete —
   // e.g. self-review without engineering-rules / eng-* lanes.
-  missingAssets = reportMissingSkillAssets(targets, skills) || [];
+  // Includes shared packs (self-common, self-voice) via REQUIRED_SKILL_ASSETS.
+  missingAssets = reportMissingSkillAssets(targets, installUnits) || [];
   const managedBroken = brokenSkills.filter((b) =>
     skills.some((s) => b.includes(`/${s}`) || b.includes(`/${s} `) || b.endsWith(`/${s}`)),
   );
   if (missingAssets.length || managedBroken.length) {
     console.error(
-      `[self-agents] install incomplete: ${managedBroken.length} managed broken skill dir(s), ${missingAssets.length} missing asset(s)`,
+      `[self] install incomplete: ${managedBroken.length} managed broken skill dir(s), ${missingAssets.length} missing asset(s)`,
     );
     process.exit(1);
   }
   console.log(
-    `[self-agents] asset integrity ok (${skills.length} skills, self-review multi-lane assets present)`,
+    `[self] asset integrity ok (${skills.length} skills + ${sharedPacks.length} shared pack(s))`,
   );
 
   // md5 every managed script at every skill root, harness hook command path,
@@ -2367,7 +2417,7 @@ if (!dryRun) {
   }
   scriptIntegrity = verifyScriptIntegrity({
     skillsRoot,
-    managedSkills: skills,
+    managedSkills: installUnits,
     targetRoots: integrityRoots,
     liveRoot: mode === "live" ? liveRoot : null,
   });
@@ -2469,7 +2519,7 @@ if (mdscriptSkills.length) {
 }
 
 console.log(
-  `[self-agents] mode=${mode} installed ${skills.length + mdscriptSkills.length} skills into ${Object.keys(results).length} target(s)`,
+  `[self] mode=${mode} installed ${skills.length} skills + ${sharedPacks.length} shared pack(s) + ${mdscriptSkills.length} mdscript skill(s) into ${Object.keys(results).length} target(s)`,
 );
 if (mode === "live") {
   console.log(`[self-agents] live root: ${liveRoot}`);

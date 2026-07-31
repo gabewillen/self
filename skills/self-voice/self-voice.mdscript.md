@@ -1,13 +1,14 @@
 ---
+artifact_type: self-voice
 name: self-voice
-description: "ALWAYS use this skill when drafting or checking Slack replies, mention acknowledgements, preliminary answers, review comments, public-writing voice checks, or any response that should sound like the configured agent voice: imitate decisions, voice, humor, and cadence from current evidence while preserving authority boundaries and never pretending the user personally acted."
+description: "Routed MDScript for agent-voice drafts (Slack, review comments, public writing). Not a skill. Enter via /self-voice or the self router."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Draft Or Check Agent Voice
 
-* load the `self` skill and preserve the authority boundary
+* preserve the authority boundary from the `self` router / boundaries pack
 * infer `{{output_surface}}` as one of `slack`, `review-comment`, `public-writing`, `issue-or-mr`, `status-update`, or `other`
 * infer `{{audience_shape}}`, `{{stakes}}`, `{{evidence_basis}}`, `{{answer_or_claim}}`, `{{unknowns}}`, `{{next_action}}`, `{{clone_assignment_state}}`, `{{followup_invite_needed}}`, `{{self_decision_posture}}`, `{{self_mannerisms}}`, `{{authority_boundary_needed}}`, `{{humor_allowed}}`, `{{humor_line}}`, and `{{self_voice_response}}`
 * if this is a Slack mention watcher run

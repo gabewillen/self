@@ -1,7 +1,7 @@
 {
   "name": "@gabewillen/self",
   "version": "0.1.0",
-  "description": "MDScript agent skills pack (self-*, self-common) installable via npm and npx skills",
+  "description": "Living MDScript self skills pack (agents load, run, and update continuously)",
   "license": "MIT",
   "type": "module",
   "private": false,
@@ -60,10 +60,6 @@
         "path": "./skills/self-automate"
       },
       {
-        "name": "self-common",
-        "path": "./skills/self-common"
-      },
-      {
         "name": "self-goal",
         "path": "./skills/self-goal"
       },
@@ -82,10 +78,6 @@
       {
         "name": "self-unwatch",
         "path": "./skills/self-unwatch"
-      },
-      {
-        "name": "self-voice",
-        "path": "./skills/self-voice"
       },
       {
         "name": "self-watch",
@@ -104,10 +96,6 @@
         "path": "./skills/self-automate"
       },
       {
-        "name": "self-common",
-        "path": "./skills/self-common"
-      },
-      {
         "name": "self-goal",
         "path": "./skills/self-goal"
       },
@@ -128,10 +116,6 @@
         "path": "./skills/self-unwatch"
       },
       {
-        "name": "self-voice",
-        "path": "./skills/self-voice"
-      },
-      {
         "name": "self-watch",
         "path": "./skills/self-watch"
       }
@@ -139,13 +123,11 @@
   },
   "aiAgentSkill": [
     "skills/self-automate/SKILL.md",
-    "skills/self-common/SKILL.md",
     "skills/self-goal/SKILL.md",
     "skills/self-implement/SKILL.md",
     "skills/self-orchestrate/SKILL.md",
     "skills/self-review/SKILL.md",
     "skills/self-unwatch/SKILL.md",
-    "skills/self-voice/SKILL.md",
     "skills/self-watch/SKILL.md",
     "skills/self/SKILL.md"
   ]
