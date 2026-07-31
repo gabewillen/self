@@ -1,4 +1,4 @@
 interface:
-  display_name: "Gabe Review"
-  short_description: "DBC Gabe proof review"
+  display_name: "Agent Review"
+  short_description: "DBC proof review"
   default_prompt: "Use $gabe-review with a task-appropriate model and effort level selected for the review to falsify scoped proof decisions. Treat MDScripts exactly like documentation. When code changed, use recursive review with all findings blocking in round 1, P1/P2 in round 2, and P1 in round 3+. When no code changed, use exactly one fresh review for MDScript, documentation, and other non-code changes plus direct proof, without recursive re-review after repair."

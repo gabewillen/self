@@ -1,7 +1,7 @@
 {
   "name": "@gabewillen/agents",
   "version": "0.1.0",
-  "description": "Gabe MDScript agent skills pack (gabe-*, gabe-common) installable via npm and npx skills",
+  "description": "MDScript agent skills pack (gabe-*, gabe-common) installable via npm and npx skills",
   "license": "MIT",
   "type": "module",
   "private": false,
