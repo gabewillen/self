@@ -7,6 +7,7 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve as resolvePath } from "node:path";
@@ -145,7 +146,6 @@ export function loadLearnPass(path: string): LearnPass | null {
 export function writeLearnPass(path: string, pass: LearnPass): void {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(pass, null, 2) + "\n", "utf8");
-  // ACTIVE points at this pass file for the MDScript mark-complete step.
   writeFileSync(learnActivePath(), path + "\n", "utf8");
 }
 
@@ -157,6 +157,66 @@ export function clearLearnPass(conversationId: string, root = process.cwd()): vo
     status: "required",
     required_at: new Date().toISOString(),
   });
+}
+
+/** Marker: next Stop may run learn because this turn started from a user message. */
+export function userTurnPath(): string {
+  return join(learnHome(), "USER_TURN");
+}
+
+export function markUserTurn(conversationId: string): void {
+  mkdirSync(learnHome(), { recursive: true });
+  writeFileSync(
+    userTurnPath(),
+    JSON.stringify(
+      {
+        conversation_id: conversationId || "unknown",
+        at: new Date().toISOString(),
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+}
+
+/**
+ * True if a user-originated turn is pending for this conversation.
+ * Watch / loop / stop-hook resumes do not set this marker.
+ */
+export function hasUserTurn(conversationId: string): boolean {
+  const p = userTurnPath();
+  if (!existsSync(p)) return false;
+  try {
+    const text = readFileSync(p, "utf8").trim();
+    if (!text || text === "{}") return false;
+    const raw = JSON.parse(text) as { conversation_id?: string };
+    const id = conversationId || "unknown";
+    if (
+      raw.conversation_id &&
+      raw.conversation_id !== "unknown" &&
+      id !== "unknown" &&
+      raw.conversation_id !== id
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearUserTurn(): void {
+  const p = userTurnPath();
+  try {
+    if (existsSync(p)) unlinkSync(p);
+  } catch {
+    try {
+      writeFileSync(p, "{}\n", "utf8");
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export function resolveLearnMdscriptPath(): string {

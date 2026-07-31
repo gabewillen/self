@@ -1,7 +1,9 @@
 import {
+  clearUserTurn,
   continueWorkingPayload,
   finishHook,
   formatLearnFollowup,
+  hasUserTurn,
   loadLearnPass,
   readHookInput,
   resolveLearnMdscriptPath,
@@ -52,15 +54,26 @@ const passPath = learnPassPath(input.root, conversationId);
 const pass = loadLearnPass(passPath);
 const learnMdscript = resolveLearnMdscriptPath();
 const loopCount = input.loopCount || 0;
+const userOriginated = hasUserTurn(conversationId);
+const learnPending = pass?.status === "required";
 
-// Learn already completed for this conversation → allow the stop.
-// Do not depend on stop_hook_active: Cursor often omits it, which previously
-// re-wrote status=required and re-fired learn forever.
+// Already completed learn for this cycle → allow stop.
 if (pass && pass.status === "satisfied") {
   finishHook();
 }
 
-// Not satisfied yet: require one learn pass and inject a single mdscript-exec.
+// Watch / loop / stop-hook resumes never set USER_TURN. Skip learn unless we
+// already asked for a pass (status=required) and are waiting for the stamp.
+if (!userOriginated && !learnPending) {
+  finishHook();
+}
+
+// Consuming USER_TURN here so the learn follow-up's own stop is not treated as
+// a new user message (it still re-fires while status stays required until stamp).
+if (userOriginated) {
+  clearUserTurn();
+}
+
 writeLearnPass(passPath, {
   conversation_id: conversationId,
   loop_count: loopCount,

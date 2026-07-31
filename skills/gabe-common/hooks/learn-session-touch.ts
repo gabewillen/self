@@ -1,11 +1,11 @@
 /**
- * UserPromptSubmit / beforeSubmitPrompt: clear the satisfied learn stamp so the
- * next Stop requires a new learn pass for the new user turn — without re-firing
- * learn on every stop after the first completion.
+ * UserPromptSubmit / beforeSubmitPrompt: mark this turn as user-originated so
+ * Stop may run learn. Watch ticks and stop-hook followups never set this.
  */
 import {
   clearLearnPass,
   finishHook,
+  markUserTurn,
   readHookInput,
   shouldSkipLearnHooks,
 } from "./learn-lib.ts";
@@ -17,5 +17,7 @@ if (shouldSkipLearnHooks()) {
 }
 
 const conversationId = input.conversationId || "unknown";
+// New user message: reset stamp and mark origin so Stop will run learn once.
 clearLearnPass(conversationId, input.root);
+markUserTurn(conversationId);
 finishHook();
