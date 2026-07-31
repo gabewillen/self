@@ -193,26 +193,6 @@ export function resolveLearnMdscriptPath(): string {
   return sibling;
 }
 
-export function formatLearnFollowup(
-  learnMdscript: string,
-  passPath: string,
-  loopCount: number,
-): string {
-  return [
-    "Stop gate: run the living-skills learn pass before ending this turn.",
-    "This is not a skill role — execute the MDScript only:",
-    "",
-    `mdscript-exec ${learnMdscript}#reflect-and-learn`,
-    "",
-    "Learn ONLY from direct user messages/corrections this turn that change future agent behavior.",
-    "Do NOT invent rules from your own debugging, tool failures, model failures, self-critique, or evaluation design.",
-    "Project-specific rules → product repo <repo>/.agents/ (not the global pack).",
-    "Global pack rules must be project-agnostic; commit on the live/* branch and open a PR into main (never push main).",
-    "If the user stated a durable rule, quote it and apply update-living-skills with the correct scope.",
-    "If the user did not state a durable rule, mark nothing-to-learn and stop without editing skills.",
-    `When done, write status=satisfied for loop ${loopCount} to:`,
-    passPath,
-    "",
-    "Do not skip this pass. Do not start unrelated work until the learn MDScript stops.",
-  ].join("\n");
+export function formatLearnFollowup(learnMdscript: string): string {
+  return `/mdscript-exec ${learnMdscript}#reflect-and-learn`;
 }

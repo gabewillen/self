@@ -978,7 +978,7 @@ export function mdscriptResumeCommand(
 ): string {
   const scriptPath = relativePath(root, paths.goalMdscript);
   const heading = normalizeResumeHeading(resumeHeading);
-  return `mdscript-exec ${scriptPath}#${heading}`;
+  return `/mdscript-exec ${scriptPath}#${heading}`;
 }
 
 export function writeGoalMdscript(
@@ -1151,30 +1151,12 @@ export function formatGoalFollowupMessage(
     resumeHeading,
     status: "active",
   });
-  const resumeCommand = mdscriptResumeCommand(root, paths, resumeHeading);
-  const goal = state.goal.trim() || "(unspecified goal)";
-  const runRelative = relativePath(root, paths.runDirectory);
-
-  return [
-    MDSCRIPT_EXEC_HEADER,
-    "",
-    "## Stop Hook Resume",
-    "",
-    `* hard continue — goal iteration ${iteration} is not signed off; this is a stop-hook resume, not a completion report`,
-    `* goal text: ${goal}`,
-    `* run_dir: \`${runRelative}\``,
-    paths.runId ? `* run_id: \`${paths.runId}\`` : "",
-    `* goal_mdscript: \`${scriptRelative}\``,
-    `* resume_heading: \`${resumeHeading}\``,
-    ...reasons.map((reason) => `* completion gate: ${reason}`),
-    "* do real work this turn — never summary-only stop",
-    `* restore variables from \`${scriptRelative}\` front matter, then execute the resume heading`,
-    `* continue by executing [Resume Goal](${scriptRelative}#resume-goal) which jumps to [\`${resumeHeading}\`](${scriptRelative}#${resumeHeading})`,
-    "",
-    resumeCommand,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  // Still write the run MDScript (side effect above) so resume state is current.
+  // Stop-hook followups are a single mdscript-exec clause only.
+  void scriptRelative;
+  void reasons;
+  void iteration;
+  return mdscriptResumeCommand(root, paths, resumeHeading);
 }
 
 export function buildActiveGoalContext(

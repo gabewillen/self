@@ -71,7 +71,7 @@ if (input.stopHookActive) {
   finishHook(
     continueWorkingPayload(
       input.dialect,
-      formatLearnFollowup(learnMdscript, passPath, loopCount),
+      formatLearnFollowup(learnMdscript),
     ),
   );
 }
@@ -85,8 +85,5 @@ writeLearnPass(passPath, {
 });
 
 finishHook(
-  continueWorkingPayload(
-    input.dialect,
-    formatLearnFollowup(learnMdscript, passPath, loopCount),
-  ),
+  continueWorkingPayload(input.dialect, formatLearnFollowup(learnMdscript)),
 );

@@ -108,7 +108,7 @@ export function listPendingWatches(): PendingWatch[] {
       pending.push({
         watchMdscript: path,
         prNumber: fm.pr_number || file.replace(/^gabe-watch-|\.mdscript\.md$/g, ""),
-        resumeCommand: `mdscript-exec ${path}#resume-watch`,
+        resumeCommand: `/mdscript-exec ${path}#resume-watch`,
         newestSeq: newest,
         lastProcessedSeq: lastProcessed,
         tickSpool: spool,
@@ -119,22 +119,7 @@ export function listPendingWatches(): PendingWatch[] {
 }
 
 export function formatPendingWatchFollowup(watches: PendingWatch[]): string {
-  const lines = [
-    "Stop gate: gabe-watch has unprocessed ticks (Cursor often kills the tick listener).",
-    "Resume the watch before ending this turn:",
-    "",
-  ];
-  for (const w of watches) {
-    lines.push(
-      `- PR ${w.prNumber}: spool seq ${w.newestSeq} > last_processed ${w.lastProcessedSeq}`,
-    );
-    lines.push(`  ${w.resumeCommand}`);
-  }
-  lines.push("");
-  lines.push(
-    "Run the first resume command now. Re-attach the tick listener with notify_on_output on the spool. Do not skip pending ticks.",
-  );
-  return lines.join("\n");
+  return watches[0]?.resumeCommand || "";
 }
 
 export function formatActiveWatchSessionContext(): string {
