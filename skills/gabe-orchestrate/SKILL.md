@@ -17,6 +17,8 @@ description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects
 
 * run [Resolve Goal MDScript](../gabe-common/workflows/goal-mdscript.md#resolve-goal-mdscript)
 
+* resolve `{{goal_mdscript}}` from the active lane goal path when a goal already exists
+
 * run [Cleanup Created Threads](../gabe-common/workflows/thread-cleanup.md#cleanup-created-threads) before claiming any created chat thread, child thread, worker thread, or reviewer thread is terminal, superseded, or cleanly handed off
 
 * if this orchestrator is a child orchestrator
@@ -49,6 +51,7 @@ description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects
 
 * before creating, updating, or claiming any orchestrator-owned monitor, watcher, resumed coordination loop, or child-lane heartbeat
   * run [Write Goal MDScript](../gabe-common/workflows/goal-mdscript.md#write-goal-mdscript)
+  * resolve `{{goal_mdscript}}` from the written goal path
   * for any long, multi-workstream, or goal-backed lane, write a parent-visible `context-limit` checkpoint comment and a separate `compaction-resume` file comment after the goal exists and before the next long phase or child fanout so the lane can rebuild state from task files, comments, goals, and the lane ledger before acting
 
 * separate triage, local edits, public mutation, push, CI rerun or fix, merge, close, release, deployment, publication, and live-proof waiver authority
@@ -89,22 +92,7 @@ description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects
 
 ## Hot Path Event Handling
 
-* use this table for goal resumes, worker stop reports, child-orchestrator reports, MR/PR state changes, CI terminal state, and reviewer verdict intake before reloading longer workflow detail
-
-* refresh live MR/PR, tracker, CI, discussion, reviewer, and lane-ledger state on every goal resume; do not reload the full skill context stack on every resume when a current goal MDScript already captures the lane context
-
-* if the lane has `{{goal_mdscript}}`, execute `/mdscript-exec {{goal_mdscript}}#resume-goal` first; reload the full skill context only when the goal script is missing, stale, contradicted by a new human correction, or the lane scope/project changes
-
-* after any hot-path state change, add a file comment on the affected task before updating chat or external trackers
-
-| Signal | Exact trigger | Immediate action | Required `event_exec` | Goal update | Ledger update | Stop/report condition |
-| --- | --- | --- | --- | --- | --- | --- |
-| `TARGET_DRIFT` | MR/PR base, tested target, or recorded target head differs from the current integration target | Interrupt old-target proof; send owner to refresh/rebase/merge target within one goal cycle or report exact blocker | `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/thread-event-contracts.md#event-target-drift` | Update `{{goal_mdscript}}` with old target, current target, owner, deadline, and blocker if any | Record `event_exec`, old target, current target, current head, owner, deadline, and blocker if any | Report event to parent/root before stopping; if refresh cannot proceed, report `Blocked for {{claim_scope}}` with exact blocker |
-| `STALE_MR` | No head movement after explicit target-consume, rebase, merge-target refresh, or source-refresh instruction | Stop accepting repeated old-head proof; require owner to report blocker path, dirty state, conflict, failed command, missing authority, or thread failure | `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/thread-event-contracts.md#event-stale-mr` | Keep the goal active at interrupt cadence until new head or exact blocker appears | Record `event_exec`, requested refresh, last observed head, expected target head, attempts, owner, and blocker | Report to parent/root before stopping or waiting; do not downgrade to routine polling |
-| `HANDOFF_UNACKED` | Priority instruction has no acknowledgment, output, or blocker after one goal cycle | Escalate to parent/root; reissue with deadline, reassign owner, or record explicit wait reason | `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/thread-event-contracts.md#event-handoff-unacked` | Update the goal with ack/output/blocker deadline and escalation path | Record `event_exec`, instruction, owner, last contact, deadline, escalation path, and next owner | Child reports escalation to parent before stopping; parent denies, reassigns, or sets deadline |
-| `DISPOSITION_READY` | Current target, exact-head CI green, one fresh current-target `Proven` review, and no unresolved discussions | Start merge/closure/disposition workflow immediately or record explicit root denial | `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/thread-event-contracts.md#event-disposition-ready` | Mark routine proof polling complete in the goal; track only disposition outcome, denial, or new drift | Record `event_exec`, head, CI id, reviewer id/grade, discussion state, disposition owner, and authority | Report to root/parent; do not stop until disposition starts or root denial is recorded |
-| CI terminal green/fail | Exact-head CI/check suite reaches terminal success or failure | Green: re-evaluate reviews and discussions for `DISPOSITION_READY`; fail: classify source-health/CI-repair and send owner to repair unless only default-branch merge is blocked | None by itself; use `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/thread-event-contracts.md#event-disposition-ready` only when all disposition preconditions also hold | Record pipeline/check id, exact head, failed job names, retry/rerun availability, and next check time | Record `ci_state`, exact head, proof scope affected, repair owner, and default-branch merge blocker state | Report changed state if it enables disposition, blocks assigned claim, needs authority, or changes next owner |
-| Reviewer `Proven`/`Not ready` | Fresh reviewer grade arrives for the current target and exact head | `Proven`: preserve scoped verdict; check whether aggregate state creates `DISPOSITION_READY`; `Not ready`: send implementer exact remediation or keep GitLab thread unresolved | None by itself; use `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/thread-event-contracts.md#event-disposition-ready` only when aggregate gates are complete | Watch remediation acknowledgment within one watcher cycle; watch for new reviewer grade after repair | Record reviewer id/alias, grade, proof scope, head, target, findings, questions, and GitLab note/thread ids | Reviewer reports to spawning parent before stopping; orchestrator reports aggregate state change to parent/root |
+* run [Hot Path Event Handling](workflows/hot-path-event-handling.md#hot-path-event-handling)
 
 ## Create Task Local MDScript
 
@@ -112,7 +100,9 @@ description: "Coordinate project-scoped Gabe-shaped work from ~/.agents/projects
 
 * run [Write Goal MDScript](../gabe-common/workflows/goal-mdscript.md#write-goal-mdscript)
 
-* resumed coordinator turns should target `{{goal_mdscript}}#resume-goal` first, then refresh live tracker/MR/PR/CI/review state and execute only the hot-path action that changed
+* resolve `{{goal_mdscript}}` from the written goal path
+
+* resume coordinator turns at `/mdscript-exec {{goal_mdscript}}#resume-goal` first, then refresh live tracker/MR/PR/CI/review state and execute only the hot-path action that changed
 
 * do not use `{{goal_mdscript}}` to skip current source truth, live tracker state, current CI, current discussions, or current proof artifacts
 

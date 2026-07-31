@@ -2,15 +2,18 @@
 
 ## Create Blocker Watcher
 
-* if this lane is blocked by an issue, MR, PR, review thread, external ticket, missing authority, missing resource, upstream dependency, or a CI/check failure that is currently blocking an authorized default-branch merge decision
-  * create or maintain a MDScript goal that watches the blocking item until it closes, resolves, changes state, receives a relevant comment, or reaches the explicit unblock condition
-
-* before claiming the blocker watcher is active
-  * run [Write Goal MDScript](../../gabe-common/workflows/goal-mdscript.md#write-goal-mdscript)
-  * do not call `automation_update` or any automation tool for project control-plane orchestration unless the user explicitly requests external automation
+* if this lane is not blocked by an issue, MR, PR, review thread, external ticket, missing authority, missing resource, upstream dependency, or a CI/check failure that is currently blocking an authorized default-branch merge decision
+  * return to the caller
 
 * if CI/check state is failing or pending but the lane is not waiting on an authorized default-branch merge
-  * use [Create MR Monitor Goal](mr-monitor.md#create-mr-monitor-goal) instead of blocker-watcher flow
+  * run [Create MR Monitor Goal](mr-monitor.md#create-mr-monitor-goal)
+  * return to the caller after the MR monitor path owns the pending checks
+
+* create or maintain a MDScript goal that watches the blocking item until it closes, resolves, changes state, receives a relevant comment, or reaches the explicit unblock condition
+
+* run [Write Goal MDScript](../../gabe-common/workflows/goal-mdscript.md#write-goal-mdscript)
+
+* do not call `automation_update` or any automation tool for project control-plane orchestration unless the user explicitly requests external automation
 
 * write the goal body as MDScript-oriented instructions, not prose-only polling
 
@@ -18,7 +21,9 @@
 
 * include the blocking item, unblock condition, lane id, orchestrator reporting path, current branch, MR/PR link, `{{goal_mdscript}}`, and next `/mdscript-exec` implementer re-entry command in the goal state
 
-* routine wakeups should refresh the blocking item, live MR/PR, CI, review, discussion, tracker, and ledger state, then execute only the changed hot-path action
+* on routine wakeup, refresh the blocking item, live MR/PR, CI, review, discussion, tracker, and ledger state
+
+* on routine wakeup, execute only the changed hot-path action
 
 * when the blocker clears
   * continue with `/mdscript-exec {{repo_root}}/skills/gabe-implement/SKILL.md#inspect-current-state`

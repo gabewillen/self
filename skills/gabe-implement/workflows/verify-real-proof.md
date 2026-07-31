@@ -6,13 +6,8 @@
 
 * check `{{contract_preconditions}}` before running `{{proof_path}}`
 
-* before reporting a missing infrastructure, service, target, provider, storage, media, browser, or runtime precondition
-  * inspect local instructions and repo setup surfaces such as `AGENTS.md`, `README*`, `Makefile`, `justfile`, `docker-compose*.yml`, `compose*.yml`, `package.json`, `pyproject.toml`, `scripts/*stack*`, `scripts/*local*`, `scripts/*preflight*`, `scripts/*dev*`, and project docs
-  * set `{{local_resource_path}}` to the local stack, bootstrap, preflight, dev server, compose profile, fixture target, or safe local resource path that can satisfy the precondition
-  * stand up, reuse, or run that local path inside `{{granted_permissions}}` when it is safe
-  * if the local path exists but was not attempted, continue verifying instead of reporting blocked
-  * if the local path proves healthy, use that artifact only for the scoped claim it actually proves
-  * if the local path is absent, unsafe, or fails because an external credential, hardware device, network route, provider, safe target, source truth, or authority is missing, set `{{missing_precondition}}` to that exact external blocker
+* if reporting a missing infrastructure, service, target, provider, storage, media, browser, or runtime precondition
+  * [Try Local Resource Path](#try-local-resource-path)
 
 * if a precondition, resource, safe target, credential, hardware, network path, source truth, or authority is missing after the local resource path is absent, unsafe, or exhausted
   * set `{{proof_decision}}` to `Blocked for {{claim_scope}}`
@@ -33,15 +28,42 @@
   * capture and inspect a current visual snapshot for each changed or claimed feature from the real browser or device target
 
 * if `{{proof_path}}` is available but fails, is stale, exceeds a declared invariant such as CI budget, or does not match `{{contract_postconditions}}`
-  * repair the proof path or implementation before reporting acceptance
-  * do not report blocked unless a named precondition is missing
+  * repair the proof path or implementation
+  * [Verify Real Proof](#verify-real-proof)
 
 * do not count mocked services, fake providers, offline fixtures, canned responses, stubs, or local scaffolds as done proof for behavior that depends on real resources
 
-* use mocks or stubs only as development aids or explicitly non-final fallback evidence when no real local stack or actual safe target can satisfy the proof path; label them under `{{proof_not_claimed}}` instead of final proof
+* use mocks or stubs only as development aids or explicitly non-final fallback evidence when no real local stack or actual safe target can satisfy the proof path
+
+* label mocks or stubs under `{{proof_not_claimed}}` instead of final proof
 
 * if credentials, hardware, network, authority, or a safe target blocks proof after the local resource path is absent, unsafe, or exhausted
   * set `{{proof_decision}}` to `Blocked for {{claim_scope}}`
   * set `{{blocker}}` to the exact missing resource
+  * set `{{stop_reason}}` to `blocked`
+  * run [Report To Orchestrator](report-to-orchestrator.md#report-to-orchestrator)
+
+## Try Local Resource Path
+
+* inspect local instructions and repo setup surfaces such as `AGENTS.md`, `README*`, `Makefile`, `justfile`, `docker-compose*.yml`, `compose*.yml`, `package.json`, `pyproject.toml`, `scripts/*stack*`, `scripts/*local*`, `scripts/*preflight*`, `scripts/*dev*`, and project docs
+
+* set `{{local_resource_path}}` to the local stack, bootstrap, preflight, dev server, compose profile, fixture target, or safe local resource path that can satisfy the precondition
+
+* if `{{local_resource_path}}` is set and safe
+  * stand up, reuse, or run that local path inside `{{granted_permissions}}`
+  * [Verify Real Proof](#verify-real-proof)
+
+* if the local path exists but was not attempted
+  * continue verifying with that path
+  * [Verify Real Proof](#verify-real-proof)
+
+* if the local path proves healthy
+  * use that artifact only for the scoped claim it actually proves
+  * [Verify Real Proof](#verify-real-proof)
+
+* if the local path is absent, unsafe, or fails because an external credential, hardware device, network route, provider, safe target, source truth, or authority is missing
+  * set `{{missing_precondition}}` to that exact external blocker
+  * set `{{proof_decision}}` to `Blocked for {{claim_scope}}`
+  * set `{{blocker}}` to `{{missing_precondition}}`
   * set `{{stop_reason}}` to `blocked`
   * run [Report To Orchestrator](report-to-orchestrator.md#report-to-orchestrator)

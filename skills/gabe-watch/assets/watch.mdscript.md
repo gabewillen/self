@@ -53,7 +53,9 @@ blocker: ""
 
 * act on `{{watch_grant}}` without asking again: a finding inside the grant is work for this tick, not a proposal; only `{{grant_excludes}}` reaches the user
 
-* when a call is unclear, run `/mdscript-exec ~/.agents/skills/gabe/SKILL.md` and decide from current evidence instead of pausing the watch to ask
+* when a call is unclear
+  * run `/mdscript-exec ~/.agents/skills/gabe/SKILL.md`
+  * decide from current evidence without pausing the watch to ask
 
 * stop only on `/gabe-unwatch` or PR `MERGED` / `CLOSED`; merge-ready is reported without stopping
 
@@ -79,8 +81,10 @@ blocker: ""
 
 * if `{{ticker_pid}}` is dead or its command line no longer contains `{{sentinel}}`
   * run `mdscript-exec {{skill_root}}/SKILL.md#check-ticker-liveness`
-  * re-arm once through `mdscript-exec {{skill_root}}/SKILL.md#arm-persistent-interval-loop` when owner process `{{owner_pid}}` is still alive
-  * [Stop Watch](#stop-watch) when `{{owner_pid}}` is gone
+  * if `{{owner_pid}}` is still alive
+    * re-arm once through `mdscript-exec {{skill_root}}/SKILL.md#arm-persistent-interval-loop`
+  * if `{{owner_pid}}` is gone
+    * [Stop Watch](#stop-watch)
 
 * if no tick listener is attached
   * run `mdscript-exec {{skill_root}}/SKILL.md#reattach-tick-listener`

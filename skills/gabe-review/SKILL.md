@@ -1,6 +1,6 @@
 ---
 name: gabe-review
-description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and documentation changes, instructions, automations, publications, and final reports using a model and effort level selected for the review. Terminal readiness requires triple adversarial blind subagents (rules, security, completeness), plus a fourth blind hsm lane running gabe-hsm-review whenever a state machine is in scope, each executing its own review MDScript and writing an independent sign-off. Use for diminishing-severity recursive code review, single-pass non-code review, content-addressed review baselines, final cumulative blind triple review, DBC proof decisions, scoped verdicts, executable MDScript contracts, evidence and authority boundaries, UI proof, runtime/provider equivalence, source-owner sync, permissions, provenance drift, proof inflation, stale assumptions, state-machine gaps, model/data/eval source-currentness, coordinator control, current review state, and publication hygiene. Treat MDScripts exactly like documentation for review."
+description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and documentation changes, instructions, automations, publications, and final reports using a model and effort level selected for the review. Terminal readiness runs multi-lane adversarial blind subagents selected by workflows/select-review-lanes.md: always rules (agent/repo instructions), security, and completeness; plus engineering-rules lanes vendored from gabewillen/rules (eng-core, eng-dbc, language, and framework lanes); plus deep hsm via gabe-hsm-review when a state machine is in scope. Each lane executes its own review MDScript and writes an independent sign-off. Use for diminishing-severity recursive code review, single-pass non-code review, content-addressed review baselines, final cumulative multi-lane blind review, DBC proof decisions, scoped verdicts, language-specific rules, executable MDScript contracts, evidence and authority boundaries, UI proof, runtime/provider equivalence, source-owner sync, permissions, provenance drift, proof inflation, stale assumptions, state-machine gaps, model/data/eval source-currentness, coordinator control, current review state, and publication hygiene. Treat MDScripts exactly like documentation for review."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -137,6 +137,9 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
   * keep any narrower supported result as a scoped finding such as `Proven for source-health only`
   * [Report Verdict](#report-verdict)
 
+* if this is a terminal readiness gate and `{{blind_lanes}}` is empty
+  * run [Select Review Lanes](workflows/select-review-lanes.md#select-review-lanes)
+
 * if this is a terminal readiness gate and blind sign-offs are missing or incomplete for any lane in `{{blind_lanes}}`
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
   * set `{{proof_decision}}` to `Not accepted: adversarial blind gabe-review ({{blind_lanes}}) required`
@@ -147,10 +150,15 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
   * set `{{proof_decision}}` to `Not accepted: state machine in scope requires the blind gabe-hsm-review lane`
   * [Report Verdict](#report-verdict)
 
-* if no `{{blocking_findings}}` remain for `{{proof_scope}}`, all `{{contract_preconditions}}` were available, no invariant failure at `{{blocking_severities}}` remains, `{{proof_path}}` passed with current proof, and (for terminal readiness) every blind lane signed off with empty `p_findings`
+* if this is a terminal readiness gate, code changed, and no `eng-core` lane is in `{{blind_lanes}}` while engineering rules are installed
+  * set `{{grade}}` to `Not ready for {{proof_scope}}`
+  * set `{{proof_decision}}` to `Not accepted: code terminal review requires eng-core lane selection`
+  * [Report Verdict](#report-verdict)
+
+* if no `{{blocking_findings}}` remain for `{{proof_scope}}`, all `{{contract_preconditions}}` were available, no invariant failure at `{{blocking_severities}}` remains, `{{proof_path}}` passed with current proof, and (for terminal readiness) every selected blind lane signed off with empty `p_findings`
   * set `{{grade}}` to `Proven for {{proof_scope}}`
   * set `{{proof_decision}}` to `Proven for {{proof_scope}} at {{blocking_severities}} threshold via adversarial blind gabe-review ({{blind_lanes}})` when blind lanes ran; otherwise `Proven for {{proof_scope}} at {{blocking_severities}} threshold` only for explicitly non-terminal intermediate passes
-  * when the `hsm` lane signed off `n/a`, do not let the verdict read as state machine proof
+  * when the `hsm` or `eng-hsm` lane signed off `n/a` or `lane_applicable: false`, do not let the verdict read as state machine proof
   * [Report Verdict](#report-verdict)
 
 ## Report Verdict

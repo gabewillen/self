@@ -45,7 +45,7 @@ description: >-
 * if artifacts or `{{primary_user_action}}` proof are incomplete
   * refresh `{{goal_mdscript}}` completion_gate notes from the current gaps
   * [Pursue Goal](#pursue-goal)
-* run [Compose Gabe Review](workflows/compose-gabe-review.md#compose-gabe-review) which execs gabe-review adversarial blind (rules + security + completeness MDScripts, plus the hsm lane when a state machine is in scope)
+* run [Compose Gabe Review](workflows/compose-gabe-review.md#compose-gabe-review) which execs gabe-review multi-lane adversarial blind (always-on rules + security + completeness, selected eng-* language/framework lanes from vendored gabewillen/rules, plus deep hsm when a state machine is in scope)
 * if any blind lane fails, gabe-review returns `Not ready for …`, or blocking findings remain
   * fix every blocking finding
   * refresh artifacts and `artifacts/manifest.json` when proof changed

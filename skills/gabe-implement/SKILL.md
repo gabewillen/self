@@ -66,7 +66,10 @@ description: "Execute delegated Gabe-shaped implementation lanes using project c
 
 ## Inspect Current State
 
-* execute or read the named MDScript entry states for local instructions, plans, file tasks, and unresolved file comments, then read repo state, lane ledger, tracker state, current branch, merge target, existing MR/PR, CI state, review comments, unresolved threads, and relevant telemetry or artifacts
+* execute or read the named MDScript entry states for local instructions, plans, file tasks, and unresolved file comments
+* read current repo state and the lane ledger
+* read tracker state, current branch, merge target, and existing MR/PR
+* read CI state, review comments, unresolved threads, and relevant telemetry or artifacts
 
 * if the work is tied to a GitLab issue or MR
   * keep review back-and-forth visible in GitLab where required

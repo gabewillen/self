@@ -29,13 +29,28 @@
   * include the converted event execution in the file comment
 
 * if `{{blocker}}` is set
-  * if the blocker is missing infrastructure, service setup, provider setup, runtime resources, storage, browser, media, or a safe target, include the local resource path attempted and why it cannot satisfy the precondition
-  * report `Blocked for {{claim_scope}}: {{blocker}}`
-  * before asking Gabe, the user, a repository owner, or another authority surface for input, run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this workflow and `{{return_resume_heading}}` set to `report-to-orchestrator`
-  * ask the smallest decision-ready question
+  * [Report Blocked State](#report-blocked-state)
 
 * if reporting a scoped proven state
-  * state what scoped claim is proven, what proof path passed, what proof is not claimed, what goal remains active or terminal, and what exact merge, close, release, deploy, launch, or live-proof authority remains
-  * do not present `Proven for source-health`, `Proven for ci-repair`, `Proven for audit-completion`, or `Proven for blocker-note-completion` as final readiness, merge readiness, issue-close readiness, launch readiness, release readiness, deployment readiness, or live proof
+  * [Report Proven State](#report-proven-state)
 
 * do not claim done until the MR/PR is merged, explicitly closed by the authorized owner, or the orchestrator accepts the lane's terminal state in a file comment or equivalent external tracker record
+
+## Report Blocked State
+
+* if the blocker is missing infrastructure, service setup, provider setup, runtime resources, storage, browser, media, or a safe target
+  * include the local resource path attempted and why it cannot satisfy the precondition
+
+* report `Blocked for {{claim_scope}}: {{blocker}}`
+
+* before asking Gabe, the user, a repository owner, or another authority surface for input
+  * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this workflow and `{{return_resume_heading}}` set to `report-to-orchestrator`
+
+* ask the smallest decision-ready question and bind the answer to `{{authority_decision}}`
+  * resume at [Report To Orchestrator](#report-to-orchestrator)
+
+## Report Proven State
+
+* state what scoped claim is proven, what proof path passed, what proof is not claimed, what goal remains active or terminal, and what exact merge, close, release, deploy, launch, or live-proof authority remains
+
+* do not present `Proven for source-health`, `Proven for ci-repair`, `Proven for audit-completion`, or `Proven for blocker-note-completion` as final readiness, merge readiness, issue-close readiness, launch readiness, release readiness, deployment readiness, or live proof

@@ -3,38 +3,129 @@
 ## Confirm Implementer Completion Gates
 
 * do not perform code reviews from this orchestrator
-
 * do not spawn blind reviewers or `gabe-review` workers from this orchestrator
+* read the implementer stop report, review record, proof artifacts, and lane ledger for this lane
+* set `{{claim_scope}}` from the implementer acceptance report when present
+* if the implementer acceptance report is missing
+  * set `{{blocker}}` to `missing implementer acceptance report`
+  * [Reject Completion Gate](#reject-completion-gate)
+* [Verify Acceptance Report Fields](#verify-acceptance-report-fields)
 
-* for code work, require the implementer to own focused tests, relevant broader tests, real-resource artifact proof, and the recursive single-reviewer blind-review gate using `gabe-review`
+## Verify Acceptance Report Fields
 
-* require every implementer or reviewer acceptance report to name the typed `{{claim_scope}}`, preconditions, postconditions, invariants, proof path, local resource path when resources are involved, proof supplied, and proof not claimed
+* verify the report names typed `{{claim_scope}}`
+* verify the report names contract preconditions, postconditions, and invariants
+* verify the report names proof path, proof supplied, and proof not claimed
+* if any required field is missing
+  * set `{{blocker}}` to the missing acceptance field name
+  * [Reject Completion Gate](#reject-completion-gate)
+* if resources are in scope and local resource path is missing from the report
+  * set `{{blocker}}` to `missing local resource path in acceptance report`
+  * [Reject Completion Gate](#reject-completion-gate)
+* [Verify Claim Scope Boundaries](#verify-claim-scope-boundaries)
 
-* accept `Proven for source-health`, `Proven for ci-repair`, `Proven for audit-completion`, or `Proven for blocker-note-completion` as valid narrow completion gates when that is the assigned claim
+## Verify Claim Scope Boundaries
 
-* when merge or closure is the assigned claim, treat current-target exact-head CI green plus one fresh current-target `Proven` review plus no unresolved discussions as `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/thread-event-contracts.md#event-disposition-ready`; start disposition or record the root's explicit denial
+* if `{{claim_scope}}` is `source-health`, `ci-repair`, `audit-completion`, or `blocker-note-completion`
+  * accept that narrow scope as a valid completion gate when it matches the assigned claim
+  * [Verify No Scope Laundering](#verify-no-scope-laundering)
+* if merge or closure is the assigned claim
+  * [Verify Disposition Ready Aggregate](#verify-disposition-ready-aggregate)
+* do not require final live proof, publication, issue closure, merge, launch, release, or deployment proof for a narrower assigned claim
+* [Verify Review Gate For Change Type](#verify-review-gate-for-change-type)
 
-* do not require final live proof, publication proof, issue closure, merge, launch, release, or deployment proof to accept a narrower scoped gate unless the delegation included that broader scope
+## Verify Disposition Ready Aggregate
 
-* do not treat a narrower proven verdict as merge readiness, issue-close readiness, launch readiness, release readiness, deployment readiness, live proof, or final done
+* verify the MR/PR is on the current integration target
+* verify exact-head CI is green
+* verify one fresh current-target `Proven` review exists
+* verify no unresolved discussions remain
+* if any disposition precondition fails
+  * set `{{blocker}}` to the failed disposition precondition
+  * [Reject Completion Gate](#reject-completion-gate)
+* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/thread-event-contracts.md#event-disposition-ready`
+* run [Handle Merge Or Close Decision](merge-or-close-decision.md#handle-merge-or-close-decision)
+* if disposition is denied by root
+  * record the root's explicit denial with the exact authority, policy, or proof reason
+  * stop after recording the denial
+* [Accept Completion Gate](#accept-completion-gate)
 
-* require `Blocked for {{claim_scope}}` to name the exact missing precondition, resource, safe target, credential, hardware, network path, source truth, or authority after the local resource path is absent, unsafe, or exhausted
+## Verify No Scope Laundering
 
-* reject missing-infrastructure blockers when the implementer skipped an available local stack, bootstrap, preflight, dev server, fixture target, compose profile, or safe local resource path
+* if the report treats a narrow proven verdict as merge readiness, issue-close readiness, launch readiness, release readiness, deployment readiness, live proof, or final done
+  * set `{{blocker}}` to `scope laundering of narrow proven verdict`
+  * [Reject Completion Gate](#reject-completion-gate)
+* [Verify Review Gate For Change Type](#verify-review-gate-for-change-type)
 
-* reject stale screenshots, unclear issue proof, failing CI invariants, CI budget overages, contract/type mismatches, Draft status, and live-resource blockers as a blended middle state; route each one to the matching proof scope as proven, blocked, or repair-required
+## Verify Review Gate For Change Type
 
-* require the implementer to use one fresh blind reviewer per round and avoid reviewer reuse across rounds
+* if the change is MDScript-only, documentation-only, or instruction-only
+  * [Verify Non Code Review Gate](#verify-non-code-review-gate)
+* [Verify Code Review Gate](#verify-code-review-gate)
 
-* require every round-1 finding to be fixed or disproven, only P1 and P2 findings to be fixed or disproven in round 2, and only P1 findings to be fixed or disproven in round 3 and later
+## Verify Code Review Gate
 
-* require below-threshold findings to remain visible as residuals without triggering another pass
+* verify the implementer owns focused tests, relevant broader tests, and real-resource artifact proof for the claimed scope
+* verify the implementer owns the recursive single-reviewer blind-review gate using `gabe-review`
+* verify one fresh blind reviewer was used per round with no reviewer reuse across rounds
+* verify every round-1 finding was fixed or disproven
+* if the review is round 2
+  * verify only P1 and P2 findings were fixed or disproven
+* if the review is round 3 or later
+  * verify only P1 findings were fixed or disproven
+* verify below-threshold findings remain visible as residuals without another pass
+* if any code review gate check fails
+  * set `{{blocker}}` to the failed code review gate check
+  * [Reject Completion Gate](#reject-completion-gate)
+* if GitLab issue or MR review is in scope
+  * [Verify GitLab Review Visibility](#verify-gitlab-review-visibility)
+* [Verify Blocked Report Quality](#verify-blocked-report-quality)
 
-* when GitLab issue or MR review is in scope
-  * require the implementer to make the reviewer grade, findings, questions, answers, fix responses, evidence links, and resolution visible in GitLab before counting the review gate
-  * require resolvable threads to be resolved only after concerns are fixed, withdrawn, or accepted closed
-  * require reviewer identities to author their own sanitized GitLab notes through `gitlab-sudo-alias` with `-reviewer` aliases when leased reviewer identities are available
+## Verify Non Code Review Gate
 
-* for MDScript-only, documentation-only, and instruction-only changes
-  * require exactly one fresh review and direct checks, render or pipeline, and served-route proof when publication is part of the claim
-  * do not require or start a recursive review loop
+* verify exactly one fresh review completed
+* verify direct checks, render or pipeline, and served-route proof when publication is part of the claim
+* if a recursive review loop was started for non-code work
+  * set `{{blocker}}` to `recursive review loop used for non-code change`
+  * [Reject Completion Gate](#reject-completion-gate)
+* if the single fresh review or direct validation is missing
+  * set `{{blocker}}` to `missing single-fresh non-code review or direct validation`
+  * [Reject Completion Gate](#reject-completion-gate)
+* [Verify Blocked Report Quality](#verify-blocked-report-quality)
+
+## Verify GitLab Review Visibility
+
+* verify reviewer grade, findings, questions, answers, fix responses, evidence links, and resolution are visible in GitLab
+* verify resolvable threads are resolved only after concerns are fixed, withdrawn, or accepted closed
+* verify reviewer identities authored their own sanitized GitLab notes through `gitlab-sudo-alias` with `-reviewer` aliases when leased reviewer identities are available
+* if any GitLab visibility check fails
+  * set `{{blocker}}` to the failed GitLab review visibility check
+  * [Reject Completion Gate](#reject-completion-gate)
+* [Verify Blocked Report Quality](#verify-blocked-report-quality)
+
+## Verify Blocked Report Quality
+
+* if the report is not a blocked report
+  * [Accept Completion Gate](#accept-completion-gate)
+* verify `Blocked for {{claim_scope}}` names the exact missing precondition, resource, safe target, credential, hardware, network path, source truth, or authority
+* if the blocker is missing infrastructure and the implementer skipped an available local stack, bootstrap, preflight, dev server, fixture target, compose profile, or safe local resource path
+  * set `{{blocker}}` to `skipped available local resource path`
+  * [Reject Completion Gate](#reject-completion-gate)
+* if the report blends stale screenshots, unclear issue proof, failing CI invariants, CI budget overages, contract mismatches, Draft status, and live-resource blockers into one middle state
+  * set `{{blocker}}` to `blended middle-state proof report`
+  * [Reject Completion Gate](#reject-completion-gate)
+* [Accept Completion Gate](#accept-completion-gate)
+
+## Accept Completion Gate
+
+* record the accepted `{{claim_scope}}`, proof supplied, proof not claimed, and residual risk in the lane ledger
+* run [Report Status](../../gabe-common/workflows/report-boundary.md#report-status)
+
+## Reject Completion Gate
+
+* record `{{blocker}}` and the failed gate in the lane ledger
+* send the implementer the exact remediation jump for the failed gate when one exists
+* if authority or judgment is required from Gabe, the user, or a repository owner
+  * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script)
+  * return to the caller's stop-boundary state
+* stop and report `Blocked for {{claim_scope}}: {{blocker}}` when no repair jump is available

@@ -35,16 +35,13 @@
 * execute gabe-review composition for terminal readiness:
   * `mdscript-exec {{review_skill}}#identify-review-scope` with packet fields and `{{parent_reporting_path}}={{goal_mdscript}}`
   * require the terminal path to run `mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#triple-adversarial-blind-review`
-* the blind workflow spawns every lane in `{{blind_lanes}}` as a parallel readonly subagent, each executing its own MDScript:
-  1. rules — `…/blind-reviewers/rules.mdscript.md#rules-blind-review` (AGENTS/CLAUDE/GEMINI + Cursor/VS Code/Windsurf rules)
-  2. security — `…/blind-reviewers/security.mdscript.md#security-blind-review` (penetration and security)
-  3. completeness — `…/blind-reviewers/completeness.mdscript.md#completeness-blind-review` (goal-literal completeness)
-  4. hsm — `…/blind-reviewers/hsm.mdscript.md#hsm-blind-review` (UML 2.5 statechart semantics via `gabe-hsm-review`), whenever a state machine is in scope
-* wait for one sign-off per spawned lane under `{{run_dir}}`:
-  * `signoff-reviewer-rules.mdscript.md`
-  * `signoff-reviewer-security.mdscript.md`
-  * `signoff-reviewer-completeness.mdscript.md`
-  * `signoff-reviewer-hsm.mdscript.md` when the HSM lane ran
+* require lane selection via `mdscript-exec {{review_skill_root}}/workflows/select-review-lanes.md#select-review-lanes` (also run inside the triple/multi-lane workflow)
+* always-on blind lanes: `rules` (agent/repo instructions), `security`, `completeness`
+* selected add-on lanes come from in-scope paths and the catalog in `references/lane-catalog.md`, including:
+  * `eng-core`, `eng-dbc`, language lanes (`eng-rust`, `eng-python`, `eng-typescript`, …), framework lanes (`eng-react`, `eng-flutter`, …)
+  * `eng-hsm` (normative HSM rules) and deep `hsm` (`gabe-hsm-review`) when a state machine is in scope
+* the blind workflow spawns every lane in `{{blind_lanes}}` as a parallel readonly subagent at `{{lane_entrypoints}}.<lane>`
+* wait for one sign-off per spawned lane under `{{run_dir}}` named `signoff-reviewer-<lane>.mdscript.md`
 * persist `{{run_dir}}/review-verdict.mdscript.md` only from the aggregated gabe-review decision (never invent Proven-for)
 * append `review_composed` to `{{run_dir}}/progress.jsonl`
 * if every spawned lane signed off, grade starts with `Proven for`, and `blocking_findings` is empty

@@ -344,6 +344,102 @@ function installSkillSymlink(src, dest) {
 }
 
 /**
+ * Required nested assets for skills that are more than SKILL.md.
+ * Missing lane/rules files leave gabe-review "installed" but unable to select
+ * engineering or language lanes.
+ */
+const REQUIRED_SKILL_ASSETS = {
+  "gabe-review": [
+    "SKILL.md",
+    "workflows/select-review-lanes.md",
+    "workflows/select-language-framework-lanes.md",
+    "workflows/triple-adversarial-blind-review.mdscript.md",
+    "workflows/neutral-review-packet.md",
+    "workflows/blind-reviewers/rules.mdscript.md",
+    "workflows/blind-reviewers/security.mdscript.md",
+    "workflows/blind-reviewers/completeness.mdscript.md",
+    "workflows/blind-reviewers/hsm.mdscript.md",
+    "workflows/blind-reviewers/engineering-rules.mdscript.md",
+    "references/lane-catalog.md",
+    "references/engineering-rules/SOURCE.md",
+    // engineering rule packs (vendored from gabewillen/rules)
+    "references/engineering-rules/core.rules.md",
+    "references/engineering-rules/dbc.rules.md",
+    "references/engineering-rules/patterns.rules.md",
+    "references/engineering-rules/rust.rules.md",
+    "references/engineering-rules/python.rules.md",
+    "references/engineering-rules/typescript.rules.md",
+    "references/engineering-rules/go.rules.md",
+    "references/engineering-rules/cpp.rules.md",
+    "references/engineering-rules/dart.rules.md",
+    "references/engineering-rules/react.rules.md",
+    "references/engineering-rules/flutter.rules.md",
+    "references/engineering-rules/hono.rules.md",
+    "references/engineering-rules/pulumi.rules.md",
+    "references/engineering-rules/webcomponents.rules.md",
+    "references/engineering-rules/xstate.rules.md",
+    "references/engineering-rules/sml.rules.md",
+    "references/engineering-rules/hsm.rules.md",
+    // thin lane entrypoints
+    "workflows/blind-reviewers/eng-core.mdscript.md",
+    "workflows/blind-reviewers/eng-dbc.mdscript.md",
+    "workflows/blind-reviewers/eng-patterns.mdscript.md",
+    "workflows/blind-reviewers/eng-rust.mdscript.md",
+    "workflows/blind-reviewers/eng-python.mdscript.md",
+    "workflows/blind-reviewers/eng-typescript.mdscript.md",
+    "workflows/blind-reviewers/eng-go.mdscript.md",
+    "workflows/blind-reviewers/eng-cpp.mdscript.md",
+    "workflows/blind-reviewers/eng-dart.mdscript.md",
+    "workflows/blind-reviewers/eng-react.mdscript.md",
+    "workflows/blind-reviewers/eng-flutter.mdscript.md",
+    "workflows/blind-reviewers/eng-hono.mdscript.md",
+    "workflows/blind-reviewers/eng-pulumi.mdscript.md",
+    "workflows/blind-reviewers/eng-webcomponents.mdscript.md",
+    "workflows/blind-reviewers/eng-xstate.mdscript.md",
+    "workflows/blind-reviewers/eng-sml.mdscript.md",
+    "workflows/blind-reviewers/eng-hsm.mdscript.md",
+  ],
+  "gabe-hsm-review": ["SKILL.md", "workflows/triage.mdscript.md"],
+  "gabe-common": ["SKILL.md", "workflows/goal-mdscript.md", "workflows/file-task-comments.md"],
+};
+
+/**
+ * After install, every managed destination must have the nested files each
+ * skill needs at runtime. Symlinks to a complete live root pass; partial copy
+ * installs or a stale live checkout fail hard so postinstall cannot go green.
+ */
+function reportMissingSkillAssets(targetRoots, managedSkills) {
+  const missing = [];
+  for (const root of targetRoots) {
+    for (const skill of managedSkills) {
+      const required = REQUIRED_SKILL_ASSETS[skill];
+      if (!required) continue;
+      const skillDir = join(root, skill);
+      if (!existsSync(skillDir) && !isSymlink(skillDir)) {
+        missing.push(`${skillDir} (skill not installed)`);
+        continue;
+      }
+      for (const rel of required) {
+        const p = join(skillDir, rel);
+        if (!existsSync(p)) missing.push(p);
+      }
+    }
+  }
+  if (!missing.length) return [];
+  console.error(
+    `[gabe-agents] BROKEN: ${missing.length} required skill asset(s) missing after install:`,
+  );
+  for (const m of missing.slice(0, 40)) console.error(`    - ${m}`);
+  if (missing.length > 40) {
+    console.error(`    … and ${missing.length - 40} more`);
+  }
+  console.error(
+    "[gabe-agents] re-run from a checkout that contains the multi-lane gabe-review tree, or use --copy from this package",
+  );
+  return missing;
+}
+
+/**
  * A skill directory with no readable SKILL.md is a broken install: the entry
  * exists so tools list it, but it has no body. Report every one, including
  * stale entries left by a previous run whose source has since moved.
@@ -996,7 +1092,27 @@ if (mdscriptSkills.length && !dryRun) {
 
 const adapterReport = installAdapters(skills, [...targets], skillsRoot);
 
-if (!dryRun) reportBrokenSkillDirs(targets, skills);
+let brokenSkills = [];
+let missingAssets = [];
+if (!dryRun) {
+  // Warn about any unreadable skill dirs (including third-party dangling links).
+  brokenSkills = reportBrokenSkillDirs(targets, skills) || [];
+  // Hard-fail only when THIS pack's required nested assets are incomplete —
+  // e.g. gabe-review without engineering-rules / eng-* lanes.
+  missingAssets = reportMissingSkillAssets(targets, skills) || [];
+  const managedBroken = brokenSkills.filter((b) =>
+    skills.some((s) => b.includes(`/${s}`) || b.includes(`/${s} `) || b.endsWith(`/${s}`)),
+  );
+  if (missingAssets.length || managedBroken.length) {
+    console.error(
+      `[gabe-agents] install incomplete: ${managedBroken.length} managed broken skill dir(s), ${missingAssets.length} missing asset(s)`,
+    );
+    process.exit(1);
+  }
+  console.log(
+    `[gabe-agents] install integrity ok (${skills.length} skills, gabe-review multi-lane assets present)`,
+  );
+}
 
 let instructionReport = [];
 if (localState) {

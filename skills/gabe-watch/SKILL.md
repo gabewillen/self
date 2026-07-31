@@ -23,6 +23,7 @@ description: >-
 * infer `{{interval}}` from the user message (`30s`, `5m`, `10m`, `1h`); default `5m` when omitted
 * if `{{pr}}` is empty
   * ask the user for `{{pr}}` (GitHub PR URL or `owner/repo#N`)
+  * [Setup Watch](#setup-watch)
 * run [Select Configured Model And Reasoning](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{gabe_role}}` set to `implementer`
 * set `{{easy_model}}` to the fastest available model that can reliably land mechanical single-file fixes
 * set `{{easy_effort}}` to a low effort level
@@ -50,8 +51,10 @@ description: >-
 * create `~/.agents/projects/{{project_name}}/goals` when missing
 * if a legacy `~/.agents/projects/{{project_name}}/gabe-watch/pr-{{pr_number}}.json` exists and `{{watch_mdscript}}` does not
   * read that legacy state once to recover `loop_pid`, `sentinel`, and contract fields
-* write `{{watch_mdscript}}` from [watch.mdscript.md](assets/watch.mdscript.md), filling every front-matter field with the resolved values for this watch
-* do not write `pr-{{pr_number}}.json` for new watches — `{{watch_mdscript}}` front matter is the sole watch-state source, and legacy JSON is a read-only fallback
+* write `{{watch_mdscript}}` from [watch.mdscript.md](assets/watch.mdscript.md)
+* fill every front-matter field on `{{watch_mdscript}}` with the resolved values for this watch
+* leave legacy `pr-{{pr_number}}.json` unread for new writes
+* treat legacy `pr-{{pr_number}}.json` as read-only fallback only
 * run [Establish Watch Grant](#establish-watch-grant)
 * tell the user the watch contract: PR, interval, models, `{{watch_mdscript}}`, the standing grant, and that the loop runs until `/gabe-unwatch`
 * [Arm Persistent Interval Loop](#arm-persistent-interval-loop)
@@ -66,7 +69,8 @@ description: >-
 * set `{{ticker_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.ticker-hb`
 * set `{{agent_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.agent-hb`
 * set `{{stop_file}}` to `{{watch_dir}}/tick-{{pr_number}}.stop`
-* create `{{watch_dir}}` when missing and delete a stale `{{stop_file}}`
+* create `{{watch_dir}}` when missing
+* delete a stale `{{stop_file}}` when present
 * run [Resolve Owner Process](#resolve-owner-process)
 * run [Check Ticker Liveness](#check-ticker-liveness)
 * if `{{ticker_alive}}` is `true`
@@ -122,7 +126,9 @@ description: >-
 
 * resolve `{{watch_mdscript}}` for this PR when variables are missing (from the tick payload `pr` / user text)
 * if `{{watch_mdscript}}` is missing but a legacy `gabe-watch/pr-{{pr_number}}.json` exists
-  * restore from that legacy file once, then write `{{watch_mdscript}}` from [watch.mdscript.md](assets/watch.mdscript.md) and use it from now on
+  * restore state fields from that legacy file once
+  * write `{{watch_mdscript}}` from [watch.mdscript.md](assets/watch.mdscript.md)
+  * use `{{watch_mdscript}}` from now on
 * read `{{watch_mdscript}}` front matter as the authoritative state
 * if front-matter `watch_active` is not `true`
   * stop and report the watch is inactive; suggest `/gabe-watch` to start again

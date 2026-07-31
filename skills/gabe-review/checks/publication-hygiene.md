@@ -2,9 +2,25 @@
 
 ## Check Publication Hygiene
 
-* if the artifact is public writing, documentation, issue/MR/PR text, release notes, dashboard text, or a decision record
-  * require portable, sanitized content
-
-* add findings for local filesystem paths, private endpoints, secrets, unredacted customer data, raw transcript dumps, command-log prose, or third-person masking of the author's own actions
-
-* add findings for metadata the publication surface requires but the artifact is missing, using the surface's own contract as the source of truth
+* read [Publication Hygiene Policy](../references/publication-hygiene-policy.md)
+* if the artifact is not public writing, documentation, issue/MR/PR text, release notes, dashboard text, or a decision record
+  * return to the caller
+* inspect the artifact for portable, sanitized content
+* if local filesystem paths are present
+  * add a finding with consequence and evidence pointer
+* if private endpoints are present
+  * add a finding with consequence and evidence pointer
+* if secrets are present
+  * add a finding with consequence and evidence pointer
+* if unredacted customer data is present
+  * add a finding with consequence and evidence pointer
+* if raw transcript dumps are present
+  * add a finding with consequence and evidence pointer
+* if command-log prose is present
+  * add a finding with consequence and evidence pointer
+* if the author's own actions are masked in third person
+  * add a finding with consequence and evidence pointer
+* inspect the publication surface's own metadata contract
+* for each required metadata field the artifact is missing
+  * add a finding naming the surface contract and the missing field
+* return to the caller

@@ -14,7 +14,7 @@ description: >-
 * set `{{workflow}}` from the caller link or request (for example `goal-mdscript`, `lane-ledger`, `return-script`)
 * if `{{workflow}}` is empty
   * list files under `workflows/`
-  * ask the user which shared workflow to run
+  * ask the user for `{{workflow}}` by naming which shared workflow to run
   * [Use Shared Workflow](#use-shared-workflow)
 * run `/mdscript-exec {{repo_root}}/skills/gabe-common/workflows/{{workflow}}.md`
 * stop and report the workflow path used
