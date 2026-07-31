@@ -95,7 +95,7 @@ description: "ALWAYS use this skill when the user runs /gabe-watch or wants inte
 * only an item in `{{grant_excludes}}`, a genuine product-judgment question, or a reviewer disagreement may become a question for the user
 * when in doubt about scope, authority, or the right call
   * run `/mdscript-exec {{repo_root}}/skills/gabe/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/gabe/SKILL.md`
-  * decide from the operating model from current evidence
+  * decide what the user would do from current evidence
 * asking the user is the last resort after the `gabe` skill, the repo, and the PR evidence still leave the call genuinely undecidable
 
 ## Resolve Owner Process

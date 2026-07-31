@@ -6,7 +6,7 @@
 * set `{{slack_shape}}` to one-to-three short lines: answer, optional evidence or uncertainty, optional next question, optional `@gabe.willen` follow-up invite
 * rewrite `{{slack_response}}` or `{{gabe_voice_response}}` as the reply text only with no skill preface or reasoning label
 * if Slack shows an assistant sender label
-  * omit identity disclaimers unless the draft would imply the human principal personally acted
+  * omit identity disclaimers unless the draft would imply the user personally acted
 * if follow-up may be needed later and the thread is not assigned
   * append one short `@gabe.willen` in-thread invite from the samples
 * if `@gabe.willen` has assigned the clone
@@ -47,7 +47,7 @@
 * verify `{{slack_response}}` or `{{gabe_voice_response}}` answers only from current Slack context, automation memory, child thread state, and read-only evidence actually consulted
 * if any claim is preliminary
   * mark it as preliminary or being double-checked
-* if the draft claims the human principal approval, attention, root cause, product fix, tracker mutation, deployment, customer impact, or live proof without matching evidence and authority
+* if the draft claims the user's approval, attention, root cause, product fix, tracker mutation, deployment, customer impact, or live proof without matching evidence and authority
   * revise the draft to remove the overclaim
   * [Check Authority And Evidence](#check-authority-and-evidence)
 * if the draft discloses secrets, credential paths, private local paths, unredacted sensitive identifiers, or private customer data

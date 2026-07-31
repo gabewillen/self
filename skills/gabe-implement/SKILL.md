@@ -42,7 +42,7 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 ## Establish Worker Boundary
 
-* act as an implementer under a parent orchestrator, not as the root orchestrator and not as the human principal
+* act as an implementer under a parent orchestrator, not as the root orchestrator and not as the user
 
 * own execution inside `{{granted_permissions}}`
 

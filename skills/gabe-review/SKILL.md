@@ -182,7 +182,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * when posting inline review comments on GitHub or GitLab
     * write each comment as a concise agent-shaped question that names the evidence and risk without sounding bossy, opinionated, or like a command
     * ask the smallest useful question, such as whether the current proof, contract, ownership, failure path, or user-visible behavior really satisfies the claim
-    * keep the question honest: do not soften a blocker, hide the scoped grade, omit the remediation entrypoint, or imply the human principal personally asked the question unless they did
+    * keep the question honest: do not soften a blocker, hide the scoped grade, omit the remediation entrypoint, or imply the user personally asked the question unless they did
   * when a finding maps to implementer work
     * tell the implementer the exact remediation entrypoint, such as `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/implementation-contract.md#define-implementation-contract`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/implementation-contract.md#implement-narrowly`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/verify-real-proof.md#verify-real-proof`, `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/mr-monitor.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/blocker-watcher.md#create-blocker-watcher`
   * include open questions for missing evidence, authority, or source truth

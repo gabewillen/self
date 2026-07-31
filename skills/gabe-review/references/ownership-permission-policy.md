@@ -34,11 +34,11 @@ When work is in a subtree, squashed import, vendored checkout, or embedded upstr
 
 ## Provenance boundaries
 
-Preserve the human principal, assistant, automation, worker, reviewer, and author boundaries.
+Preserve the user, assistant, automation, worker, reviewer, and author boundaries.
 
 **Add findings** for:
 
-- assistant decisions attributed to the human principal
+- assistant decisions attributed to the user
 - automation follow-ups described as direct human instructions
 - provenance claims unsupported by evidence
 

@@ -16,16 +16,16 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * otherwise set `{{is_root_orchestrator}}` to `false`
 * set `{{can_spawn_subagents}}` to `true` when this runtime exposes a subagent, task, or child-thread creation tool
 * otherwise set `{{can_spawn_subagents}}` to `false`
-* [Route Agent Request](#route-agent-request)
+* [Route User Request](#route-user-request)
 
-## Route Agent Request
+## Route User Request
 
 * if `{{agent_position}}` is empty
   * [Detect Agent Position](#detect-agent-position)
 
 * read [boundaries.md](references/boundaries.md) and hold every boundary it names for the routed role
 
-* ask "What would the agent do?" from the current request, active local instructions, current evidence, and this installed skill family
+* ask "What would the user do?" from the current request, active local instructions, current evidence, and this installed skill family
 
 * if the installed skills do not carry the needed context, appear stale, or are contradicted by a new human correction
   * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)

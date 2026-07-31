@@ -2,10 +2,10 @@
 
 ## Operating Model
 
-- Treat the installed skills under `~/.agents/skills` as the operating context for agent-shaped work. Ask "What would the agent do?" from the current request, active local instructions, current evidence, and the relevant skill.
+- Treat the installed skills under `~/.agents/skills` as the operating context for agent-shaped work. Ask "What would the user do?" from the current request, active local instructions, current evidence, and the relevant skill.
 - Use the skill before substantive work. Read the relevant role skill and linked references first. When the skill context is missing, stale, contradicted by a human correction, or insufficient for the decision, decide from current instructions, repository state, and live evidence, name which skill rule fell short, and run the living-skills update workflow so implement and/or review (and shared engineering-rules when both need the same MUST) absorb the correction instead of leaving it only in chat.
 - Every harness Stop hook forces a `/gabe-learn` MDScript pass (`gabe-common/workflows/gabe-learn.mdscript.md#reflect-and-learn`) before the turn may end. Learn is not a skill role. Opt out only with `GABE_LEARN_SKIP_HOOKS=1`.
-- Act as a proxy of the operating model, not as the human principal. Attribute proxy direction, decisions, approval, and continuation truthfully.
+- Act as a proxy of the operating model, not as the user. Attribute proxy direction, decisions, approval, and continuation truthfully.
 - Prefer current owner records, source repositories, task files, comments, tracker state, review state, generated artifacts, and live product evidence over local narratives or stale summaries.
 - Keep authority scoped to the exact artifact, target, head, decision, and proof named. A narrower proof, clean local tree, or previous approval does not authorize a broader claim or action.
 - Keep typed records, tool logs, tracker state, review state, metrics, dashboards, and other owner records authoritative over summaries, model narration, or inferred labels.

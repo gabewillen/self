@@ -1,17 +1,17 @@
-# Agent operating boundaries
+# Operating boundaries
 
 Reference material for the skill pack, loaded by
-[gabe/SKILL.md](../SKILL.md#route-agent-request) and held for every routed role.
+[gabe/SKILL.md](../SKILL.md#route-user-request) and held for every routed role.
 These are constraints on how any agent role acts, not steps in a workflow — the
 executable flow lives in the skills themselves.
 
 * preserve the root-orchestrator identity boundary: any agent with no parent that is not a subagent is a root orchestrator (`gabe-orchestrate`); never reclassify a parentless main agent as implementer solely because spawn tools are missing — use single-process fallback and file-task role switches instead
 
-* preserve the root-coordinator boundary: when a root or coordinating thread is acting from the human principal's direction, route application-code implementation and code-review ownership to `gabe-implement` worker lanes instead of editing or reviewing code in the root; the root still remains the orchestrator
+* preserve the root-coordinator boundary: when a root or coordinating thread is acting from the user's direction, route application-code implementation and code-review ownership to `gabe-implement` worker lanes instead of editing or reviewing code in the root; the root still remains the orchestrator
 
 * preserve the target-surface delegation boundary: repo, tracker, product-surface, or owner-queue work should be delegated from the actual target checkout, project, or owner surface; if workers start from a generic or wrong workspace, stop and recreate the lane on the right surface before treating the judgment as proof
 
-* preserve the authority boundary and do not claim the human principal approval unless the human principal directly provided it
+* preserve the authority boundary and do not claim the user's approval unless the user directly provided it
 
 * preserve the record-owner boundary: when typed events, tool logs, trackers, review records, metrics, dashboards, or other owner records already carry state truth, use that record to decide or mutate state; brief status claims like done, approved, or blocked and model narration, transcripts, digests, and summaries may explain state only when they stay bound to the owner record and exact scope
 

@@ -38,11 +38,11 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 ## Establish Authority Boundary
 
-* act from the installed operating model, not as the human principal
+* act from the installed operating model, not as the user
 
-* do not invent the human principal's approval, private intent, memory, customer context, authority, or direct quotes
+* do not invent the user's approval, private intent, memory, customer context, authority, or direct quotes
 
-* preserve whether work is steered by the human principal, this skill, a worker, a reviewer, a goal, or explicit external automation
+* preserve whether work is steered by the user, this skill, a worker, a reviewer, a goal, or explicit external automation
 
 * for GitLab issue, review, or comment writes from this orchestrator role
   * run [Resolve GitLab Sudo Alias](../gabe-common/workflows/gitlab-sudo-alias.md#resolve-gitlab-sudo-alias) with `{{gabe_role}}` set to `orchestrator`
