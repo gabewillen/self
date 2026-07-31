@@ -101,12 +101,13 @@ console.log("dialect-ok");
 );
 assert(dialectProbe.status === 0, `dialect probe (${dialectProbe.stderr || dialectProbe.stdout})`);
 
-// Cursor session A arms learn
+// Cursor session A arms learn (real user prompt)
 const touchA = runHook(learnTouch, {
   conversation_id: "cursor-A",
   workspace_roots: [pkgRoot],
   generation_id: "gen-1",
   hook_event_name: "beforeSubmitPrompt",
+  prompt: "please fix the hooks",
 });
 assert(touchA.status === 0, "touch session A exits 0");
 const turnA = join(agentsHome, "learn/user-turn/cursor_cursor-A.json");
@@ -169,6 +170,7 @@ const touchClaude = runHook(learnTouch, {
   session_id: "claude-1",
   transcript_path: "/tmp/t.jsonl",
   cwd: pkgRoot,
+  prompt: "real claude user prompt",
 });
 assert(touchClaude.status === 0, "claude touch ok");
 const stopClaude = runHook(learnStop, {
@@ -195,6 +197,65 @@ const outActive = parseOut(stopActive.stdout);
 assert(
   !outActive.followup_message,
   `stop_hook_active yields empty followup (got ${JSON.stringify(outActive)})`,
+);
+
+// After inject, a second Stop without a new user arm must not re-inject
+// (Cursor has no stop_hook_active; in_flight stamp is the brake).
+const stopA2 = runHook(learnStop, {
+  conversation_id: "cursor-A",
+  workspace_roots: [pkgRoot],
+  status: "completed",
+  loop_count: 1,
+  stop_hook_active: false,
+});
+const outA2 = parseOut(stopA2.stdout);
+assert(
+  !outA2.followup_message,
+  `second stop after inject must not re-fire (got ${JSON.stringify(outA2)})`,
+);
+
+// Cursor re-submits followup_message as beforeSubmitPrompt — must not re-arm.
+const touchFollowup = runHook(learnTouch, {
+  conversation_id: "cursor-A",
+  workspace_roots: [pkgRoot],
+  generation_id: "gen-2",
+  prompt:
+    "/mdscript-exec /tmp/skills/gabe-common/workflows/gabe-learn.mdscript.md#reflect-and-learn",
+});
+assert(touchFollowup.status === 0, "synthetic followup touch exits 0");
+const stopAfterSynthetic = runHook(learnStop, {
+  conversation_id: "cursor-A",
+  workspace_roots: [pkgRoot],
+  status: "completed",
+  loop_count: 1,
+  stop_hook_active: false,
+});
+const outSynth = parseOut(stopAfterSynthetic.stdout);
+assert(
+  !outSynth.followup_message,
+  `synthetic followup must not re-arm learn (got ${JSON.stringify(outSynth)})`,
+);
+
+// A real new user message may arm learn again after prior in_flight/satisfied.
+const touchA3 = runHook(learnTouch, {
+  conversation_id: "cursor-A",
+  workspace_roots: [pkgRoot],
+  generation_id: "gen-3",
+  prompt: "another real question",
+});
+assert(touchA3.status === 0, "new real user touch ok");
+const stopA3 = runHook(learnStop, {
+  conversation_id: "cursor-A",
+  workspace_roots: [pkgRoot],
+  status: "completed",
+  loop_count: 0,
+  stop_hook_active: false,
+});
+const outA3 = parseOut(stopA3.stdout);
+assert(
+  typeof outA3.followup_message === "string" &&
+    outA3.followup_message.includes("reflect-and-learn"),
+  `new user turn may inject learn again (got ${JSON.stringify(outA3)})`,
 );
 
 rmSync(home, { recursive: true, force: true });

@@ -33,7 +33,10 @@ if (input.status !== "completed") {
   finishHook();
 }
 
-// Never chain on our own follow-ups (Cursor re-runs Stop after followup_message).
+// Never chain on our own follow-ups.
+// Cursor maps loop_count > 0 → stopHookActive in readHookInput; Claude/Codex/Grok
+// set stop_hook_active. Without this, pending ticks re-inject every Stop until
+// Cursor's loop_limit (default 5).
 if (input.stopHookActive) {
   finishHook();
 }

@@ -49,6 +49,6 @@
   * set `{{learn_pass_path}}` from the contents of `~/.agents/learn/ACTIVE` when that file exists
 * if `{{learn_pass_path}}` is still empty
   * set `{{learn_pass_path}}` to `~/.agents/learn/unknown.json`
-* write a JSON stamp to `{{learn_pass_path}}` with `status` set to the string `satisfied`, `learn_status` set to `{{learn_status}}`, and `completed_at` as ISO time (merge with any existing fields when present)
+* write a JSON stamp to `{{learn_pass_path}}` with `status` set to the string `satisfied`, `learn_status` set to `{{learn_status}}`, and `completed_at` as ISO time (merge with any existing fields when present; clear `followup_injected_at` when rewriting)
 * report `learn_status={{learn_status}}` and any `{{skill_files_changed}}` or that nothing durable and **user-sourced** needed a skill update
 * stop

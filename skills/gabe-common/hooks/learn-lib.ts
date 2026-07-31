@@ -48,10 +48,12 @@ export interface LearnPass {
   dialect?: HookDialect;
   session_key?: string;
   loop_count: number;
-  status: "required" | "satisfied";
+  status: "required" | "satisfied" | "in_flight";
   learn_status?: string;
   required_at?: string;
   completed_at?: string;
+  /** Set when Stop already injected the learn followup for this user cycle. */
+  followup_injected_at?: string;
 }
 
 function readStdinJson<T>(): T {
@@ -153,6 +155,12 @@ export function readHookInput(): HookInput {
       : typeof raw.loopCount === "number"
         ? raw.loopCount
         : 0;
+  // Claude/Codex/Grok set stop_hook_active / stopHookActive on Stop continuations.
+  // Cursor does not document that field; it uses loop_count (do not map loop_count
+  // into stopHookActive — it may not reset every user turn and would permanently
+  // suppress learn). Cursor self-chain is broken by ignoring synthetic prompts in
+  // session-touch and by requiring USER_TURN before inject.
+  const stopHookActive = Boolean(raw.stop_hook_active ?? raw.stopHookActive);
   return {
     dialect,
     conversationId,
@@ -170,13 +178,48 @@ export function readHookInput(): HookInput {
         ? (status as "aborted" | "error")
         : "completed",
     loopCount,
-    stopHookActive: Boolean(raw.stop_hook_active ?? raw.stopHookActive),
+    stopHookActive,
     reason: firstString(raw.reason) || undefined,
     turnId:
       firstString(raw.generation_id, raw.turn_id, raw.turnId) || undefined,
     model: firstString(raw.model) || undefined,
     raw,
   };
+}
+
+/**
+ * Prompt text from beforeSubmitPrompt / UserPromptSubmit when the harness
+ * includes it (Cursor: `prompt`; Claude/Codex often `prompt` too).
+ */
+export function promptFromHookInput(input: HookInput): string {
+  return firstString(
+    input.raw.prompt,
+    input.raw.user_prompt,
+    input.raw.userPrompt,
+    input.raw.message,
+    input.raw.text,
+  );
+}
+
+/**
+ * True when the submitted "user" text is actually a stop-hook / block-decision
+ * continuation we (or sibling gabe hooks) injected. Cursor re-fires
+ * beforeSubmitPrompt for followup_message; Claude/Codex/Grok feed decision
+ * reasons back as the next user turn. Those must not re-arm USER_TURN or
+ * clear a satisfied learn pass.
+ */
+export function isHarnessFollowupPrompt(text: string): boolean {
+  const t = (text || "").trim();
+  if (!t) return false;
+  // Learn / watch / goal MDScript followups (single-line form).
+  if (/^\/?mdscript-exec\b/i.test(t)) return true;
+  if (/#reflect-and-learn\b/i.test(t)) return true;
+  if (/#resume-watch\b/i.test(t)) return true;
+  if (/gabe-learn\.mdscript\.md/i.test(t)) return true;
+  if (/gabe-watch-.*\.mdscript\.md/i.test(t)) return true;
+  // Goal stop followups are also mdscript-exec clauses from formatGoalFollowupMessage.
+  if (/\/mdscript-exec\b/i.test(t) && /#/.test(t)) return true;
+  return false;
 }
 
 export function continueWorkingPayload(

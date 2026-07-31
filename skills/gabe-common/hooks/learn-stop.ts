@@ -31,8 +31,7 @@ if (input.status !== "completed") {
   finishHook();
 }
 
-// Never chain on our own follow-ups (Cursor re-runs Stop after followup_message).
-// Watch / learn / goal resumes set stop_hook_active; do not re-inject.
+// Never chain on Claude/Codex/Grok stop-hook continuations.
 if (input.stopHookActive) {
   finishHook();
 }
@@ -73,11 +72,20 @@ if (pass && pass.status === "satisfied") {
   finishHook();
 }
 
-// Only user-originated turns may start learn (UserPromptSubmit sets user-turn).
+// Already injected the learn followup for this cycle (Cursor has no
+// stop_hook_active; this stamp stops the re-inject loop).
+if (pass && (pass.status === "in_flight" || pass.followup_injected_at)) {
+  finishHook();
+}
+
+// Only a real user-originated turn may start learn (session-touch sets USER_TURN).
+// Followup prompts must not re-arm USER_TURN (see learn-session-touch).
 if (!hasUserTurn(input.conversationId, input.dialect)) {
   finishHook();
 }
 
+// Clear the arm *before* writing the inject stamp so a racing second Stop
+// cannot see USER_TURN and double-inject.
 clearUserTurn(input.conversationId, input.dialect);
 
 writeLearnPass(passPath, {
@@ -85,8 +93,9 @@ writeLearnPass(passPath, {
   dialect: input.dialect,
   session_key: input.sessionKey,
   loop_count: loopCount,
-  status: "required",
+  status: "in_flight",
   required_at: new Date().toISOString(),
+  followup_injected_at: new Date().toISOString(),
 });
 
 finishHook(
