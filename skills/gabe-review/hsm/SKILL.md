@@ -1,6 +1,6 @@
 ---
 name: gabe-review-hsm
-description: "ALWAYS use this skill when the gabe-review hsm blind lane audits hierarchical state machines: apply UML 2.5 ownership, actor/RTC, control-flow, purity, activity, hierarchy, and reachability gates via mdscript-exec on this internal pack (not a top-level agent skill)."
+description: "ALWAYS use this skill when the hsm blind review lane audits hierarchical state machines: apply UML 2.5 ownership, actor/RTC, control-flow, purity, activity, hierarchy, and reachability gates via mdscript-exec on this internal pack (not a top-level agent skill)."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

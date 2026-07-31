@@ -1,6 +1,6 @@
 ---
 name: gabe-implement
-description: "ALWAYS use this skill when writing or editing anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts — state the scoped DBC claim, select and apply the same vendored engineering-rules packs review eng-* lanes will check (impl-core, impl-dbc, language/framework, optional impl-hsm), prove with real paths, compose gabe-review in-process with per-lane blind fanout only, and report to the parent before stopping."
+description: "ALWAYS use this skill when writing or editing anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts — state the scoped DBC claim, select and apply the same vendored engineering-rules packs review eng-* lanes will check (impl-core, impl-dbc, language/framework, optional impl-hsm), prove with real paths, compose multi-lane review in-process with per-lane blind fanout only, and report before stopping."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

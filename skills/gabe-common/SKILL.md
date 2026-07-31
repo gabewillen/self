@@ -1,6 +1,6 @@
 ---
 name: gabe-common
-description: "ALWAYS use this skill when a Gabe skill links into gabe-common/workflows or when installing the Gabe skill pack: shared MDScript primitives for goals, lane ledgers, return scripts, thread events, operating-context load, report boundaries, and related coordination."
+description: "ALWAYS use this skill when another skill links into gabe-common/workflows or when installing this skill pack: shared MDScript primitives for goals, lane ledgers, return scripts, thread events, operating-context load, report boundaries, and related coordination."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

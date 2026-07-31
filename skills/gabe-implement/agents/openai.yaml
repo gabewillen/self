@@ -1,4 +1,4 @@
 interface:
   display_name: "Gabe Implement"
   short_description: "Gabe write/edit worker"
-  default_prompt: "ALWAYS use $gabe-implement when writing or editing anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. Select a task-appropriate model and effort level, state the scoped DBC claim and proof boundaries, apply selected engineering-rules packs, write executable MDScript control records under ~/.agents/projects/project-name/, prove with real paths, compose multi-lane $gabe-review in-process with per-lane blind fanout only, and report to the parent before stopping."
+  default_prompt: "ALWAYS use $gabe-implement when writing or editing anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. Select a task-appropriate model and effort level, state the scoped DBC claim and proof boundaries, apply selected engineering-rules packs, write executable MDScript control records under ~/.agents/projects/project-name/, prove with real paths, compose multi-lane review in-process with per-lane blind fanout only, and report before stopping."

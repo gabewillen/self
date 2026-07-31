@@ -1,6 +1,6 @@
 ---
 name: gabe-goal
-description: "ALWAYS use this skill when running /gabe-goal or /goal until proof artifacts exist and multi-lane gabe-review returns Proven-for with empty blocking findings: prefer a harness /goal ability for multi-round continuation and skip gabe-goal hooks when available, keep MDScript-only run state under runs/<run_id>/, and drive parallel subagent work with append-only logs."
+description: "ALWAYS use this skill when running a goal loop (/goal or /gabe-goal) until proof artifacts exist and multi-lane review returns Proven-for with empty blocking findings: prefer a harness /goal ability for multi-round continuation and skip this skill's hooks when available, keep MDScript-only run state under runs/<run_id>/, and drive parallel subagent work with append-only logs."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
