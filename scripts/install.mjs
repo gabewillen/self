@@ -1322,6 +1322,9 @@ const ROUTER_BLOCK_START = "<!-- self-agents:router -->";
 const ROUTER_BLOCK_END = "<!-- /self-agents:router -->";
 const ROUTER_BLOCK_RE =
   /<!-- self-agents:router -->[\s\S]*?<!-- \/self-agents:router -->\n?/;
+/** Pre-rename marker — strip so installs do not leave two router blocks. */
+const LEGACY_GABE_ROUTER_BLOCK_RE =
+  /<!-- gabe-agents:router -->[\s\S]*?<!-- \/gabe-agents:router -->\n?/g;
 /** Pre-marker directive, so the first upgrade adopts it instead of duplicating it. */
 const LEGACY_DIRECTIVE_RE =
   /^.*ALWAYS use (?:the )?[`'"]?(?:gabe|self)[`'"]? router skill.*$\n?/im;
@@ -1348,20 +1351,22 @@ const INSTRUCTION_TARGETS = [
  * installed first.
  */
 function applyRouterDirective(existing, block) {
-  if (ROUTER_BLOCK_RE.test(existing)) {
-    const next = existing.replace(ROUTER_BLOCK_RE, block);
-    return next === existing
-      ? { body: existing, action: "present" }
+  // Drop pre-rename gabe-agents router blocks so they never sit beside self-agents.
+  let body = (existing || "").replace(LEGACY_GABE_ROUTER_BLOCK_RE, "");
+  if (ROUTER_BLOCK_RE.test(body)) {
+    const next = body.replace(ROUTER_BLOCK_RE, block);
+    return next === body
+      ? { body, action: "present" }
       : { body: next, action: "updated" };
   }
-  if (LEGACY_DIRECTIVE_RE.test(existing)) {
-    return { body: existing.replace(LEGACY_DIRECTIVE_RE, block), action: "updated" };
+  if (LEGACY_DIRECTIVE_RE.test(body)) {
+    return { body: body.replace(LEGACY_DIRECTIVE_RE, block), action: "updated" };
   }
-  if (!existing) {
+  if (!body) {
     return { body: `# Global agent instructions\n\n${block}`, action: "created" };
   }
   return {
-    body: `${existing.replace(/\n*$/, "")}\n\n${block}`,
+    body: `${body.replace(/\n*$/, "")}\n\n${block}`,
     action: "appended",
   };
 }
