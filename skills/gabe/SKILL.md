@@ -1,6 +1,6 @@
 ---
 name: gabe
-description: "ALWAYS use this skill for EVERY request first, before planning or answering, so it can route the role: main agents that are not subagents are orchestrate; subagents are implement (or one blind-lane MDScript); explicit /gabe-watch, /gabe-unwatch, /gabe-goal, and /gabe-automate still route first; HSM is a review blind lane not a separate skill; review composition stays on the composing process with per-lane fanout only."
+description: "ALWAYS use this skill for EVERY request first, before planning or answering, so it can route the role: main agents that are not subagents are orchestrate; subagents are implement (or one blind-lane MDScript); explicit /gabe-watch, /gabe-unwatch, /gabe-goal, /gabe-automate, and /gabe-learn still route first (/gabe-learn is an MDScript only, not a skill); HSM is a review blind lane not a separate skill; review composition stays on the composing process with per-lane fanout only."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -39,6 +39,11 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * if the request is `/gabe-unwatch`, stop watching a PR, or cancel an armed gabe-watch loop
   * set `{{gabe_role}}` to `gabe-unwatch`
   * [Execute Routed Role](#execute-routed-role)
+
+* if the request is `/gabe-learn`, a stop-hook learn pass, or a forced living-skills reflection
+  * set `{{learn_mdscript}}` to `{{skills_root}}/gabe-common/workflows/gabe-learn.mdscript.md`
+  * run `/mdscript-exec {{learn_mdscript}}#reflect-and-learn`
+  * stop after that MDScript returns — do not route a skill role for learn
 
 * if the request is HSM/SML hard-rule review, hierarchical state machine audit, or `/gabe-hsm-review`
   * set `{{gabe_role}}` to `gabe-review`

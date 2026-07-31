@@ -418,6 +418,13 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/file-task-comments.md",
     "workflows/update-living-skills.md",
     "workflows/load-operating-context.md",
+    "workflows/gabe-learn.mdscript.md",
+    "hooks/learn-stop.ts",
+    "hooks/learn-lib.ts",
+    "adapters/claude/hooks.json",
+    "adapters/cursor/hooks.json",
+    "adapters/codex/hooks.json",
+    "adapters/grok/hooks.json",
   ],
 };
 
@@ -505,7 +512,8 @@ const ROUTER_DIRECTIVE =
   "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before " +
   "planning or answering, and let it choose the role: any parentless main agent is a root " +
   "orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane " +
-  "MDScript); explicit routes cover gabe-watch, gabe-goal, and gabe-automate; HSM is a gabe-review lane.";
+  "MDScript); explicit routes cover gabe-watch, gabe-goal, gabe-automate, and gabe-learn " +
+  "(MDScript only); HSM is a gabe-review lane.";
 const ROUTER_BLOCK_START = "<!-- gabe-agents:router -->";
 const ROUTER_BLOCK_END = "<!-- /gabe-agents:router -->";
 const ROUTER_BLOCK_RE =
