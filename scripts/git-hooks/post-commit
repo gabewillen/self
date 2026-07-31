@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# gabe-agents:post-commit
+#
+# On live/* working branches: push HEAD and open or update a PR into the
+# upstream default branch so agents only need to `git commit`.
+# Disable: GABE_AGENTS_SKIP_PR_HOOK=1
+set -u
+
+if [ "${GABE_AGENTS_SKIP_PR_HOOK:-}" = "1" ] || [ "${GABE_AGENTS_SKIP_PR_HOOK:-}" = "true" ]; then
+  exit 0
+fi
+# Avoid re-entry if a nested commit somehow fires.
+if [ "${GABE_AGENTS_IN_POST_COMMIT:-}" = "1" ]; then
+  exit 0
+fi
+export GABE_AGENTS_IN_POST_COMMIT=1
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$ROOT" || exit 0
+
+BRANCH="$(git branch --show-current 2>/dev/null || true)"
+case "$BRANCH" in
+  live/*) ;;
+  *) exit 0 ;;
+esac
+
+# Resolve base (main/master) from origin/HEAD when possible.
+BASE="main"
+if sym="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null)"; then
+  BASE="${sym#refs/remotes/origin/}"
+fi
+if ! git rev-parse --verify "origin/$BASE" >/dev/null 2>&1; then
+  if git rev-parse --verify origin/master >/dev/null 2>&1; then
+    BASE="master"
+  fi
+fi
+
+echo "[gabe-agents] post-commit: push $BRANCH and ensure PR into $BASE" >&2
+
+# Push branch (creates remote head if needed).
+if ! git push -u origin "HEAD:refs/heads/$BRANCH" 2>&1; then
+  echo "[gabe-agents] post-commit: push failed (PR not updated; commit is local)" >&2
+  exit 0
+fi
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo "[gabe-agents] post-commit: gh not found; branch pushed — open PR manually: gh pr create --base $BASE --head $BRANCH" >&2
+  exit 0
+fi
+
+# Existing open PR for this head?
+EXISTING="$(gh pr list --base "$BASE" --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || true)"
+if [ -n "$EXISTING" ]; then
+  echo "[gabe-agents] post-commit: PR updated $EXISTING" >&2
+  exit 0
+fi
+
+# Title from latest commit subject.
+TITLE="$(git log -1 --pretty=%s 2>/dev/null || echo "Live skill updates on $BRANCH")"
+BODY="$(cat <<EOF
+## Summary
+Automated PR from live working branch \`$BRANCH\` (gabe-agents post-commit hook).
+
+Agents commit skill-pack changes here; this PR tracks upstream \`$BASE\`.
+
+## Latest commit
+$(git log -1 --pretty=format:'%h %s%n%n%b' 2>/dev/null || true)
+EOF
+)"
+
+URL="$(gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" --body "$BODY" 2>&1)" || {
+  echo "[gabe-agents] post-commit: gh pr create failed: $URL" >&2
+  exit 0
+}
+echo "[gabe-agents] post-commit: opened $URL" >&2
+exit 0

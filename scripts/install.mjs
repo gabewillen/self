@@ -443,6 +443,61 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
   });
 }
 
+/**
+ * Install managed git hooks into the live checkout so agents only need to commit.
+ * post-commit on live/*: push + open/update PR into origin default branch.
+ */
+function installLiveGitHooks(liveRoot) {
+  const root = gitTopLevel(liveRoot) || liveRoot;
+  if (!isGitRepo(root) && !gitTopLevel(root)) return null;
+  const hooksDir = join(root, ".git", "hooks");
+  // worktree: .git may be a file
+  let realHooks = hooksDir;
+  const gitPath = join(root, ".git");
+  try {
+    if (existsSync(gitPath) && !statSync(gitPath).isDirectory()) {
+      const text = readFileSync(gitPath, "utf8").trim();
+      const m = /^gitdir:\s*(.+)$/m.exec(text);
+      if (m) realHooks = join(resolve(root, m[1].trim()), "hooks");
+    }
+  } catch {
+    // keep default
+  }
+  ensureDir(realHooks);
+  const src = join(pkgRoot, "scripts", "git-hooks", "post-commit");
+  const dest = join(realHooks, "post-commit");
+  if (!existsSync(src)) {
+    console.warn(`[gabe-agents] missing hook source ${src}`);
+    return null;
+  }
+  if (dryRun) {
+    console.log(`[dry-run] install post-commit hook -> ${dest}`);
+    return dest;
+  }
+  let existing = "";
+  try {
+    if (existsSync(dest)) existing = readFileSync(dest, "utf8");
+  } catch {
+    existing = "";
+  }
+  // Do not clobber an unrelated project hook unless we already own it.
+  if (existing && !existing.includes("gabe-agents:post-commit")) {
+    console.warn(
+      `[gabe-agents] leave existing post-commit hook in place (not gabe-managed): ${dest}`,
+    );
+    return null;
+  }
+  const body = readFileSync(src, "utf8");
+  writeFileSync(dest, body, { mode: 0o755 });
+  try {
+    chmodSync(dest, 0o755);
+  } catch {
+    // ignore
+  }
+  console.log(`[gabe-agents] installed post-commit hook (live/* → push + PR): ${dest}`);
+  return dest;
+}
+
 function ensureLiveCheckout(liveRoot) {
   const repoUrl =
     process.env.GABE_AGENTS_REPO_URL ||
@@ -466,6 +521,7 @@ function ensureLiveCheckout(liveRoot) {
     const branchMeta = ensureLiveWorkingBranch(liveRoot, {
       sync: doPull || process.env.GABE_AGENTS_PULL === "1",
     });
+    installLiveGitHooks(liveRoot);
     return { liveRoot, repoUrl, action: "reuse", ...branchMeta };
   }
 
@@ -484,6 +540,7 @@ function ensureLiveCheckout(liveRoot) {
   console.log(`[gabe-agents] cloning ${repoUrl} -> ${liveRoot}`);
   sh("git", ["clone", repoUrl, liveRoot], { stdio: ["ignore", "inherit", "inherit"] });
   const branchMeta = ensureLiveWorkingBranch(liveRoot, { sync: false });
+  installLiveGitHooks(liveRoot);
   return { liveRoot, repoUrl, action: "clone", ...branchMeta };
 }
 
@@ -1330,10 +1387,11 @@ function writeLiveMarker(liveRoot, skills, liveMeta = {}) {
     howto: {
       edit: `edit files under ${liveRoot}/skills/<skill>/`,
       commit: branch
-        ? `git -C ${liveRoot} checkout ${branch} && git -C ${liveRoot} add -A && git -C ${liveRoot} commit -m "…" && git -C ${liveRoot} push -u origin ${branch}`
+        ? `git -C ${liveRoot} add -A && git -C ${liveRoot} commit -m "…"` +
+          `  # post-commit hook pushes ${branch} and opens/updates PR into ${base}`
         : `git -C ${liveRoot} add -A && git -C ${liveRoot} commit && git -C ${liveRoot} push`,
       pr: branch
-        ? `gh pr create --repo gabewillen/agents --base ${base} --head ${branch} --title "…" --body "…"`
+        ? `automatic on commit via .git/hooks/post-commit (disable: GABE_AGENTS_SKIP_PR_HOOK=1); base ${base} head ${branch}`
         : `open a PR against ${base} (do not push global skill changes straight to ${base})`,
       sync: `node ${join(pkgRoot, "scripts/install.mjs")} --live --pull`,
       re_symlink: `node ${join(pkgRoot, "scripts/install.mjs")} --live`,
@@ -1360,6 +1418,7 @@ if (mode === "live") {
         sync: doPull || process.env.GABE_AGENTS_PULL === "1",
       }),
     };
+    installLiveGitHooks(pkgRoot);
   } else {
     liveMeta = ensureLiveCheckout(liveRoot);
   }

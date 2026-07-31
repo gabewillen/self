@@ -89,8 +89,7 @@ $EDITOR ~/.agents/repos/gabewillen-agents/skills/gabe-review/hsm/SKILL.md
 
 git -C ~/.agents/repos/gabewillen-agents add -A
 git -C ~/.agents/repos/gabewillen-agents commit -m "Update skill"
-git -C ~/.agents/repos/gabewillen-agents push -u origin HEAD
-gh pr create --base main --head "$(git -C ~/.agents/repos/gabewillen-agents branch --show-current)"
+# post-commit hook: push live/* + open/update PR into main (GABE_AGENTS_SKIP_PR_HOOK=1 to disable)
 
 # fetch origin + merge origin/main into the live branch + re-symlink
 node ./scripts/install.mjs --live --pull
