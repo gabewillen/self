@@ -31,6 +31,10 @@
   * repair the proof path or implementation
   * [Verify Real Proof](#verify-real-proof)
 
+* when the proof path depends on an external artifact such as model weights, a checkpoint, seed data, fixtures, a migration, or serialized config, assert structurally at the load boundary that the artifact actually landed before reading any downstream output as proof
+
+* do not count plausible, fluent, or well-formed downstream output as evidence that an external artifact loaded correctly
+
 * do not count mocked services, fake providers, offline fixtures, canned responses, stubs, or local scaffolds as done proof for behavior that depends on real resources
 
 * use mocks or stubs only as development aids or explicitly non-final fallback evidence when no real local stack or actual safe target can satisfy the proof path
