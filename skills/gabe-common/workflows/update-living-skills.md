@@ -14,7 +14,33 @@
 * if the correction is only one-off task direction for this lane and does not change future agent behavior
   * record that no living skill update is needed
   * return to the caller
-* [Classify Skill Targets](#classify-skill-targets)
+* [Classify Rule Scope](#classify-rule-scope)
+
+## Classify Rule Scope
+
+* set `{{rule_scope}}` to `project` when the correction names this repository, product, model, service, host, customer, or other project-specific surface
+* set `{{rule_scope}}` to `global` when the correction is true for any project (project-agnostic pack behavior)
+* if scope is ambiguous
+  * prefer `project` over `global` — never promote a project fact into the global pack
+* if `{{rule_scope}}` is `global` and the rule text embeds a project name, path, product, or host-specific detail
+  * rewrite `{{skill_update_summary}}` to a project-agnostic form, or reclassify as `project`
+* if `{{rule_scope}}` is `project`
+  * [Apply Project Rule](#apply-project-rule)
+* if `{{rule_scope}}` is `global`
+  * [Classify Skill Targets](#classify-skill-targets)
+
+## Apply Project Rule
+
+* set `{{repo_root}}` to the working repository root (the product repo, not the agents pack) when empty
+* set `{{project_agents_dir}}` to `{{repo_root}}/.agents`
+* create `{{project_agents_dir}}/rules` when missing
+* set `{{project_rules_file}}` to `{{project_agents_dir}}/rules/project.rules.md` when that is the local convention, otherwise the project rules path the repo already uses under `.agents/`
+* add or strengthen a project-local rule restating only the user's durable correction
+* do not edit the global skill pack for a project-scoped rule
+* append `{{project_rules_file}}` to `{{skill_files_changed}}`
+* set `{{publish_mode}}` to `project-local`
+* report the project rule path and that no global pack PR is required
+* return to the caller
 
 ## Classify Skill Targets
 
@@ -33,7 +59,7 @@
   * append `gabe` to `{{skill_update_targets}}`
 * if the correction changes a shared boundary held by every role
   * append `gabe/references/boundaries.md` to `{{skill_update_targets}}`
-* if `{{skill_update_targets}}` is still empty and the correction is durable
+* if `{{skill_update_targets}}` is still empty and the correction is durable and global
   * append `gabe-implement` and `gabe-review` as the default living pair
 * [Resolve Live Skills Root](#resolve-live-skills-root)
 
@@ -50,8 +76,10 @@
   * set `{{live_skills_root}}` to this checkout's `skills` directory
 * if `{{live_skills_root}}` is empty
   * set `{{blocker}}` to `cannot resolve live skills root for living skill update`
-  * stop and report the missing live root and that install must be live for skill evolution
+  * stop and report the missing live root and that the pack needs a live install
 * set `{{agents_repo_root}}` to the parent of `{{live_skills_root}}` when that parent is the agents package root
+* set `{{live_branch}}` from `~/.agents/gabe-agents-live.json` `live_branch` when present
+* set `{{upstream_base}}` from that marker's `upstream_base` when present, otherwise `main`
 * [Apply Skill Updates](#apply-skill-updates)
 
 ## Apply Skill Updates
@@ -97,8 +125,8 @@
   * rewrite that bullet to a stronger, unambiguous MUST-level action or constraint
 * if no existing bullet covers the correction
   * add one discrete action bullet or linked workflow step in the owning state, not a rationale paragraph
+* keep the global pack **project-agnostic**: no product name, repo path, host, customer, or single-project protocol in the rule text
 * keep MDScript shape: one action per bullet, explicit recovery links, no multi-action narration
-* do not put parent/subagent hierarchy only in the YAML description when the body owns that contract
 * do not invent user intent beyond the user's words
 * do not add extra MUST rules the user did not state
 * append each edited path to `{{skill_files_changed}}`
@@ -118,18 +146,23 @@
 
 ## Publish Living Skill Updates
 
-* if the live root is a symlink tree from a git checkout of the agents package
-  * stage only `{{skill_files_changed}}`
-  * commit with a message that names the correction in one line
-  * push to the default remote when push is available and not forbidden
-* run `node {{agents_repo_root}}/scripts/install.mjs --live` when the install script exists so every agent home picks up the edit
-* if commit or push is blocked by authority or missing credentials
-  * leave the files edited on disk
+* set `{{publish_mode}}` to `global-pr`
+* if `{{live_branch}}` is set
+  * ensure the working tree is on `{{live_branch}}` (checkout if needed)
+* stage only `{{skill_files_changed}}` under `{{agents_repo_root}}`
+* commit on `{{live_branch}}` with a message that names the user correction in one line
+* do **not** push to `main` / `{{upstream_base}}` directly
+* push `{{live_branch}}` to `origin` with upstream set when missing (`git push -u origin {{live_branch}}`)
+* open a pull request into `{{upstream_base}}` (default `main`) with `gh pr create --base {{upstream_base}} --head {{live_branch}}` when `gh` is available
+* if a PR already exists for this head, report its URL instead of opening a duplicate
+* run `node {{agents_repo_root}}/scripts/install.mjs --live` so agent homes re-link the live branch tip
+* if push or PR is blocked by authority or missing credentials
+  * leave the files edited and committed locally when possible
   * set `{{skill_publish_blocker}}` to the exact missing publish step
 * [Report Living Skill Updates](#report-living-skill-updates)
 
 ## Report Living Skill Updates
 
-* report `{{correction_kind}}`, `{{skill_update_summary}}`, `{{skill_update_targets}}`, `{{skill_files_changed}}`, validation result, install result, and commit or `{{skill_publish_blocker}}`
+* report `{{rule_scope}}`, `{{correction_kind}}`, `{{skill_update_summary}}`, `{{skill_update_targets}}`, `{{skill_files_changed}}`, `{{live_branch}}`, validation result, install result, PR URL or `{{skill_publish_blocker}}`
 * add a file comment on the active task when a file task exists
 * return to the caller

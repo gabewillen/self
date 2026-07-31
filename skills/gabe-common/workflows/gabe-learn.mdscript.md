@@ -14,7 +14,8 @@
 * for each user message that is a durable correction (not one-off task direction for this lane only)
   * quote the user's words as `{{user_correction_quote}}`
   * set `{{correction_source}}` to that quote
-  * append one finding with `summary` restating only what the user said, `kind` (`new-rule` | `strengthen` | `disambiguate` | `scope-boundary` | `remove-ambiguity`), `targets`, and `user_quote`
+  * set `{{rule_scope}}` to `project` when the rule is project-specific, otherwise `global` only when project-agnostic
+  * append one finding with `summary` restating only what the user said, `kind` (`new-rule` | `strengthen` | `disambiguate` | `scope-boundary` | `remove-ambiguity`), `targets`, `rule_scope`, and `user_quote`
 * if the user only gave task-local direction for this turn (e.g. how to run this comparison, this PR, this file) with no durable future-agent rule
   * do not append a finding
 * if `{{learn_findings}}` is empty

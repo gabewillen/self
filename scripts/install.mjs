@@ -24,6 +24,11 @@
  *   node scripts/install.mjs --pull
  *   GABE_AGENTS_INSTALL=0 npm i
  *   GABE_AGENTS_MODE=copy npm i
+ *
+ * Live branch (default): install creates/checks out a long-lived working branch
+ * (live/<user>-<host>, override GABE_AGENTS_LIVE_BRANCH) that tracks origin's
+ * default branch for sync. Push that branch and open a PR for global skill
+ * changes; do not push straight to main. Set GABE_AGENTS_LIVE_BRANCH=0 to skip.
  */
 import {
   cpSync,
@@ -43,7 +48,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve, delimiter, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { homedir } from "node:os";
+import { homedir, hostname, userInfo } from "node:os";
 import { execFileSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -211,6 +216,182 @@ function resolveLiveRoot() {
   return DEFAULT_LIVE_ROOT;
 }
 
+function sanitizeBranchPart(s) {
+  return String(s || "local")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "local";
+}
+
+/** Working branch for live skill edits (not main). */
+function resolveLiveBranchName() {
+  const raw = process.env.GABE_AGENTS_LIVE_BRANCH;
+  if (raw === "0" || raw === "false" || raw === "off") return null;
+  if (raw && raw.trim()) return raw.trim();
+  let user = "local";
+  try {
+    user = userInfo().username || process.env.USER || process.env.LOGNAME || "local";
+  } catch {
+    user = process.env.USER || process.env.LOGNAME || "local";
+  }
+  const host = sanitizeBranchPart(hostname().split(".")[0] || "host");
+  return `live/${sanitizeBranchPart(user)}-${host}`;
+}
+
+function originDefaultBranch(liveRoot) {
+  const sym = trySh("git", [
+    "-C",
+    liveRoot,
+    "symbolic-ref",
+    "refs/remotes/origin/HEAD",
+  ]);
+  if (sym.ok) {
+    const m = /refs\/remotes\/origin\/(.+)/.exec(sym.out.trim());
+    if (m) return m[1];
+  }
+  for (const name of ["main", "master"]) {
+    const r = trySh("git", ["-C", liveRoot, "rev-parse", "--verify", `origin/${name}`]);
+    if (r.ok) return name;
+  }
+  return "main";
+}
+
+/**
+ * Create or check out a long-lived live/* branch and sync it with origin/<base>.
+ * Global skill edits land here; open a PR into origin/<base> (do not push main).
+ */
+function ensureLiveWorkingBranch(liveRoot, opts = {}) {
+  const branch = resolveLiveBranchName();
+  if (!branch) {
+    return { branch: null, base: null, action: "skipped" };
+  }
+  if (!isGitRepo(liveRoot) && !gitTopLevel(liveRoot)) {
+    return { branch: null, base: null, action: "not-git" };
+  }
+  const root = gitTopLevel(liveRoot) || liveRoot;
+
+  if (dryRun) {
+    console.log(`[dry-run] ensure live working branch ${branch} in ${root}`);
+    return { branch, base: "main", action: "dry-run" };
+  }
+
+  // Ensure origin remote points somewhere fetchable when missing.
+  const remotes = trySh("git", ["-C", root, "remote"]);
+  if (remotes.ok && !remotes.out.split("\n").map((s) => s.trim()).includes("origin")) {
+    const url =
+      process.env.GABE_AGENTS_REPO_URL ||
+      process.env.npm_package_repository_url?.replace(/^git\+/, "") ||
+      DEFAULT_REPO_URL;
+    trySh("git", ["-C", root, "remote", "add", "origin", url]);
+  }
+
+  const fetch = trySh("git", ["-C", root, "fetch", "origin", "--prune"]);
+  if (!fetch.ok) {
+    console.warn(
+      `[gabe-agents] git fetch origin failed (continuing offline): ${fetch.err || fetch.out}`,
+    );
+  }
+
+  const base = originDefaultBranch(root);
+  const current = trySh("git", ["-C", root, "branch", "--show-current"]);
+  const currentBranch = current.ok ? current.out.trim() : "";
+
+  const localExists = trySh("git", [
+    "-C",
+    root,
+    "show-ref",
+    "--verify",
+    "--quiet",
+    `refs/heads/${branch}`,
+  ]).ok;
+  const remoteExists = trySh("git", [
+    "-C",
+    root,
+    "show-ref",
+    "--verify",
+    "--quiet",
+    `refs/remotes/origin/${branch}`,
+  ]).ok;
+
+  let action = "reuse";
+  if (currentBranch !== branch) {
+    if (localExists) {
+      const co = trySh("git", ["-C", root, "checkout", branch]);
+      if (!co.ok) {
+        console.warn(`[gabe-agents] checkout ${branch} failed: ${co.err}`);
+        return { branch: currentBranch || null, base, action: "checkout-failed" };
+      }
+      action = "checkout";
+    } else if (remoteExists) {
+      const co = trySh("git", [
+        "-C",
+        root,
+        "checkout",
+        "-B",
+        branch,
+        `origin/${branch}`,
+      ]);
+      if (!co.ok) {
+        console.warn(`[gabe-agents] checkout origin/${branch} failed: ${co.err}`);
+        return { branch: currentBranch || null, base, action: "checkout-failed" };
+      }
+      action = "checkout-remote";
+    } else {
+      const start =
+        trySh("git", ["-C", root, "rev-parse", "--verify", `origin/${base}`]).ok
+          ? `origin/${base}`
+          : trySh("git", ["-C", root, "rev-parse", "--verify", base]).ok
+            ? base
+            : "HEAD";
+      const co = trySh("git", ["-C", root, "checkout", "-b", branch, start]);
+      if (!co.ok) {
+        console.warn(`[gabe-agents] create branch ${branch} failed: ${co.err}`);
+        return { branch: currentBranch || null, base, action: "create-failed" };
+      }
+      action = "create";
+      console.log(
+        `[gabe-agents] created live working branch ${branch} from ${start}`,
+      );
+    }
+  }
+
+  // Track origin/<base> for "what to sync from"; push target is origin/<branch>.
+  trySh("git", ["-C", root, "config", `branch.${branch}.merge`, `refs/heads/${base}`]);
+  trySh("git", ["-C", root, "config", `branch.${branch}.remote`, "origin"]);
+  // Also set push.default simple is fine; document -u on first push of live branch.
+
+  if (doPull || process.env.GABE_AGENTS_PULL === "1" || opts.sync) {
+    console.log(
+      `[gabe-agents] sync ${branch} with origin/${base} (merge --ff-only, then merge)`,
+    );
+    let sync = trySh("git", [
+      "-C",
+      root,
+      "merge",
+      "--ff-only",
+      `origin/${base}`,
+    ]);
+    if (!sync.ok) {
+      sync = trySh("git", ["-C", root, "merge", "--no-edit", `origin/${base}`]);
+      if (!sync.ok) {
+        console.warn(
+          `[gabe-agents] merge origin/${base} into ${branch} failed (resolve manually): ${sync.err}`,
+        );
+      } else {
+        console.log(`[gabe-agents] merged origin/${base} into ${branch}`);
+      }
+    } else {
+      console.log(`[gabe-agents] fast-forwarded ${branch} to origin/${base}`);
+    }
+  }
+
+  console.log(
+    `[gabe-agents] live branch: ${branch} (sync from origin/${base}; push this branch + open PR for global skill changes)`,
+  );
+  return { branch, base, action, root };
+}
+
 function ensureLiveCheckout(liveRoot) {
   const repoUrl =
     process.env.GABE_AGENTS_REPO_URL ||
@@ -219,20 +400,22 @@ function ensureLiveCheckout(liveRoot) {
 
   if (dryRun) {
     console.log(`[dry-run] ensure live checkout at ${liveRoot} from ${repoUrl}`);
-    return { liveRoot, repoUrl, action: existsSync(liveRoot) ? "exists" : "clone" };
+    const branchMeta = ensureLiveWorkingBranch(liveRoot);
+    return {
+      liveRoot,
+      repoUrl,
+      action: existsSync(liveRoot) ? "exists" : "clone",
+      ...branchMeta,
+    };
   }
 
   ensureDir(dirname(liveRoot));
 
   if (existsSync(liveRoot) && isGitRepo(liveRoot)) {
-    if (doPull || process.env.GABE_AGENTS_PULL === "1") {
-      console.log(`[gabe-agents] git pull --ff-only in ${liveRoot}`);
-      const r = trySh("git", ["-C", liveRoot, "pull", "--ff-only"]);
-      if (!r.ok) {
-        console.warn(`[gabe-agents] pull failed (continuing with local tree): ${r.err}`);
-      }
-    }
-    return { liveRoot, repoUrl, action: "reuse" };
+    const branchMeta = ensureLiveWorkingBranch(liveRoot, {
+      sync: doPull || process.env.GABE_AGENTS_PULL === "1",
+    });
+    return { liveRoot, repoUrl, action: "reuse", ...branchMeta };
   }
 
   if (existsSync(liveRoot) && !isGitRepo(liveRoot)) {
@@ -249,7 +432,8 @@ function ensureLiveCheckout(liveRoot) {
   // Clone fresh
   console.log(`[gabe-agents] cloning ${repoUrl} -> ${liveRoot}`);
   sh("git", ["clone", repoUrl, liveRoot], { stdio: ["ignore", "inherit", "inherit"] });
-  return { liveRoot, repoUrl, action: "clone" };
+  const branchMeta = ensureLiveWorkingBranch(liveRoot, { sync: false });
+  return { liveRoot, repoUrl, action: "clone", ...branchMeta };
 }
 
 /**
@@ -1081,17 +1265,27 @@ function installAdapters(skills, skillRoots, skillsRoot) {
   return { adapters: report, cursorSkillRoot, skillRoots: roots };
 }
 
-function writeLiveMarker(liveRoot, skills) {
+function writeLiveMarker(liveRoot, skills, liveMeta = {}) {
+  const branch = liveMeta.branch || null;
+  const base = liveMeta.base || "main";
   const marker = {
     mode: "live",
     live_root: liveRoot,
+    live_branch: branch,
+    upstream_base: base,
     skills,
     updated_at: new Date().toISOString(),
     howto: {
       edit: `edit files under ${liveRoot}/skills/<skill>/`,
-      commit: `git -C ${liveRoot} add -A && git -C ${liveRoot} commit && git -C ${liveRoot} push`,
-      update: `node ${join(pkgRoot, "scripts/install.mjs")} --pull`,
+      commit: branch
+        ? `git -C ${liveRoot} checkout ${branch} && git -C ${liveRoot} add -A && git -C ${liveRoot} commit -m "…" && git -C ${liveRoot} push -u origin ${branch}`
+        : `git -C ${liveRoot} add -A && git -C ${liveRoot} commit && git -C ${liveRoot} push`,
+      pr: branch
+        ? `gh pr create --repo gabewillen/agents --base ${base} --head ${branch} --title "…" --body "…"`
+        : `open a PR against ${base} (do not push global skill changes straight to ${base})`,
+      sync: `node ${join(pkgRoot, "scripts/install.mjs")} --live --pull`,
       re_symlink: `node ${join(pkgRoot, "scripts/install.mjs")} --live`,
+      project_rules: `project-specific rules go in <repo>/.agents/ (not the global pack)`,
     },
   };
   const markerPath = join(homedir(), ".agents", "gabe-agents-live.json");
@@ -1106,14 +1300,14 @@ if (mode === "live") {
   liveRoot = resolveLiveRoot();
   // Only clone when live root is the default external path and missing/not pkg
   if (resolve(liveRoot) === resolve(pkgRoot) && existsSync(join(pkgRoot, "skills"))) {
-    liveMeta = { liveRoot, action: "pkg-root", repoUrl: "local-package" };
-    if (doPull && isGitRepo(pkgRoot)) {
-      console.log(`[gabe-agents] --pull on package root ${pkgRoot}`);
-      if (!dryRun) {
-        const r = trySh("git", ["-C", pkgRoot, "pull", "--ff-only"]);
-        if (!r.ok) console.warn(`[gabe-agents] pull failed: ${r.err}`);
-      }
-    }
+    liveMeta = {
+      liveRoot,
+      action: "pkg-root",
+      repoUrl: "local-package",
+      ...ensureLiveWorkingBranch(pkgRoot, {
+        sync: doPull || process.env.GABE_AGENTS_PULL === "1",
+      }),
+    };
   } else {
     liveMeta = ensureLiveCheckout(liveRoot);
   }
@@ -1194,7 +1388,7 @@ if (localState) {
 
 let markerPath = null;
 if (mode === "live") {
-  markerPath = writeLiveMarker(liveRoot, skills);
+  markerPath = writeLiveMarker(liveRoot, skills, liveMeta || {});
 }
 
 const receipt = {
@@ -1247,7 +1441,21 @@ console.log(
 );
 if (mode === "live") {
   console.log(`[gabe-agents] live root: ${liveRoot}`);
-  console.log(`[gabe-agents] edit skills in-place, then: git -C ${liveRoot} commit && git push`);
+  if (liveMeta?.branch) {
+    console.log(
+      `[gabe-agents] live branch: ${liveMeta.branch} (sync origin/${liveMeta.base || "main"} via --pull; push branch + open PR for global skill changes)`,
+    );
+    console.log(
+      `[gabe-agents] edit skills in-place, then: git -C ${liveRoot} add -A && git commit && git push -u origin ${liveMeta.branch}`,
+    );
+    console.log(
+      `[gabe-agents] open PR: gh pr create --base ${liveMeta.base || "main"} --head ${liveMeta.branch}`,
+    );
+  } else {
+    console.log(
+      `[gabe-agents] edit skills in-place, then: git -C ${liveRoot} commit && git push (prefer a PR into main)`,
+    );
+  }
   if (markerPath) console.log(`[gabe-agents] live marker: ${markerPath}`);
 }
 for (const [target, paths] of Object.entries(results)) {
