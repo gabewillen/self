@@ -1420,7 +1420,43 @@ function installAgentHomeScript(targetRoot, skillsRoot) {
 }
 
 /** Top-level skill dirs this pack used to ship and must uninstall. */
-const RETIRED_SKILLS = ["self-hsm-review", "gabe", "gabe-automate", "gabe-common", "gabe-goal", "gabe-implement", "gabe-orchestrate", "gabe-review", "gabe-unwatch", "gabe-voice", "gabe-watch", "gabe-hsm-review"];
+const RETIRED_SKILLS = [
+  "self-hsm-review",
+  "gabe",
+  "gabe-automate",
+  "gabe-common",
+  "gabe-goal",
+  "gabe-implement",
+  "gabe-orchestrate",
+  "gabe-review",
+  "gabe-unwatch",
+  "gabe-voice",
+  "gabe-watch",
+  "gabe-hsm-review",
+  "gabe-learn",
+];
+
+/** Pre-rename skill id → self id (longest first). */
+const GABE_TO_SELF_SKILL_RENAMES = [
+  ["gabe-orchestrate", "self-orchestrate"],
+  ["gabe-implement", "self-implement"],
+  ["gabe-automate", "self-automate"],
+  ["gabe-unwatch", "self-unwatch"],
+  ["gabe-common", "self-common"],
+  ["gabe-review", "self-review"],
+  ["gabe-watch", "self-watch"],
+  ["gabe-voice", "self-voice"],
+  ["gabe-goal", "self-goal"],
+  ["gabe-learn", "self-learn"],
+  ["gabe-hsm-review", "self-hsm-review"],
+  ["gabe-agents", "self-agents"],
+];
+
+function gabeTwinSkillName(selfSkill) {
+  if (selfSkill === "self") return "gabe";
+  if (selfSkill.startsWith("self-")) return `gabe-${selfSkill.slice("self-".length)}`;
+  return null;
+}
 
 function removeRetiredSkills(targetRoot) {
   const removed = [];
@@ -1437,6 +1473,228 @@ function removeRetiredSkills(targetRoot) {
     console.log(`[self-agents] removed retired skill ${dest}`);
   }
   return removed;
+}
+
+function isGabePackHookCommand(command) {
+  if (!command || typeof command !== "string") return false;
+  // Paths under skills/gabe or skills/gabe-* (old install roots / absolute).
+  if (/[/\\]skills[/\\]gabe([/\\-]|$)/.test(command)) return true;
+  if (/skills\/gabe([/-]|$)/.test(command)) return true;
+  // Absolute checkout paths that still point at renamed folders.
+  if (/[/\\]skills[/\\]gabe-/.test(command)) return true;
+  return false;
+}
+
+function isGabePackHookId(id) {
+  if (!id) return false;
+  const s = String(id);
+  return (
+    s.startsWith("gabe-") ||
+    s.startsWith("gabe-agents:") ||
+    s === "gabe-learn-stop" ||
+    s === "gabe-learn-session-touch"
+  );
+}
+
+/**
+ * Strip pre-rename gabe pack hooks/metadata from a harness hook config.
+ * Returns true when the file was modified.
+ */
+function scrubHookConfigFile(configPath, { cursorFlat = false } = {}) {
+  if (!existsSync(configPath)) return false;
+  const existing = readJson(configPath, null);
+  if (!existing || typeof existing !== "object") return false;
+  let changed = false;
+
+  if (existing.metadata && typeof existing.metadata === "object") {
+    if (existing.metadata["gabe-agents"]) {
+      delete existing.metadata["gabe-agents"];
+      changed = true;
+    }
+    // Empty metadata object can stay; harmless.
+  }
+
+  if (!existing.hooks || typeof existing.hooks !== "object") {
+    if (changed && !dryRun) writeJson(configPath, existing);
+    return changed;
+  }
+
+  if (cursorFlat) {
+    for (const [eventName, entries] of Object.entries(existing.hooks)) {
+      if (!Array.isArray(entries)) continue;
+      const next = entries.filter((entry) => {
+        if (isGabePackHookId(entry?.id)) {
+          changed = true;
+          return false;
+        }
+        if (isGabePackHookCommand(entry?.command)) {
+          changed = true;
+          return false;
+        }
+        return true;
+      });
+      if (next.length !== entries.length) existing.hooks[eventName] = next;
+    }
+  } else {
+    for (const [eventName, groups] of Object.entries(existing.hooks)) {
+      if (!Array.isArray(groups)) continue;
+      const keptGroups = [];
+      for (const group of groups) {
+        const handlers = Array.isArray(group?.hooks) ? group.hooks : [];
+        const survivors = handlers.filter((handler) => {
+          if (isGabePackHookCommand(handler?.command)) {
+            changed = true;
+            return false;
+          }
+          return true;
+        });
+        if (survivors.length !== handlers.length) changed = true;
+        if (survivors.length) keptGroups.push({ ...group, hooks: survivors });
+      }
+      if (keptGroups.length !== groups.length) changed = true;
+      existing.hooks[eventName] = keptGroups;
+    }
+  }
+
+  if (changed && !dryRun) writeJson(configPath, existing);
+  else if (changed && dryRun) console.log(`[dry-run] scrub gabe hooks in ${configPath}`);
+  return changed;
+}
+
+/**
+ * Full gabe → self cutover on reinstall: markers, retired skills, hook files,
+ * grok per-skill hook JSON, and instruction skill-id rewrites.
+ */
+function runGabeToSelfCutover(skillRoots) {
+  const report = {
+    retired_skills: [],
+    markers: [],
+    hook_files: [],
+    grok_hook_files: [],
+    instructions: [],
+  };
+  if (dryRun) {
+    console.log("[dry-run] gabe→self cutover");
+  }
+
+  // 1) Retired skill dirs at every agent skill root.
+  for (const root of skillRoots) {
+    report.retired_skills.push(...removeRetiredSkills(root));
+  }
+
+  // 2) Old marker / integrity files under ~/.agents.
+  const agentsHome = join(homedir(), ".agents");
+  for (const name of [
+    "gabe-agents-live.json",
+    "gabe-agents-integrity.json",
+    "gabe-agents-receipt.json",
+  ]) {
+    const p = join(agentsHome, name);
+    if (!existsSync(p) && !isSymlink(p)) continue;
+    if (dryRun) {
+      console.log(`[dry-run] remove legacy marker ${p}`);
+    } else {
+      removePath(p);
+      console.log(`[self-agents] removed legacy marker ${p}`);
+    }
+    report.markers.push(p);
+  }
+
+  // 3) Scrub shared hook configs (commands + metadata.gabe-agents).
+  const home = homedir();
+  const hookConfigs = [
+    { path: join(home, ".cursor", "hooks.json"), cursorFlat: true },
+    { path: join(home, ".claude", "settings.json"), cursorFlat: false },
+    { path: join(home, ".claude", "settings.local.json"), cursorFlat: false },
+    { path: join(home, ".codex", "hooks.json"), cursorFlat: false },
+  ];
+  for (const { path, cursorFlat } of hookConfigs) {
+    if (scrubHookConfigFile(path, { cursorFlat })) {
+      report.hook_files.push(path);
+      if (!dryRun) console.log(`[self-agents] scrubbed legacy gabe hooks: ${path}`);
+    }
+  }
+
+  // 4) Grok per-skill hook files: remove gabe-*.json entirely (self-*.json is the source).
+  const grokHooksDir = join(home, ".grok", "hooks");
+  if (existsSync(grokHooksDir)) {
+    let names = [];
+    try {
+      names = readdirSync(grokHooksDir);
+    } catch {
+      names = [];
+    }
+    for (const name of names) {
+      if (!/^gabe(-[a-z0-9-]+)?\.json$/i.test(name)) continue;
+      const p = join(grokHooksDir, name);
+      if (dryRun) {
+        console.log(`[dry-run] remove legacy grok hook file ${p}`);
+      } else {
+        removePath(p);
+        console.log(`[self-agents] removed legacy grok hook file ${p}`);
+      }
+      report.grok_hook_files.push(p);
+    }
+    // Also scrub any remaining shared files under .grok/hooks that are not gabe-named.
+    for (const name of names) {
+      if (!name.endsWith(".json") || name.startsWith("gabe")) continue;
+      const p = join(grokHooksDir, name);
+      if (scrubHookConfigFile(p, { cursorFlat: false })) {
+        report.hook_files.push(p);
+        if (!dryRun) console.log(`[self-agents] scrubbed legacy gabe hooks: ${p}`);
+      }
+    }
+  }
+
+  // 5) Instruction files: rename remaining gabe-* skill identifiers to self-*.
+  for (const target of INSTRUCTION_TARGETS) {
+    const path = join(home, target.dir, target.file);
+    if (!existsSync(path)) continue;
+    let text = "";
+    try {
+      text = readFileSync(path, "utf8");
+    } catch {
+      continue;
+    }
+    let next = text.replace(LEGACY_GABE_ROUTER_BLOCK_RE, "");
+    // Protect identity handles/repos, then rename skill ids.
+    next = next.replace(/gabewillen/g, "\0GW\0");
+    next = next.replace(/@gabe\.willen/g, "\0HANDLE\0");
+    next = next.replace(/Gabe Willen/g, "\0NAME\0");
+    for (const [from, to] of GABE_TO_SELF_SKILL_RENAMES) {
+      next = next.split(from).join(to);
+    }
+    // Standalone `gabe` router skill name in backticks or as a word after /
+    next = next.replace(/`gabe`/g, "`self`");
+    next = next.replace(/\/gabe\b/g, "/self");
+    next = next.replace(/\0GW\0/g, "gabewillen");
+    next = next.replace(/\0HANDLE\0/g, "@gabe.willen");
+    next = next.replace(/\0NAME\0/g, "Gabe Willen");
+    if (next !== text) {
+      if (dryRun) {
+        console.log(`[dry-run] rewrite skill ids in ${path}`);
+      } else {
+        writeFileSync(path, next, "utf8");
+        console.log(`[self-agents] rewrote legacy gabe skill ids in ${path}`);
+      }
+      report.instructions.push(path);
+    }
+  }
+
+  const total =
+    report.retired_skills.length +
+    report.markers.length +
+    report.hook_files.length +
+    report.grok_hook_files.length +
+    report.instructions.length;
+  if (total) {
+    console.log(
+      `[self-agents] gabe→self cutover: ${report.retired_skills.length} skill(s), ${report.markers.length} marker(s), ${report.hook_files.length} hook config(s), ${report.grok_hook_files.length} grok file(s), ${report.instructions.length} instruction file(s)`,
+    );
+  } else {
+    console.log("[self-agents] gabe→self cutover: nothing dangling");
+  }
+  return report;
 }
 
 function installInto(targetRoot, skills, skillsRoot) {
@@ -1535,6 +1793,7 @@ function mergeNestedHooks({ skillInstallDir, manifest, runtime, targetPath }) {
   const existing = readJson(targetPath, null) || {};
   if (!existing.hooks || typeof existing.hooks !== "object") existing.hooks = {};
 
+  const gabeTwin = gabeTwinSkillName(manifest.skill);
   const needles = [
     ...(Array.isArray(manifest.replaceLegacyCommands)
       ? manifest.replaceLegacyCommands
@@ -1542,6 +1801,13 @@ function mergeNestedHooks({ skillInstallDir, manifest, runtime, targetPath }) {
     `skills/${manifest.skill}/hooks/`,
     `skills/${manifest.skill}/adapters/`,
   ];
+  if (gabeTwin) {
+    needles.push(
+      `skills/${gabeTwin}/hooks/`,
+      `skills/${gabeTwin}/adapters/`,
+      `skills/${gabeTwin}/`,
+    );
+  }
 
   let added = 0;
   let replaced = 0;
@@ -1556,7 +1822,10 @@ function mergeNestedHooks({ skillInstallDir, manifest, runtime, targetPath }) {
     for (const group of groups) {
       const handlers = Array.isArray(group?.hooks) ? group.hooks : [];
       const survivors = handlers.filter((handler) => {
-        if (commandMatchesLegacy(handler?.command, needles)) {
+        if (
+          commandMatchesLegacy(handler?.command, needles) ||
+          isGabePackHookCommand(handler?.command)
+        ) {
           replaced += 1;
           return false;
         }
@@ -1589,6 +1858,7 @@ function mergeNestedHooks({ skillInstallDir, manifest, runtime, targetPath }) {
   }
 
   existing.metadata = existing.metadata || {};
+  if (existing.metadata["gabe-agents"]) delete existing.metadata["gabe-agents"];
   existing.metadata["self-agents"] = {
     ...(existing.metadata["self-agents"] || {}),
     [manifest.skill]: {
@@ -1652,6 +1922,7 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
   const legacy = Array.isArray(manifest.replaceLegacyCommands)
     ? manifest.replaceLegacyCommands
     : [];
+  const gabeTwin = gabeTwinSkillName(manifest.skill);
   const replaceNeedles = [
     ...legacy,
     `skills/${manifest.skill}/adapters/`,
@@ -1661,6 +1932,13 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
     `skills/${manifest.skill}/hooks/`,
     "skills/goal/scripts/",
   ];
+  if (gabeTwin) {
+    replaceNeedles.push(
+      `skills/${gabeTwin}/hooks/`,
+      `skills/${gabeTwin}/adapters/`,
+      `skills/${gabeTwin}/`,
+    );
+  }
 
   // Ids this run is about to write. An existing entry claiming one of them is
   // ours regardless of where its command points.
@@ -1689,11 +1967,22 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
         replaced += 1;
         return false;
       }
+      if (id && String(id).startsWith("gabe-agents:")) {
+        replaced += 1;
+        return false;
+      }
+      if (isGabePackHookId(id)) {
+        replaced += 1;
+        return false;
+      }
       if (id && incomingIds.has(String(id))) {
         replaced += 1;
         return false;
       }
-      if (commandMatchesLegacy(cmd, replaceNeedles)) {
+      if (
+        commandMatchesLegacy(cmd, replaceNeedles) ||
+        isGabePackHookCommand(cmd)
+      ) {
         replaced += 1;
         return false;
       }
@@ -1721,6 +2010,7 @@ function mergeCursorHooks({ skillInstallDir, manifest, runtime }) {
   }
 
   existing.metadata = existing.metadata || {};
+  if (existing.metadata["gabe-agents"]) delete existing.metadata["gabe-agents"];
   existing.metadata["self-agents"] = {
     ...(existing.metadata["self-agents"] || {}),
     [manifest.skill]: {
@@ -2008,6 +2298,20 @@ if (mdscriptSkills.length && !dryRun) {
 }
 
 const adapterReport = installAdapters(skills, [...targets], skillsRoot);
+
+// Full gabe→self cutover on every reinstall so nothing dangling remains.
+const cutoverRoots = [...targets];
+if (adapterReport?.cursorSkillRoot && !cutoverRoots.includes(adapterReport.cursorSkillRoot)) {
+  cutoverRoots.push(adapterReport.cursorSkillRoot);
+}
+if (Array.isArray(adapterReport?.skillRoots)) {
+  for (const r of adapterReport.skillRoots) {
+    if (r && !cutoverRoots.includes(r)) cutoverRoots.push(r);
+  }
+}
+const cutoverReport = dryRun
+  ? { skipped: true }
+  : runGabeToSelfCutover(cutoverRoots);
 
 let brokenSkills = [];
 let missingAssets = [];
