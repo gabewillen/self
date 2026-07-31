@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
-const learnLib = join(pkgRoot, "skills/self-common/hooks/learn-lib.ts");
+const learnLib = join(pkgRoot, "skills/self-common/hooks/self-lib.ts");
 const learnTouch = join(pkgRoot, "skills/self-common/hooks/learn-session-touch.ts");
 const learnStop = join(pkgRoot, "skills/self-common/hooks/learn-stop.ts");
 const bun = process.env.BUN_BIN || "bun";
@@ -68,7 +68,7 @@ function assert(cond, msg) {
   }
 }
 
-// --- dialect unit checks via a tiny bun eval importing learn-lib ---
+// --- dialect unit checks via a tiny bun eval importing self-lib ---
 const dialectProbe = spawnSync(
   bun,
   [

@@ -1,6 +1,6 @@
 /**
  * Minimal stop-hook helpers for /self-learn (MDScript only — not a skill).
- * Keep this small; do not import self-goal's large goal-lib.
+ * Keep this small; do not import self-goal's large hooks/self-lib.
  *
  * Session identity (from harness docs):
  * - Cursor: conversation_id (+ generation_id per prompt; workspace_roots)

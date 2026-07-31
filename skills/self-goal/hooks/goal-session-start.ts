@@ -9,7 +9,7 @@ import {
   safeSessionId,
   shouldSkipGoalHooks,
   SESSIONS_DIR,
-} from "./goal-lib.ts";
+} from "./self-lib.ts";
 
 const input = readHookInput();
 const conversationId = input.conversationId;

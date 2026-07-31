@@ -13,7 +13,7 @@ import {
   resolveActiveGoalPaths,
   resolveGoalPathsIgnoringActive,
   shouldSkipGoalHooks,
-} from "./goal-lib.ts";
+} from "./self-lib.ts";
 
 const input = readHookInput();
 const root = input.root;

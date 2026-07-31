@@ -741,7 +741,7 @@ const REQUIRED_SKILL_ASSETS = {
   "self-watch": [
     "SKILL.md",
     "assets/self-watch-ticker.sh",
-    "hooks/watch-lib.ts",
+    "hooks/self-lib.ts",
     "hooks/watch-stop.ts",
     "hooks/watch-session-start.ts",
     "adapters/cursor/hooks.json",
@@ -755,7 +755,7 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/self-learn.mdscript.md",
     "hooks/learn-stop.ts",
     "hooks/learn-session-touch.ts",
-    "hooks/learn-lib.ts",
+    "hooks/self-lib.ts",
     "adapters/claude/hooks.json",
     "adapters/cursor/hooks.json",
     "adapters/codex/hooks.json",

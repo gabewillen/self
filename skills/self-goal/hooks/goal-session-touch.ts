@@ -5,7 +5,7 @@ import {
   additionalContextPayload,
   readHookInput,
   shouldSkipGoalHooks,
-} from "./goal-lib.ts";
+} from "./self-lib.ts";
 
 const input = readHookInput();
 const conversationId = input.conversationId;

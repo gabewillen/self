@@ -15,7 +15,7 @@ import {
   promptFromHookInput,
   readHookInput,
   shouldSkipLearnHooks,
-} from "./learn-lib.ts";
+} from "./self-lib.ts";
 
 const input = readHookInput();
 

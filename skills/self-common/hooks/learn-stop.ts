@@ -10,11 +10,11 @@ import {
   shouldSkipLearnHooks,
   writeLearnPass,
   learnPassPath,
-} from "./learn-lib.ts";
+} from "./self-lib.ts";
 import {
   formatPendingWatchFollowup,
   listPendingWatchesForSession,
-} from "../../self-watch/hooks/watch-lib.ts";
+} from "../../self-watch/hooks/self-lib.ts";
 
 const input = readHookInput();
 

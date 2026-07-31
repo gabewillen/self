@@ -9,11 +9,11 @@ import {
   continueWorkingPayload,
   finishHook,
   readHookInput,
-} from "../../self-common/hooks/learn-lib.ts";
+} from "../../self-common/hooks/self-lib.ts";
 import {
   formatPendingWatchFollowup,
   listPendingWatchesForSession,
-} from "./watch-lib.ts";
+} from "./self-lib.ts";
 
 const input = readHookInput();
 

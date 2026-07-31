@@ -2,8 +2,8 @@
  * Inject active/pending self-watch context at session start so Cursor agents
  * re-attach listeners after chat/session cleanup.
  */
-import { finishHook, readHookInput } from "../../self-common/hooks/learn-lib.ts";
-import { formatActiveWatchSessionContext } from "./watch-lib.ts";
+import { finishHook, readHookInput } from "../../self-common/hooks/self-lib.ts";
+import { formatActiveWatchSessionContext } from "./self-lib.ts";
 
 const input = readHookInput();
 

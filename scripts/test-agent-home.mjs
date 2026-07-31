@@ -2,7 +2,7 @@
 /**
  * Assert the two agent-home derivations agree.
  *
- * scripts/agent-home.mjs (what the skills run) and goal-lib.ts (what the hooks
+ * scripts/agent-home.mjs (what the skills run) and self-lib.ts (what the hooks
  * use) must resolve the same path for the same directory. When they drift, a
  * run is written where the stop hook never looks and the loop dies silently.
  *
@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const GOAL_LIB = join(here, "..", "skills", "self-goal", "hooks", "goal-lib.ts");
+const GOAL_LIB = join(here, "..", "skills", "self-goal", "hooks", "self-lib.ts");
 
 const nodeMajor = Number(process.versions.node.split(".")[0]);
 if (nodeMajor < 23) {
@@ -49,7 +49,7 @@ function check(name, root, env = {}) {
     else process.env[k] = v;
   }
   checks.push({ name, a, b });
-  if (a !== b) failures.push(`${name}\n    agent-home.mjs: ${a}\n    goal-lib.ts   : ${b}`);
+  if (a !== b) failures.push(`${name}\n    agent-home.mjs: ${a}\n    self-lib.ts   : ${b}`);
   return a;
 }
 
