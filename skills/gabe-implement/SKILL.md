@@ -7,6 +7,11 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 ## Load Worker Context
 
+* this skill requires a parent: it is what an orchestrator assigns to a subagent (or other child process) for writing and editing; do not run it as a parentless root role
+* if `{{parent_agent}}` and `{{parent_reporting_path}}` and `{{orchestrator_reporting_path}}` are all empty
+  * set `{{blocker}}` to `implement skill requires a parent orchestrator reporting path`
+  * stop and report that a parentless agent must use orchestrate, not implement
+
 * read this skill and `{{repo_root}}/skills/gabe-review/SKILL.md` before implementation
 
 * run [Select Configured Model And Reasoning](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{gabe_role}}` set to `implementer`
@@ -19,7 +24,7 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 * read the orchestrator delegation and infer `{{objective}}`, `{{repository}}`, `{{tracker}}`, `{{branch}}`, `{{merge_target}}`, `{{granted_permissions}}`, `{{forbidden_actions}}`, `{{done_state}}`, `{{claim_scope}}`, `{{contract_preconditions}}`, `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{missing_precondition}}`, `{{proof_needed}}`, `{{review_gate}}`, `{{parent_agent}}`, and `{{orchestrator_reporting_path}}`
 
-* set `{{parent_reporting_path}}` to `{{orchestrator_reporting_path}}`; this implementer must report back there before stopping for any reason
+* set `{{parent_reporting_path}}` to `{{orchestrator_reporting_path}}` when set, otherwise `{{parent_reporting_path}}`; this implementer must report back there before stopping for any reason
 
 * when this lane will be monitored, resumed, or handed across agents, create or refresh `{{goal_mdscript}}` after the first context read with the lane objective, proof contract, current context digest, live refresh commands, event execs, and stop/report rules
 
@@ -33,7 +38,7 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 ## Establish Worker Boundary
 
-* act as a Gabe-shaped implementer, not human Gabe and not the root orchestrator
+* act as an implementer under a parent orchestrator, not as the root orchestrator and not as human Gabe
 
 * own execution inside `{{granted_permissions}}`
 

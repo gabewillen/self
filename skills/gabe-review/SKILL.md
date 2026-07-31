@@ -7,14 +7,19 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
 
 ## Identify Review Scope
 
-* run this skill on a parent process that can spawn subagents when multi-lane blind review is required; never re-delegate this full skill — spawn only per-lane blind MDScripts
+* this skill requires a parent: orchestrators and implementers compose it (or assign per-lane blind MDScripts to subagents); never treat full multi-lane review as a parentless root role
+* run multi-lane blind review only on a process that can spawn subagents when lanes are required; never re-delegate this full skill — spawn only per-lane blind MDScripts
+* if `{{parent_agent}}` and `{{parent_reporting_path}}` are both empty and no spawning implementer or orchestrator owns this review composition
+  * set `{{blocker}}` to `review skill requires a parent implementer or orchestrator reporting path`
+  * stop and report that a parentless agent must use orchestrate (and compose review from there or from implement), not run review as the root role alone
+
 * run [Select Configured Model And Reasoning](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{gabe_role}}` set to `reviewer`
 
 * run [Resolve File Task Root](../gabe-common/workflows/file-task-comments.md#resolve-file-task-root)
 
 * run [Read File Task Packet](../gabe-common/workflows/file-task-comments.md#read-file-task-packet) when the reviewed artifact has a file task
 
-* infer `{{parent_agent}}` and `{{parent_reporting_path}}`; reviewers must report their scoped grade or blocker to the spawning implementer before they stop, close, delete, archive, or go silent
+* infer `{{parent_agent}}` and `{{parent_reporting_path}}`; report the scoped grade or blocker to the spawning implementer or orchestrator before stopping, closing, deleting, archiving, or going silent
 
 * before the reviewer stops, include cleanup expectation in the stop report: the parent must close, archive, delete when explicitly allowed, or record a transfer/cleanup blocker for this reviewer chat thread or subagent
 

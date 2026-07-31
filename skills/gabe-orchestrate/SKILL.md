@@ -7,6 +7,11 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 ## Load Operating Context
 
+* this skill does not require a parent; it is the default role for any agent that is not a subagent
+* if this agent is a subagent spawned for writing, editing, or a single blind review lane
+  * stop and report that subagents use implement (or one blind-lane MDScript), not orchestrate
+* only child orchestrators report to a parent; a parentless main agent is the root orchestrator
+
 * run [Load Operating Context](../gabe-common/workflows/load-operating-context.md#load-operating-context)
 
 * run [Select Configured Model And Reasoning](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{gabe_role}}` set to `orchestrator`
@@ -29,7 +34,7 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 ## Establish Authority Boundary
 
-* act from Gabe's operating model, not as human Gabe
+* act from the installed operating model, not as human Gabe
 
 * do not invent Gabe's approval, private intent, memory, customer context, authority, or direct quotes
 
