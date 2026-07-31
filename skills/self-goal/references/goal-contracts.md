@@ -5,7 +5,7 @@ Portable reference for the MDScript `self-goal` skill.
 `<project_home>` is `~/.agents/projects/<project>` (or `$AGENTS_HOME`), resolved by
 [Resolve Agent Home](../../self-common/workflows/agent-home.md#resolve-agent-home).
 Run state stays out of the working repository unless the pack was installed with
-`--local` or `SELF_AGENTS_LOCAL=1`, in which case it lives under `<repo>/.agents`.
+`--local` or `SELF_LOCAL=1`, in which case it lives under `<repo>/.agents`.
 
 ## Paths
 

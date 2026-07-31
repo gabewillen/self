@@ -124,8 +124,8 @@ const r = spawnSync(
     encoding: "utf8",
     env: {
       ...process.env,
-      SELF_AGENTS_LIVE_BRANCH: "0",
-      GABE_AGENTS_LIVE_BRANCH: "0",
+      SELF_LIVE_BRANCH: "0",
+      GABE_LIVE_BRANCH: "0",
     },
     cwd: pkgRoot,
   },

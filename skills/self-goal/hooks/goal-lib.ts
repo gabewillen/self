@@ -163,11 +163,21 @@ export const MDSCRIPT_EXEC_HEADER =
   "<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->";
 /**
  * Agent state lives under ~/.agents (or $AGENTS_HOME), not in the working
- * repository. SELF_AGENTS_LOCAL=1 — set by installing with --local — keeps it
+ * repository. SELF_LOCAL=1 — set by installing with --local — keeps it
  * beside the project instead, under <repo>/.agents.
  */
+function envLocalMode(): string | undefined {
+  return (
+    process.env.SELF_LOCAL ||
+    process.env.SELF_AGENTS_LOCAL ||
+    process.env.GABE_LOCAL ||
+    process.env.GABE_AGENTS_LOCAL
+  );
+}
+
 export function agentProjectHome(root: string): string {
-  if (process.env.SELF_AGENTS_LOCAL === "1") {
+  const local = envLocalMode();
+  if (local === "1" || local === "true") {
     return join(root, ".agents");
   }
   const home = process.env.AGENTS_HOME
@@ -225,8 +235,11 @@ export function findSessionElsewhere(
   root: string,
   conversationId: string,
 ): string | null {
-  if (process.env.SELF_AGENTS_LOCAL === "1") {
-    return null;
+  {
+    const local = envLocalMode();
+    if (local === "1" || local === "true") {
+      return null;
+    }
   }
   const home = agentProjectHome(root);
   const projectsRoot = dirname(home);

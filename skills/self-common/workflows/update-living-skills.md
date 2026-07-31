@@ -154,7 +154,7 @@
 * stage only `{{skill_files_changed}}` under `{{agents_repo_root}}`
 * commit on `{{live_branch}}` with a message that names the user correction in one line
 * do **not** push to `main` / `{{upstream_base}}` directly from this agent
-* after commit, the installed `post-commit` hook pushes `{{live_branch}}` and opens or updates the PR into `{{upstream_base}}` (skip only if `SELF_AGENTS_SKIP_PR_HOOK=1`)
+* after commit, the installed `post-commit` hook pushes `{{live_branch}}` and opens or updates the PR into `{{upstream_base}}` (skip only if `SELF_SKIP_PR_HOOK=1`)
 * if the hook is missing, push and open the PR once: `git push -u origin {{live_branch}}` then `gh pr create --base {{upstream_base}} --head {{live_branch}}`
 * run `node {{agents_repo_root}}/scripts/install.mjs --live` so agent homes re-link the live branch tip
 * if push or PR is blocked by authority or missing credentials

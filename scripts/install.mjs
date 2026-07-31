@@ -8,8 +8,8 @@
  *   copy            Snapshot-copy skills (immutable install; no shared git tree)
  *
  * Living checkout default: ~/.agents/repos/self
- * Override: SELF_AGENTS_LIVE_ROOT, --live-root <path>
- * Repo URL: SELF_AGENTS_REPO_URL (default github.com/gabewillen/self.git)
+ * Override: SELF_LIVE_ROOT, --live-root <path>
+ * Repo URL: SELF_REPO_URL (default github.com/gabewillen/self.git)
  *
  * Usage:
  *   node scripts/install.mjs
@@ -23,13 +23,13 @@
  *   node scripts/install.mjs --no-adapters
  *   node scripts/install.mjs --pull
  *   node scripts/install.mjs --verify-only   (md5 check installed copies; no write)
- *   SELF_AGENTS_INSTALL=0 npm i
- *   SELF_AGENTS_MODE=copy npm i
+ *   SELF_INSTALL=0 npm i
+ *   SELF_MODE=copy npm i
  *
  * Live branch (default): install creates/checks out a long-lived working branch
- * (live/<user>-<host>, override SELF_AGENTS_LIVE_BRANCH) that tracks origin's
+ * (live/<user>-<host>, override SELF_LIVE_BRANCH) that tracks origin's
  * default branch for sync. Push that branch and open a PR for global skill
- * changes; do not push straight to main. Set SELF_AGENTS_LIVE_BRANCH=0 to skip.
+ * changes; do not push straight to main. Set SELF_LIVE_BRANCH=0 to skip.
  *
  * Integrity: after every install (and on --verify-only), md5 every managed
  * script under the live/source skills root and require byte-identical md5 at
@@ -68,6 +68,34 @@ const DEFAULT_LIVE_ROOT = join(homedir(), ".agents", "repos", "self");
 const MDSCRIPT_REPO_URL = "https://github.com/gabewillen/mdscript.git";
 const DEFAULT_MDSCRIPT_ROOT = join(homedir(), ".agents", "repos", "gabewillen-mdscript");
 
+/**
+ * Env lookup: preferred SELF_<NAME>, then transitional SELF_<NAME>,
+ * then GABE_<NAME> / GABE_AGENTS_<NAME> legacy aliases.
+ */
+function envSelf(name) {
+  const keys = [
+    `SELF_${name}`,
+    `SELF_${name}`,
+    `GABE_${name}`,
+    `GABE_AGENTS_${name}`,
+  ];
+  for (const k of keys) {
+    const v = process.env[k];
+    if (v !== undefined && v !== "") return v;
+  }
+  return undefined;
+}
+
+function envSelfTruthy(name) {
+  const v = envSelf(name);
+  return v === "1" || v === "true";
+}
+
+function envSelfFalsey(name) {
+  const v = envSelf(name);
+  return v === "0" || v === "false";
+}
+
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const noAdapters = args.includes("--no-adapters");
@@ -81,31 +109,22 @@ const explicitMdscriptRoot =
   mdscriptRootIdx >= 0 ? resolve(args[mdscriptRootIdx + 1]) : null;
 // Agent state (goals, tasks, comments, ledgers, run dirs) lives under
 // ~/.agents by default. --local puts it beside the project instead.
-const localState =
-  args.includes("--local") ||
-  (process.env.SELF_AGENTS_LOCAL ?? process.env.GABE_AGENTS_LOCAL) === "1" ||
-  (process.env.SELF_AGENTS_LOCAL ?? process.env.GABE_AGENTS_LOCAL) === "true";
+const localState = args.includes("--local") || envSelfTruthy("LOCAL");
 const skipInstructions =
-  args.includes("--no-instructions") ||
-  (process.env.SELF_AGENTS_INSTRUCTIONS ?? process.env.GABE_AGENTS_INSTRUCTIONS) === "0";
+  args.includes("--no-instructions") || envSelfFalsey("INSTRUCTIONS");
 const skipMdscript =
-  args.includes("--no-mdscript") ||
-  (process.env.SELF_AGENTS_MDSCRIPT ?? process.env.GABE_AGENTS_MDSCRIPT) === "0" ||
-  (process.env.SELF_AGENTS_MDSCRIPT ?? process.env.GABE_AGENTS_MDSCRIPT) === "false";
-const verifyOnly =
-  args.includes("--verify-only") ||
-  (process.env.SELF_AGENTS_VERIFY_ONLY ?? process.env.GABE_AGENTS_VERIFY_ONLY) === "1" ||
-  (process.env.SELF_AGENTS_VERIFY_ONLY ?? process.env.GABE_AGENTS_VERIFY_ONLY) === "true";
+  args.includes("--no-mdscript") || envSelfFalsey("MDSCRIPT");
+const verifyOnly = args.includes("--verify-only") || envSelfTruthy("VERIFY_ONLY");
 
-const modeEnv = ((process.env.SELF_AGENTS_MODE ?? process.env.GABE_AGENTS_MODE) || "").toLowerCase();
+const modeEnv = (envSelf("MODE") || "").toLowerCase();
 const mode = args.includes("--copy") || modeEnv === "copy"
   ? "copy"
   : args.includes("--live") || modeEnv === "live" || modeEnv === "" || modeEnv === "symlink"
     ? "live"
     : "live";
 
-if ((process.env.SELF_AGENTS_INSTALL ?? process.env.GABE_AGENTS_INSTALL) === "0" || (process.env.SELF_AGENTS_INSTALL ?? process.env.GABE_AGENTS_INSTALL) === "false") {
-  console.log("[self-agents] skip install (SELF_AGENTS_INSTALL=0)");
+if (envSelfFalsey("INSTALL")) {
+  console.log("[self] skip install (SELF_INSTALL=0)");
   process.exit(0);
 }
 
@@ -213,11 +232,11 @@ function isSymlink(path) {
 
 /**
  * Prefer the package checkout when it is already a git work tree of this project.
- * Else use SELF_AGENTS_LIVE_ROOT / --live-root / default clone path.
+ * Else use SELF_LIVE_ROOT / --live-root / default clone path.
  */
 function resolveLiveRoot() {
   if (explicitLiveRoot) return explicitLiveRoot;
-  const liveRootEnv = process.env.SELF_AGENTS_LIVE_ROOT || process.env.GABE_AGENTS_LIVE_ROOT;
+  const liveRootEnv = envSelf("LIVE_ROOT");
   if (liveRootEnv) return resolve(liveRootEnv);
 
   const pkgGit = gitTopLevel(pkgRoot);
@@ -239,7 +258,7 @@ function sanitizeBranchPart(s) {
 
 /** Working branch for live skill edits (not main). */
 function resolveLiveBranchName() {
-  const raw = (process.env.SELF_AGENTS_LIVE_BRANCH ?? process.env.GABE_AGENTS_LIVE_BRANCH);
+  const raw = envSelf("LIVE_BRANCH");
   if (raw === "0" || raw === "false" || raw === "off") return null;
   if (raw && raw.trim()) return raw.trim();
   let user = "local";
@@ -342,7 +361,7 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
   const remotes = trySh("git", ["-C", root, "remote"]);
   if (remotes.ok && !remotes.out.split("\n").map((s) => s.trim()).includes("origin")) {
     const url =
-      (process.env.SELF_AGENTS_REPO_URL ?? process.env.GABE_AGENTS_REPO_URL) ||
+      envSelf("REPO_URL") ||
       process.env.npm_package_repository_url?.replace(/^git\+/, "") ||
       DEFAULT_REPO_URL;
     trySh("git", ["-C", root, "remote", "add", "origin", url]);
@@ -424,7 +443,7 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
     trySh("git", ["-C", root, "config", `branch.${branch}.merge`, `refs/heads/${base}`]);
     trySh("git", ["-C", root, "config", `branch.${branch}.remote`, "origin"]);
 
-    if (doPull || (process.env.SELF_AGENTS_PULL ?? process.env.GABE_AGENTS_PULL) === "1" || opts.sync) {
+    if (doPull || envSelfTruthy("PULL") || opts.sync) {
       console.log(
         `[self-agents] sync ${branch} with origin/${base} (merge --ff-only, then merge)`,
       );
@@ -513,7 +532,7 @@ function installLiveGitHooks(liveRoot) {
 
 function ensureLiveCheckout(liveRoot) {
   const repoUrl =
-    (process.env.SELF_AGENTS_REPO_URL ?? process.env.GABE_AGENTS_REPO_URL) ||
+    envSelf("REPO_URL") ||
     process.env.npm_package_repository_url?.replace(/^git\+/, "") ||
     DEFAULT_REPO_URL;
 
@@ -532,7 +551,7 @@ function ensureLiveCheckout(liveRoot) {
 
   if (existsSync(liveRoot) && isGitRepo(liveRoot)) {
     const branchMeta = ensureLiveWorkingBranch(liveRoot, {
-      sync: doPull || (process.env.SELF_AGENTS_PULL ?? process.env.GABE_AGENTS_PULL) === "1",
+      sync: doPull || envSelfTruthy("PULL"),
     });
     installLiveGitHooks(liveRoot);
     return { liveRoot, repoUrl, action: "reuse", ...branchMeta };
@@ -566,13 +585,12 @@ function ensureLiveCheckout(liveRoot) {
 function ensureMdscriptSkillsRoot() {
   if (skipMdscript) return null;
   const mdscriptRootEnv =
-    process.env.SELF_AGENTS_MDSCRIPT_ROOT || process.env.GABE_AGENTS_MDSCRIPT_ROOT;
+    envSelf("MDSCRIPT_ROOT");
   const root =
     explicitMdscriptRoot ||
     (mdscriptRootEnv ? resolve(mdscriptRootEnv) : DEFAULT_MDSCRIPT_ROOT);
   const repoUrl =
-    process.env.SELF_AGENTS_MDSCRIPT_REPO_URL ||
-    process.env.GABE_AGENTS_MDSCRIPT_REPO_URL ||
+    envSelf("MDSCRIPT_REPO_URL") ||
     MDSCRIPT_REPO_URL;
   const skillsRoot = join(root, "skills");
 
@@ -584,7 +602,7 @@ function ensureMdscriptSkillsRoot() {
   }
 
   if (existsSync(root) && isGitRepo(root)) {
-    if (doPull || (process.env.SELF_AGENTS_PULL ?? process.env.GABE_AGENTS_PULL) === "1") {
+    if (doPull || envSelfTruthy("PULL")) {
       const r = trySh("git", ["-C", root, "pull", "--ff-only"]);
       if (!r.ok) {
         console.warn(`[self-agents] mdscript pull failed (using local tree)`);
@@ -2192,7 +2210,7 @@ function writeLiveMarker(liveRoot, skills, liveMeta = {}) {
           `  # post-commit hook pushes ${branch} and opens/updates PR into ${base}`
         : `git -C ${liveRoot} add -A && git -C ${liveRoot} commit && git -C ${liveRoot} push`,
       pr: branch
-        ? `automatic on commit via .git/hooks/post-commit (disable: SELF_AGENTS_SKIP_PR_HOOK=1); base ${base} head ${branch}`
+        ? `automatic on commit via .git/hooks/post-commit (disable: SELF_SKIP_PR_HOOK=1); base ${base} head ${branch}`
         : `open a PR against ${base} (do not push global skill changes straight to ${base})`,
       sync: `node ${join(pkgRoot, "scripts/install.mjs")} --live --pull`,
       re_symlink: `node ${join(pkgRoot, "scripts/install.mjs")} --live`,
@@ -2219,7 +2237,7 @@ if (mode === "live") {
         action: "pkg-root",
         repoUrl: "local-package",
         ...ensureLiveWorkingBranch(pkgRoot, {
-          sync: doPull || (process.env.SELF_AGENTS_PULL ?? process.env.GABE_AGENTS_PULL) === "1",
+          sync: doPull || envSelfTruthy("PULL"),
         }),
       };
       installLiveGitHooks(pkgRoot);
@@ -2432,7 +2450,7 @@ if (!dryRun) {
 
 if (localState) {
   console.log(
-    "[self-agents] --local: agent state goes under <repo>/.agents (export SELF_AGENTS_LOCAL=1 for hooks and skills)",
+    "[self-agents] --local: agent state goes under <repo>/.agents (export SELF_LOCAL=1 for hooks and skills)",
   );
 } else {
   console.log(

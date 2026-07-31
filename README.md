@@ -7,7 +7,7 @@ The `mdscript-exec` and `mdscript-write` skills live in the [mdscript](https://g
 Skip or redirect the companion install:
 
 ```bash
-node ./scripts/install.mjs --no-mdscript              # or SELF_AGENTS_MDSCRIPT=0
+node ./scripts/install.mjs --no-mdscript              # or SELF_MDSCRIPT=0
 node ./scripts/install.mjs --mdscript-root ~/src/mdscript
 ```
 
@@ -63,7 +63,7 @@ on errors.
 
 By default install **clones or reuses a git checkout**, **checks out a long-lived working branch**, and **symlinks** each skill into agent skill dirs.
 
-The working branch is `live/<user>-<host>` (override with `SELF_AGENTS_LIVE_BRANCH`; set to `0` to skip). It syncs from `origin/main` (or the remote default). **Global skill changes commit on that branch and open a PR into main** — do not push straight to the default branch. Project-specific rules belong in the product repo under `<repo>/.agents/`, not the global pack.
+The working branch is `live/<user>-<host>` (override with `SELF_LIVE_BRANCH`; set to `0` to skip). It syncs from `origin/main` (or the remote default). **Global skill changes commit on that branch and open a PR into main** — do not push straight to the default branch. Project-specific rules belong in the product repo under `<repo>/.agents/`, not the global pack.
 
 ```bash
 cd /path/to/self
@@ -75,7 +75,7 @@ node ./scripts/install.mjs --live
 
 Live root resolution order:
 
-1. `--live-root <path>` / `SELF_AGENTS_LIVE_ROOT`
+1. `--live-root <path>` / `SELF_LIVE_ROOT`
 2. This package’s git toplevel when it already contains `skills/` (local checkout / git dependency)
 3. `~/.agents/repos/self` (cloned from `https://github.com/gabewillen/self.git`)
 
@@ -93,7 +93,7 @@ $EDITOR ~/.agents/repos/self/skills/self-review/hsm/SKILL.md
 
 git -C ~/.agents/repos/self add -A
 git -C ~/.agents/repos/self commit -m "Update skill"
-# post-commit hook: push live/* + open/update PR into main (SELF_AGENTS_SKIP_PR_HOOK=1 to disable)
+# post-commit hook: push live/* + open/update PR into main (SELF_SKIP_PR_HOOK=1 to disable)
 
 # fetch origin + merge origin/main into the live branch + re-symlink
 node ./scripts/install.mjs --live --pull
@@ -109,22 +109,23 @@ Immutable copies (no shared git tree):
 
 ```bash
 node ./scripts/install.mjs --copy
-# or: SELF_AGENTS_MODE=copy npm install
+# or: SELF_MODE=copy npm install
 ```
 
 ### Other flags
 
 ```bash
-SELF_AGENTS_INSTALL=0 npm install          # skip postinstall
+SELF_INSTALL=0 npm install          # skip postinstall
 node ./scripts/install.mjs --dry-run
 node ./scripts/install.mjs --verify-only   # md5-check installed scripts only
 node ./scripts/install.mjs --target /path/to/skills
 node ./scripts/install.mjs --no-adapters
-SELF_AGENTS_REPO_URL=git@github.com:you/self.git npm install
-SELF_AGENTS_LIVE_BRANCH=0 node ./scripts/install.mjs --live   # stay on current branch
+SELF_REPO_URL=git@github.com:you/self.git npm install
+SELF_LIVE_BRANCH=0 node ./scripts/install.mjs --live   # stay on current branch
 ```
 
-Legacy env vars `GABE_AGENTS_*` are still accepted as aliases for `SELF_AGENTS_*`.
+Legacy aliases still accepted: `SELF_AGENTS_*`, `GABE_*`, and `GABE_AGENTS_*`
+(e.g. `SELF_AGENTS_INSTALL=0` or `GABE_INSTALL=0` → `SELF_INSTALL=0`).
 
 ### Via the skills CLI (once published or from path)
 
@@ -157,7 +158,7 @@ skills/<skill>/adapters/<adapter>/
 
 ### Cursor / Claude / Codex / Grok
 
-On install (unless `--no-adapters` / `SELF_AGENTS_INSTALL=0`), `scripts/install.mjs`:
+On install (unless `--no-adapters` / `SELF_INSTALL=0`), `scripts/install.mjs`:
 
 1. Symlinks (or copies) the skill tree into agent skill dirs
 2. Ensures harness skill roots exist when that agent is present

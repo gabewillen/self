@@ -14,7 +14,7 @@
   * if creation fails, stop and report the exact path and error
 * set `{{local_mode}}` to `true` only when one of these is true:
   * the pack was installed with `--local`
-  * `$SELF_AGENTS_LOCAL` is `1`
+  * `$SELF_LOCAL` is `1`
   * the user asked for project-local agent state in the current message
 * if `{{local_mode}}` is `true`
   * set `{{project_home}}` to `{{repo_root}}/.agents`

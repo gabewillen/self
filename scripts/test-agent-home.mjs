@@ -59,12 +59,12 @@ try {
   mkdirSync(repo);
   git(repo, "init", "-q");
   git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "init");
-  const repoHome = check("plain repository", repo, { AGENTS_HOME: undefined, SELF_AGENTS_LOCAL: undefined });
+  const repoHome = check("plain repository", repo, { AGENTS_HOME: undefined, SELF_LOCAL: undefined });
 
   // worktree of that repository must share the repository's home
   const wt = join(tmp, "worktrees", "nc55");
   git(repo, "worktree", "add", "-q", wt, "-b", "nc55");
-  const wtHome = check("worktree", wt, { AGENTS_HOME: undefined, SELF_AGENTS_LOCAL: undefined });
+  const wtHome = check("worktree", wt, { AGENTS_HOME: undefined, SELF_LOCAL: undefined });
   if (wtHome !== repoHome) {
     failures.push(`worktree does not share the repository home\n    repo: ${repoHome}\n    wt  : ${wtHome}`);
   }
@@ -72,18 +72,18 @@ try {
   // not a repository at all
   const plain = join(tmp, "loose-dir");
   mkdirSync(plain);
-  check("non-git directory", plain, { AGENTS_HOME: undefined, SELF_AGENTS_LOCAL: undefined });
+  check("non-git directory", plain, { AGENTS_HOME: undefined, SELF_LOCAL: undefined });
 
   // name needing sanitizing
   const odd = join(tmp, "weird name (v2)");
   mkdirSync(odd);
-  check("name with spaces and parens", odd, { AGENTS_HOME: undefined, SELF_AGENTS_LOCAL: undefined });
+  check("name with spaces and parens", odd, { AGENTS_HOME: undefined, SELF_LOCAL: undefined });
 
   // $AGENTS_HOME override
-  check("AGENTS_HOME override", repo, { AGENTS_HOME: join(tmp, "alt-home"), SELF_AGENTS_LOCAL: undefined });
+  check("AGENTS_HOME override", repo, { AGENTS_HOME: join(tmp, "alt-home"), SELF_LOCAL: undefined });
 
-  // --local / SELF_AGENTS_LOCAL
-  check("local mode", repo, { SELF_AGENTS_LOCAL: "1", AGENTS_HOME: undefined });
+  // --local / SELF_LOCAL
+  check("local mode", repo, { SELF_LOCAL: "1", AGENTS_HOME: undefined });
 
   // the slug itself, for the worktree case that caused the miss
   const slug = scriptSlug(wt);

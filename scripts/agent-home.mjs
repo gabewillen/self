@@ -42,8 +42,18 @@ export function projectSlug(root) {
   return base.replace(/[^A-Za-z0-9._-]+/g, "-") || "project";
 }
 
+function envLocal() {
+  return (
+    process.env.SELF_LOCAL ||
+    process.env.SELF_AGENTS_LOCAL ||
+    process.env.GABE_LOCAL ||
+    process.env.GABE_AGENTS_LOCAL
+  );
+}
+
 export function projectHome(root) {
-  if (process.env.SELF_AGENTS_LOCAL === "1") return join(resolve(root), ".agents");
+  const local = envLocal();
+  if (local === "1" || local === "true") return join(resolve(root), ".agents");
   const home = process.env.AGENTS_HOME
     ? resolve(process.env.AGENTS_HOME)
     : join(homedir(), ".agents");
