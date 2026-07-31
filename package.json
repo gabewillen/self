@@ -1,5 +1,5 @@
 {
-  "name": "@gabewillen/agents",
+  "name": "@gabewillen/self",
   "version": "0.1.0",
   "description": "MDScript agent skills pack (self-*, self-common) installable via npm and npx skills",
   "license": "MIT",
@@ -8,11 +8,11 @@
   "author": "Gabe Willen",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gabewillen/agents.git"
+    "url": "git+https://github.com/gabewillen/self.git"
   },
-  "homepage": "https://github.com/gabewillen/agents#readme",
+  "homepage": "https://github.com/gabewillen/self#readme",
   "bugs": {
-    "url": "https://github.com/gabewillen/agents/issues"
+    "url": "https://github.com/gabewillen/self/issues"
   },
   "keywords": [
     "agent-skills",

@@ -70,6 +70,8 @@
   * set `{{live_skills_root}}` to `{{skills_root}}`
 * if `{{live_skills_root}}` is empty and `~/.agents/self-agents-live.json` exists
   * read that marker and set `{{live_skills_root}}` to its skills path when present
+* if `{{live_skills_root}}` is empty and `~/.agents/repos/self/skills` exists
+  * set `{{live_skills_root}}` to `~/.agents/repos/self/skills`
 * if `{{live_skills_root}}` is empty and `~/.agents/repos/gabewillen-agents/skills` exists
   * set `{{live_skills_root}}` to `~/.agents/repos/gabewillen-agents/skills`
 * if `{{live_skills_root}}` is empty and this checkout has `skills/self-implement/SKILL.md`

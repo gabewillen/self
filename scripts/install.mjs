@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Install @gabewillen/agents skills + per-adapter scripts/hooks.
+ * Install @gabewillen/self skills + per-adapter scripts/hooks.
  *
  * Modes:
  *   live (default)  Clone/update a living git checkout and symlink each skill
  *                   into agent skill dirs. Edits are real repo files — commit/push.
  *   copy            Snapshot-copy skills (immutable install; no shared git tree)
  *
- * Living checkout default: ~/.agents/repos/gabewillen-agents
+ * Living checkout default: ~/.agents/repos/self
  * Override: SELF_AGENTS_LIVE_ROOT, --live-root <path>
- * Repo URL: SELF_AGENTS_REPO_URL (default github.com/gabewillen/agents.git)
+ * Repo URL: SELF_AGENTS_REPO_URL (default github.com/gabewillen/self.git)
  *
  * Usage:
  *   node scripts/install.mjs
@@ -61,8 +61,8 @@ import { execFileSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
-const DEFAULT_REPO_URL = "https://github.com/gabewillen/agents.git";
-const DEFAULT_LIVE_ROOT = join(homedir(), ".agents", "repos", "gabewillen-agents");
+const DEFAULT_REPO_URL = "https://github.com/gabewillen/self.git";
+const DEFAULT_LIVE_ROOT = join(homedir(), ".agents", "repos", "self");
 // mdscript-exec / mdscript-write are owned by the mdscript repo, not this one,
 // but every skill here executes through them — so install them alongside.
 const MDSCRIPT_REPO_URL = "https://github.com/gabewillen/mdscript.git";

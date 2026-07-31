@@ -1,4 +1,4 @@
-# @gabewillen/agents
+# self
 
 agent-shaped **MDScript** skills.
 
@@ -40,13 +40,16 @@ node ./scripts/test-self-review-install.mjs     # multi-lane review tree complet
 node ./scripts/test-self-review-install.mjs ~/.agents/skills/self-review
 node ./scripts/test-self-implement-install.mjs  # impl-* engineering-rules construction tree
 node ./scripts/test-self-implement-install.mjs ~/.agents/skills/self-implement
+node ./scripts/test-hook-session-scope.mjs      # session-scoped learn stop hooks
+node ./scripts/test-script-integrity.mjs        # install md5 integrity gate
 ```
 
 Install (`scripts/install.mjs`) hard-fails if a managed destination is missing
 required nested assets (for example `self-review` without `references/engineering-rules/`
 or `workflows/blind-reviewers/eng-*.mdscript.md`, or `self-implement` without
-`workflows/engineering-rules/impl-*.mdscript.md`). Third-party dangling skill
-symlinks are still reported as warnings only.
+`workflows/engineering-rules/impl-*.mdscript.md`). It also md5-checks every managed
+script at every skill root and harness hook path so stale copies cannot go green.
+Third-party dangling skill symlinks are still reported as warnings only.
 
 Checks frontmatter, the execution header, `##`-only states, duplicate anchors,
 dead links, `mdscript-exec` re-entry headings that match no state, `{{variables}}`
@@ -63,17 +66,18 @@ By default install **clones or reuses a git checkout**, **checks out a long-live
 The working branch is `live/<user>-<host>` (override with `SELF_AGENTS_LIVE_BRANCH`; set to `0` to skip). It syncs from `origin/main` (or the remote default). **Global skill changes commit on that branch and open a PR into main** — do not push straight to the default branch. Project-specific rules belong in the product repo under `<repo>/.agents/`, not the global pack.
 
 ```bash
-cd /path/to/agents
+cd /path/to/self
 npm install
 # equivalent:
 node ./scripts/install.mjs --live
+# or: self-agents   (bin name for scripts/install.mjs)
 ```
 
 Live root resolution order:
 
 1. `--live-root <path>` / `SELF_AGENTS_LIVE_ROOT`
 2. This package’s git toplevel when it already contains `skills/` (local checkout / git dependency)
-3. `~/.agents/repos/gabewillen-agents` (cloned from `https://github.com/gabewillen/agents.git`)
+3. `~/.agents/repos/self` (cloned from `https://github.com/gabewillen/self.git`)
 
 Symlink targets (when the agent home exists):
 
@@ -84,11 +88,11 @@ After install:
 
 ```bash
 # edit a living skill on the live/* branch
-$EDITOR ~/.agents/repos/gabewillen-agents/skills/self-review/hsm/SKILL.md
+$EDITOR ~/.agents/repos/self/skills/self-review/hsm/SKILL.md
 # or, when installed from this checkout, edit here directly
 
-git -C ~/.agents/repos/gabewillen-agents add -A
-git -C ~/.agents/repos/gabewillen-agents commit -m "Update skill"
+git -C ~/.agents/repos/self add -A
+git -C ~/.agents/repos/self commit -m "Update skill"
 # post-commit hook: push live/* + open/update PR into main (SELF_AGENTS_SKIP_PR_HOOK=1 to disable)
 
 # fetch origin + merge origin/main into the live branch + re-symlink
@@ -97,6 +101,7 @@ node ./scripts/install.mjs --live --pull
 ```
 
 Marker file: `~/.agents/self-agents-live.json` (includes `live_branch`, `upstream_base`, and howto).
+Integrity receipt: `~/.agents/self-agents-integrity.json`.
 
 ### Snapshot copy install
 
@@ -112,23 +117,27 @@ node ./scripts/install.mjs --copy
 ```bash
 SELF_AGENTS_INSTALL=0 npm install          # skip postinstall
 node ./scripts/install.mjs --dry-run
+node ./scripts/install.mjs --verify-only   # md5-check installed scripts only
 node ./scripts/install.mjs --target /path/to/skills
 node ./scripts/install.mjs --no-adapters
-SELF_AGENTS_REPO_URL=git@github.com:you/agents.git npm install
+SELF_AGENTS_REPO_URL=git@github.com:you/self.git npm install
+SELF_AGENTS_LIVE_BRANCH=0 node ./scripts/install.mjs --live   # stay on current branch
 ```
+
+Legacy env vars `GABE_AGENTS_*` are still accepted as aliases for `SELF_AGENTS_*`.
 
 ### Via the skills CLI (once published or from path)
 
 ```bash
-npx skills add /path/to/agents --path skills
+npx skills add /path/to/self --path skills
 # or after publish:
-npx skills add @gabewillen/agents
+npx skills add @gabewillen/self
 ```
 
 ### As a dependency in another project
 
 ```bash
-npm i -D @gabewillen/agents
+npm i -D @gabewillen/self
 # postinstall installs into agent skill dirs
 ```
 
@@ -146,25 +155,23 @@ Skills may ship agent-specific runtime under:
 skills/<skill>/adapters/<adapter>/
 ```
 
-### Cursor
-
-`skills/self-goal/adapters/cursor/` contains stop/session hooks plus `hooks.json`.
+### Cursor / Claude / Codex / Grok
 
 On install (unless `--no-adapters` / `SELF_AGENTS_INSTALL=0`), `scripts/install.mjs`:
 
-1. Copies the skill tree (including `adapters/`) into agent skill dirs
-2. Ensures `~/.cursor/skills/self-goal` exists when Cursor is present
-3. Merges managed entries into `~/.cursor/hooks.json` for:
-   - `sessionStart` → `goal-session-start.ts`
-   - `beforeSubmitPrompt` → `goal-session-touch.ts`
-   - `stop` → `goal-stop.ts`
-4. Replaces legacy commands pointing at `~/.cursor/skills/goal/scripts/...`
+1. Symlinks (or copies) the skill tree into agent skill dirs
+2. Ensures harness skill roots exist when that agent is present
+3. Merges managed entries into harness hook configs for:
+   - **self-common** — learn session-touch + Stop (`/self-learn` MDScript)
+   - **self-goal** — session start/touch + Stop
+   - **self-watch** — session start + Stop (pending-tick resume, session-scoped)
+4. Replaces legacy commands pointing at old `gabe-*` / `goal/scripts` paths
 
 Runtime prefers `bun`, then `node`.
 
-Other adapters: put files under `adapters/<name>/` and optional `install.json` for extra copy targets. Unknown adapters ship with the skill; Cursor is the only auto-wired adapter today.
+Hook followups are single-line `/mdscript-exec …#heading` only. Learn is session-scoped and does not re-arm on its own stop-hook followup.
 
-`self-watch` has no Cursor stop hooks — it uses an in-skill background interval loop and `self-unwatch`.
+Other adapters: put files under `adapters/<name>/` and optional `install.json` for extra copy targets.
 
 ## self-goal
 
@@ -180,7 +187,9 @@ or invoke the `self-goal` skill. Session state lives under:
 .cursor/goal/sessions/<conversation_id>/runs/<run_id>/
 ```
 
-Completion requires reproducible artifacts + three adversarial blind reviewer sign-offs with empty `p_findings`. Cursor stop/session hooks live under `skills/self-goal/adapters/cursor/` and are wired on install.
+(or the equivalent under `~/.agents` when not in local mode).
+
+Completion requires reproducible artifacts + multi-lane adversarial blind review with empty blocking findings. Cursor/Claude/Codex/Grok stop/session hooks live under `skills/self-goal/adapters/` and are wired on install.
 
 ## Layout
 
