@@ -1351,13 +1351,16 @@ const INSTRUCTION_TARGETS = [
  * installed first.
  */
 function applyRouterDirective(existing, block) {
+  const original = existing || "";
   // Drop pre-rename gabe-agents router blocks so they never sit beside self-agents.
-  let body = (existing || "").replace(LEGACY_GABE_ROUTER_BLOCK_RE, "");
+  let body = original.replace(LEGACY_GABE_ROUTER_BLOCK_RE, "");
+  const strippedLegacy = body !== original;
   if (ROUTER_BLOCK_RE.test(body)) {
     const next = body.replace(ROUTER_BLOCK_RE, block);
-    return next === body
-      ? { body, action: "present" }
-      : { body: next, action: "updated" };
+    if (next === body && !strippedLegacy) {
+      return { body, action: "present" };
+    }
+    return { body: next, action: "updated" };
   }
   if (LEGACY_DIRECTIVE_RE.test(body)) {
     return { body: body.replace(LEGACY_DIRECTIVE_RE, block), action: "updated" };
