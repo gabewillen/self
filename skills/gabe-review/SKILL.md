@@ -1,6 +1,6 @@
 ---
 name: gabe-review
-description: "ALWAYS use this skill when reviewing code, PRs/MRs, MDScripts, docs, instructions, automations, publications, or readiness claims on a parent process: compose multi-lane blind review in-process (never nest the full skill), always run rules/security/completeness plus selected eng-* packs and deep hsm when a state machine is in scope, aggregate independent lane sign-offs, and emit scoped Proven-for or Blocked-for verdicts."
+description: "ALWAYS use this skill when reviewing any change or claim on a parent process — code, docs, MDScripts, configs, instructions, automations, publications, diffs, or readiness: compose multi-lane blind review in-process (never nest the full skill), always run rules/security/completeness plus selected eng-* packs and deep hsm when a state machine is in scope, aggregate independent lane sign-offs, and emit scoped Proven-for or Blocked-for verdicts."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

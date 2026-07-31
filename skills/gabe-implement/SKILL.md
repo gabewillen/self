@@ -1,6 +1,6 @@
 ---
 name: gabe-implement
-description: "ALWAYS use this skill when implementing, repairing, owning an MR/PR, verifying, repairing review findings, watching blockers, or preparing release work as a delegated Gabe worker subagent: state the scoped DBC claim, select and apply the same vendored engineering-rules packs review eng-* lanes will check (impl-core, impl-dbc, language/framework, optional impl-hsm), prove with real paths, compose gabe-review in-process with per-lane blind fanout only, and report to the parent before stopping."
+description: "ALWAYS use this skill when writing or editing anything as a Gabe worker: code, docs, configs, tests, MDScripts, scripts, or other artifacts — state the scoped DBC claim, select and apply the same vendored engineering-rules packs review eng-* lanes will check (impl-core, impl-dbc, language/framework, optional impl-hsm), prove with real paths, compose gabe-review in-process with per-lane blind fanout only, and report to the parent before stopping."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
