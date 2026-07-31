@@ -2,10 +2,10 @@
 
 ## Decide Review Loop
 
-* if `{{review_cycle}}` is `single-non-code` and the reviewer found a real issue or returned `Not ready for {{claim_scope}}`
+* if `{{review_cycle}}` is `single-non-code` and the lane aggregate returned a real issue or `Not ready for {{claim_scope}}`
   * [Repair Single Non Code Findings](#repair-single-non-code-findings)
 
-* if `{{review_cycle}}` is `single-non-code` and the reviewer found no issue
+* if `{{review_cycle}}` is `single-non-code` and the lane aggregate found no blocking issue
   * set `{{review_gate}}` to `Proven for {{claim_scope}}`
   * run [Prepare MR Or PR](prepare-mr-or-pr.md#prepare-mr-or-pr)
 
@@ -13,10 +13,10 @@
   * set `{{review_phase}}` to `repair`
   * [Repair Blocking Findings](#repair-blocking-findings)
 
-* if `{{review_cycle}}` is `recursive-code`, the reviewer is closed or deleted, and `{{blocking_findings}}` is empty
+* if `{{review_cycle}}` is `recursive-code`, every lane reviewer is closed or deleted, and `{{blocking_findings}}` is empty
   * [Require Final Cumulative Proven](#require-final-cumulative-proven)
 
-* if the reviewer is closed and its non-proven grade names a missing precondition, resource, access, authority, safe target, or source truth
+* if the aggregate grade is non-proven and names a missing precondition, resource, access, authority, safe target, or source truth
   * set `{{review_gate}}` to `Blocked for {{claim_scope}}`
   * set `{{blocker}}` to the exact missing review prerequisite
   * run [Report To Orchestrator](report-to-orchestrator.md#report-to-orchestrator)

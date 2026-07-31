@@ -3,7 +3,9 @@
 ## Confirm Implementer Completion Gates
 
 * do not perform code reviews from this orchestrator
-* do not spawn blind reviewers or `gabe-review` workers from this orchestrator
+* do not spawn blind reviewers from this orchestrator
+* do not spawn a `gabe-review` skill worker or hand `/gabe-review` to a subagent
+* the implementer owns review composition and per-lane blind fanout; this orchestrator only verifies the resulting sign-offs and acceptance report
 * read the implementer stop report, review record, proof artifacts, and lane ledger for this lane
 * set `{{claim_scope}}` from the implementer acceptance report when present
 * if the implementer acceptance report is missing
@@ -66,8 +68,8 @@
 ## Verify Code Review Gate
 
 * verify the implementer owns focused tests, relevant broader tests, and real-resource artifact proof for the claimed scope
-* verify the implementer owns the recursive single-reviewer blind-review gate using `gabe-review`
-* verify one fresh blind reviewer was used per round with no reviewer reuse across rounds
+* verify the implementer owns gabe-review composition in-process and spawned per-lane blind reviewers (not a nested full `gabe-review` skill subagent)
+* verify every selected lane had a fresh blind reviewer for the round with no lane-reviewer reuse across rounds
 * verify every round-1 finding was fixed or disproven
 * if the review is round 2
   * verify only P1 and P2 findings were fixed or disproven

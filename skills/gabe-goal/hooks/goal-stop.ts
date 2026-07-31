@@ -12,6 +12,7 @@ import {
   reopenGoalRun,
   resolveActiveGoalPaths,
   resolveGoalPathsIgnoringActive,
+  shouldSkipGoalHooks,
 } from "./goal-lib.ts";
 
 const input = readHookInput();
@@ -20,6 +21,11 @@ const conversationId = input.conversationId;
 
 // grok also fires Stop at session end; only a real turn end can be continued.
 if (input.dialect === "grok" && input.reason && input.reason !== "end_turn") {
+  finishHook();
+}
+
+// Harness owns multi-round continuation via /goal — do not double-loop with Stop hooks.
+if (shouldSkipGoalHooks(input.dialect)) {
   finishHook();
 }
 
@@ -38,6 +44,11 @@ if (!paths) {
 
 const state = loadGoalState(paths);
 if (!state) {
+  finishHook();
+}
+
+// Per-run opt-out (front matter skip_hooks / loop_driver: harness-goal).
+if (shouldSkipGoalHooks(input.dialect, state)) {
   finishHook();
 }
 

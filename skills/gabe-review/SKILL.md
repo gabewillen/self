@@ -1,12 +1,13 @@
 ---
 name: gabe-review
-description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and documentation changes, instructions, automations, publications, and final reports using a model and effort level selected for the review. Terminal readiness runs multi-lane adversarial blind subagents selected by workflows/select-review-lanes.md: always rules (agent/repo instructions), security, and completeness; plus engineering-rules lanes vendored from gabewillen/rules (eng-core, eng-dbc, language, and framework lanes); plus deep hsm via gabe-hsm-review when a state machine is in scope. Each lane executes its own review MDScript and writes an independent sign-off. Use for diminishing-severity recursive code review, single-pass non-code review, content-addressed review baselines, final cumulative multi-lane blind review, DBC proof decisions, scoped verdicts, language-specific rules, executable MDScript contracts, evidence and authority boundaries, UI proof, runtime/provider equivalence, source-owner sync, permissions, provenance drift, proof inflation, stale assumptions, state-machine gaps, model/data/eval source-currentness, coordinator control, current review state, and publication hygiene. Treat MDScripts exactly like documentation for review."
+description: "Compose multi-lane adversarial review on the parent process (main chat, implementer lane, or goal orchestrator). Never assign this whole skill to a nested worker subagent — fan out only per-lane blind MDScripts under workflows/blind-reviewers/. Terminal readiness selects lanes via workflows/select-review-lanes.md: always rules, security, and completeness; plus eng-* engineering-rules lanes from vendored gabewillen/rules; plus deep hsm when a state machine is in scope. Each lane subagent runs one MDScript and writes an independent sign-off; the parent aggregates. Use for rolling code review, single-pass non-code review, final multi-lane blind review, DBC proof decisions, scoped verdicts, and publication hygiene. Treat MDScripts exactly like documentation for review. The primary delegated worker skill remains gabe-implement."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Identify Review Scope
 
+* run this skill on a parent process that can spawn subagents when multi-lane blind review is required; never re-delegate this full skill — spawn only per-lane blind MDScripts
 * run [Select Configured Model And Reasoning](../gabe-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{gabe_role}}` set to `reviewer`
 
 * run [Resolve File Task Root](../gabe-common/workflows/file-task-comments.md#resolve-file-task-root)
@@ -195,5 +196,4 @@ description: "Review rolling code diffs, PR/MR readiness, replies, MDScript and 
   * set `{{stop_reason}}` to `review-complete`
   * report the stop reason, final scoped grade, `proof_not_claimed`, and exact `cleanup_status=...` or cleanup blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before the reviewer is closed
   * include the reviewer thread or subagent cleanup status expected from the parent as the literal `cleanup_status` field
-
 * never bury a failed Gabe correction pattern in a summary

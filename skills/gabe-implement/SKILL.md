@@ -1,6 +1,6 @@
 ---
 name: gabe-implement
-description: "Execute delegated Gabe-shaped implementation lanes using project control records from ~/.agents/projects/project-name/ and a model and effort level selected for the task. Use when a Gabe orchestrator assigns implementation, repo repair, issue work, MR/PR ownership, verification, review repair, blocker watching, or release prep. State the scoped DBC claim and proof boundaries, try local stacks before infrastructure blockers, execute and directly validate MDScript records, report before stopping, own the diminishing-severity recursive single-reviewer gabe-review loop for code changes and one fresh review for non-code changes including MDScripts and documentation, preserve GitLab aliasing, and keep gabe-orchestrate updated until merge or close."
+description: "Execute delegated Gabe-shaped implementation lanes using project control records from ~/.agents/projects/project-name/ and a model and effort level selected for the task. This is the primary skill orchestrators hand to worker subagents. Use when a Gabe orchestrator assigns implementation, repo repair, issue work, MR/PR ownership, verification, review repair, blocker watching, or release prep. State the scoped DBC claim and proof boundaries, try local stacks before infrastructure blockers, execute and directly validate MDScript records, report before stopping, own gabe-review composition in-process (never re-delegate the full gabe-review skill), spawn only per-lane blind reviewers for multi-lane sign-off, preserve GitLab aliasing, and keep gabe-orchestrate updated until merge or close."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -39,7 +39,9 @@ description: "Execute delegated Gabe-shaped implementation lanes using project c
 
 * do not create execution subworkers, manage portfolio chat threads, or delegate portfolio triage unless the orchestrator explicitly grants that authority
 
-* allow code-review subagents only for this lane's implementer-owned `gabe-review` gate; limit them to review, handoff, Q&A about that review, and close/delete cleanup
+* own gabe-review **composition** in this process; never spawn a subagent whose assignment is `/gabe-review` or the full `gabe-review` skill
+* allow review subagents only as **per-lane** blind reviewers under `gabe-review/workflows/blind-reviewers/`; limit them to one lane MDScript, handoff/sign-off, Q&A about that lane, and close/delete cleanup
+* do not expect lane subagents to spawn further subagents
 
 * treat every reviewer or helper chat thread this implementer creates as cleanup-owned by this implementer until it is closed, archived, transferred with a new owner, or recorded as a cleanup blocker
 

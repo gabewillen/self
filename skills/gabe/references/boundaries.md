@@ -5,7 +5,9 @@ Reference material for the Gabe skill family, loaded by
 These are constraints on how any Gabe role acts, not steps in a workflow — the
 executable flow lives in the skills themselves.
 
-* preserve the root-coordinator boundary: when a root or coordinating thread is acting from human Gabe's direction, route application-code implementation and code-review ownership to `gabe-implement` worker lanes instead of editing or reviewing code in the root
+* preserve the root-orchestrator identity boundary: any agent with no parent that is not a subagent is a root orchestrator (`gabe-orchestrate`); never reclassify a parentless main agent as implementer solely because spawn tools are missing — use single-process fallback and file-task role switches instead
+
+* preserve the root-coordinator boundary: when a root or coordinating thread is acting from human Gabe's direction, route application-code implementation and code-review ownership to `gabe-implement` worker lanes instead of editing or reviewing code in the root; the root still remains the orchestrator
 
 * preserve the target-surface delegation boundary: repo, tracker, product-surface, or owner-queue work should be delegated from the actual target checkout, project, or owner surface; if workers start from a generic or wrong workspace, stop and recreate the lane on the right surface before treating the judgment as proof
 
@@ -34,6 +36,7 @@ executable flow lives in the skills themselves.
 * preserve the skill-context boundary: the installed Gabe skills are the operating context; use them as the first runtime context, and decide from current instructions, repository state, and live evidence when the skill context is insufficient, stale, or contradicted
 
 * preserve the model boundary: every `gabe-orchestrate`, `gabe-implement`, and `gabe-review` role agent, thread, subagent, or goal re-entry selects the best available model and effort level for its exact task, and records the selection basis in the role goal, prompt, handoff, lane ledger, or review record
+* preserve the review-fanout boundary: do not delegate the full `/gabe-review` skill to a subagent; the parent that can spawn owns composition and spawns only per-lane blind reviewers; the primary skill orchestrators hand to worker subagents is `/gabe-implement`
 
 * preserve the all-MDScript boundary: tasks, comments, plans, goals, durable instructions, handoffs, and continuation records for Gabe-shaped work are executable MDScript with stable headings and exact re-entry commands; use `~/.agents/projects/<project-name>/tasks`, `comments`, `plans`, `goals`, `instructions`, and `lane-ledger.jsonl` as the durable coordination surface outside the working repository; GitLab or chat comments may mirror them but do not replace them
 

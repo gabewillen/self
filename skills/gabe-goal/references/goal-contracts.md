@@ -6,7 +6,6 @@ Portable reference for the MDScript `gabe-goal` skill.
 [Resolve Agent Home](../../gabe-common/workflows/agent-home.md#resolve-agent-home).
 Run state stays out of the working repository unless the pack was installed with
 `--local` or `GABE_AGENTS_LOCAL=1`, in which case it lives under `<repo>/.agents`.
-A pre-cutover `.cursor/goal/` tree is read as legacy and never written for new runs.
 
 ## Paths
 
@@ -17,18 +16,17 @@ A pre-cutover `.cursor/goal/` tree is read as legacy and never written for new r
 | `session-log.jsonl` | Session append-only log |
 | `runs/<run_id>/goal.mdscript.md` front matter | Current run — newest with `active: true` |
 | `runs/<run_id>/` | Immutable run directory |
-| `runs/<run_id>/goal.mdscript.md` | Sole run state (YAML front matter) + executable tracker + stop-hook resume target |
-| `runs/<run_id>/goal.json` | Legacy only — read fallback; not written for new runs |
+| `runs/<run_id>/goal.mdscript.md` | Sole run state (YAML front matter) + executable tracker + resume target |
 | `runs/<run_id>/progress.jsonl` | Append-only iteration log |
 | `runs/<run_id>/artifacts/**` | New timestamped files only |
 | `runs/<run_id>/artifacts/manifest.json` | Reproduce map |
 | `runs/<run_id>/review-packet.md` | Neutral packet for gabe-review |
 | `runs/<run_id>/review-verdict.mdscript.md` | Durable gabe-review verdict (front matter) + `Resume From Verdict` dispatch |
-| `runs/<run_id>/review-verdict.json` | Legacy only — read fallback; not written for new runs |
-| `runs/<run_id>/signoff-reviewer-rules.mdscript.md` | Blind rules lane (AGENTS/CLAUDE/GEMINI): front matter + `Resume From Signoff` |
-| `runs/<run_id>/signoff-reviewer-security.mdscript.md` | Blind security/penetration lane: front matter + `Resume From Signoff` |
-| `runs/<run_id>/signoff-reviewer-completeness.mdscript.md` | Blind completeness lane: front matter + `Resume From Signoff` |
-| `runs/<run_id>/signoff-reviewer-hsm.mdscript.md` | Blind HSM lane (`gabe-hsm-review`), only when a state machine is in scope: front matter + `Resume From Signoff` |
+| `runs/<run_id>/signoff-reviewer-rules.mdscript.md` | Blind rules lane |
+| `runs/<run_id>/signoff-reviewer-security.mdscript.md` | Blind security lane |
+| `runs/<run_id>/signoff-reviewer-completeness.mdscript.md` | Blind completeness lane |
+| `runs/<run_id>/signoff-reviewer-hsm.mdscript.md` | Blind HSM lane when selected |
+| `runs/<run_id>/signoff-reviewer-eng-*.mdscript.md` | Selected engineering-rules lanes |
 
 ## goal.mdscript.md front matter (authoritative run state)
 
@@ -45,19 +43,21 @@ primary_user_action: <end-to-end path when live proof required>
 goal_mdscript: runs/<run_id>/goal.mdscript.md
 resume_heading: pursue-goal
 iteration: 0
+skip_hooks: false
+loop_driver: gabe-hooks   # or harness-goal
 started_at: <ISO-8601>
 completion_gate: []
 ```
 
-Legacy `goal.json` is read-only fallback for pre-cutover runs. New runs never write it.
-
-Executable MDScript body is owned by the run. Stop hooks rewrite completion_gate / iteration and follow up with:
+Executable MDScript body is owned by the run. When `loop_driver` is `gabe-hooks`, stop hooks rewrite completion_gate / iteration and follow up with:
 
 ```text
 mdscript-exec <run_dir>/goal.mdscript.md#pursue-goal
 ```
 
-Required headings: `Goal Contract`, `Resume Goal`, `Pursue Goal` (or current `resume_heading`), `Complete Goal`, `Manual Stop`, `Stop Hook Resume Command`.
+When `loop_driver` is `harness-goal`, the harness `/goal` ability continues rounds and gabe-goal hooks no-op.
+
+Required headings: `Goal Contract`, `Resume Goal`, `Pursue Goal` (or current `resume_heading`), `Complete Goal`, `Manual Stop`, and `Stop Hook Resume Command`.
 
 ## proof_kind
 
@@ -81,41 +81,9 @@ Required headings: `Goal Contract`, `Resume Goal`, `Pursue Goal` (or current `re
 
 ## review-verdict.mdscript.md (gabe-review composition)
 
-```json
-{
-  "goal": "<exact goal>",
-  "conversation_id": "<exact id>",
-  "run_id": "<run id>",
-  "reviewer_skill": "gabe-review",
-  "triple_blind": true,
-  "lanes": ["rules", "security", "completeness"],
-  "signoff_paths": [
-    "signoff-reviewer-rules.mdscript.md",
-    "signoff-reviewer-security.mdscript.md",
-    "signoff-reviewer-completeness.mdscript.md"
-  ],
-  "hsm_lane_verdict": "pass|fail|n/a — present only when the hsm lane ran; that lane is also added to lanes and signoff_paths",
-  "proof_scope": "goal-completion|live-proof|…",
-  "grade": "Proven for <proof_scope>",
-  "proof_decision": "Proven for <proof_scope> at <threshold>",
-  "blocking_severities": "all findings|P1|…",
-  "blocking_findings": [],
-  "residual_findings": [],
-  "proof_supplied": ["artifacts/…"],
-  "proof_not_claimed": [],
-  "artifact_paths": ["artifacts/…"],
-  "commands_run": ["…"],
-  "review_round": 1,
-  "reviewed_at": "<ISO-8601>"
-}
-```
+Completion requires grade/proof_decision starting with `Proven for` and empty `blocking_findings`. Sign-offs and verdicts are MDScript only.
 
-Completion requires grade/proof_decision starting with `Proven for` and empty `blocking_findings`.
-The stop hook enforces this: a run left inactive with `status: completed` but no valid
-verdict is re-opened at `pursue-goal` with a `completion_rejected` progress entry.
-Use `status: stopped` or `blocked` for a deliberate stop, which the hook leaves alone. `Not ready for …` re-enters pursue/fix. `Blocked for …` stops only when the missing precondition cannot be stood up locally.
-
-gabe-goal does not implement a parallel reviewer protocol — it execs `gabe-review` and persists that decision.
+When `loop_driver` is `gabe-hooks`, a run left inactive with `status: completed` but no valid verdict is re-opened at `pursue-goal` with a `completion_rejected` progress entry. Use `status: stopped` or `blocked` for a deliberate stop. When `loop_driver` is `harness-goal`, the agent enforces the same gate without stop hooks.
 
 ## Models
 
@@ -124,6 +92,30 @@ gabe-goal does not implement a parallel reviewer protocol — it execs `gabe-rev
 | Orchestrator / workers | chat `orchestrator_model` |
 | Completion review | compose `gabe-review` (model and effort selected per gabe-review) |
 
-## Cursor hooks (adapter)
+## Harness `/goal` vs gabe-goal hooks
 
-`adapters/cursor/` ships the TypeScript hooks (`goal-lib.ts`, `goal-session-start.ts`, `goal-session-touch.ts`, `goal-stop.ts`) plus `hooks.json`. Package install merges them into `~/.cursor/hooks.json` and points commands at `~/.cursor/skills/gabe-goal/adapters/cursor/…`. MDScript execution does not require the hooks, but stop-hook resume semantics in `SKILL.md#stop-hook-resume` match their behavior.
+When the harness already owns multi-round goal continuation, **prefer that ability and skip gabe-goal hooks**.
+
+| Harness | How `/goal` is owned | Detection | Loop driver |
+|---------|----------------------|-----------|-------------|
+| **Grok Build** | Host `/goal` (before Stop gate; not a Stop hook) | Grok runtime / host slash `/goal` | `harness-goal`, `skip_hooks: true` |
+| **Cursor** | Skill `goal` at `~/.cursor/skills/goal` (or other skills roots) | `goal/SKILL.md` exists and is not `gabe-goal` | `harness-goal`, `skip_hooks: true` |
+| **Claude / Codex / others** | Same skill-name probe | `goal/SKILL.md` under agent skills roots | `harness-goal` when skill present |
+
+| `loop_driver` | Behavior |
+|---------------|----------|
+| `harness-goal` | Follow gabe-goal MDScript workflow for work/proof/gabe-review; **do not** use gabe-goal SessionStart / UserPromptSubmit / Stop hooks to re-prompt. Harness `/goal` (or self-reentry) continues rounds. |
+| `gabe-hooks` | Full gabe-goal stop/session hook loop. |
+
+Env overrides:
+
+| Env | Effect |
+|-----|--------|
+| `GABE_GOAL_SKIP_HOOKS=1` | Force `skip_hooks` / harness-goal path |
+| `GABE_GOAL_FORCE_HOOKS=1` | Force gabe-goal hooks even when harness `/goal` exists |
+
+Hooks (`goal-stop.ts`, `goal-session-start.ts`, `goal-session-touch.ts`) call `shouldSkipGoalHooks()` and **exit immediately** when the harness owns `/goal` or the run sets `skip_hooks: true`.
+
+## Adapters
+
+`adapters/*/` ship the TypeScript hooks plus `hooks.json`. Package install merges them into the harness hook config. MDScript execution does not require the hooks. When a harness `/goal` ability is present, hooks no-op so they do not double-loop with the host.

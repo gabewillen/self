@@ -38,19 +38,22 @@ When acting as the reviewer for non-code changes, require `{{review_mode}}` = `s
 
 **Require**
 
-- one fresh blind reviewer per review round
+- parent process owns gabe-review composition (implementer or main/goal agent)
+- never a nested full `/gabe-review` skill subagent
+- one fresh blind **lane** subagent per selected lane per round (rules, security, completeness, eng-*, hsm, …)
 - every finding has a severity
 - separate `{{blocking_findings}}` from `{{residual_findings}}`
 - residual findings remain visible without triggering another round
 - current-round grade names the exact scoped claim and proof decision
 - `Proven for source-health` is not proof for `live-proof`, `merge-readiness`, `issue-close-readiness`, launch, release, or deployment
-- review subagents report final scoped grade, stop reason, and any blocker to the spawning implementer before close, delete, archive, or idle
-- review subagents are closed, deleted, or archived after they hand off their scoped grade and answer questions about their own review
+- lane subagents report sign-off or stop reason to the spawning parent before close, delete, archive, or idle
+- lane subagents are closed, deleted, or archived after they hand off their sign-off
 
 **Reject**
 
-- reused reviewers
-- still-open reviewers from prior rounds
+- delegating the whole gabe-review skill to a worker that then must spawn lanes
+- reused lane reviewers
+- still-open lane reviewers from prior rounds
 - missing reviewer cleanup records
 - author-led packets as the blind frame
 - unresolved findings at the current blocking threshold

@@ -2,6 +2,8 @@
 
 ## Compose Gabe Review
 
+* this goal/orchestrator process owns gabe-review **composition** — do not spawn a subagent whose job is `/gabe-review` or the full gabe-review skill
+* the only review subagents are **per-lane** blind reviewers under `gabe-review/workflows/blind-reviewers/`
 * confirm `{{run_dir}}/artifacts/manifest.json` exists and on-disk proof matches `{{proof_kind}}` and `{{live_proof}}`
   * if proof is incomplete, stop this workflow and return incomplete to the caller
 * set `{{review_skill}}` to the installed `gabe-review` skill path
@@ -31,18 +33,15 @@
   * paths to applicable rules including Cursor (`.cursor/rules/**`), VS Code (`.vscode/**` instructions), and Windsurf (`.windsurf/rules/**`) when those trees exist
   * worker notes only as claims to falsify
 * do not include a preferred verdict, prior sign-off narrative, or approve language
-* delete stale `{{run_dir}}/review-verdict.mdscript.md` and any `signoff-reviewer-*.json` before the fresh round
-* execute gabe-review composition for terminal readiness:
-  * `mdscript-exec {{review_skill}}#identify-review-scope` with packet fields and `{{parent_reporting_path}}={{goal_mdscript}}`
-  * require the terminal path to run `mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#triple-adversarial-blind-review`
-* require lane selection via `mdscript-exec {{review_skill_root}}/workflows/select-review-lanes.md#select-review-lanes` (also run inside the triple/multi-lane workflow)
-* always-on blind lanes: `rules` (agent/repo instructions), `security`, `completeness`
-* selected add-on lanes come from in-scope paths and the catalog in `references/lane-catalog.md`, including:
-  * `eng-core`, `eng-dbc`, language lanes (`eng-rust`, `eng-python`, `eng-typescript`, …), framework lanes (`eng-react`, `eng-flutter`, …)
-  * `eng-hsm` (normative HSM rules) and deep `hsm` (`gabe-hsm-review`) when a state machine is in scope
-* the blind workflow spawns every lane in `{{blind_lanes}}` as a parallel readonly subagent at `{{lane_entrypoints}}.<lane>`
+* delete stale `{{run_dir}}/review-verdict.mdscript.md` and any prior `signoff-reviewer-*.mdscript.md` before the fresh round
+* in **this** process, run lane selection and multi-lane spawn:
+  * `mdscript-exec {{review_skill_root}}/workflows/select-review-lanes.md#select-review-lanes`
+  * `mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#triple-adversarial-blind-review`
+* always-on blind lanes: `rules`, `security`, `completeness`
+* selected add-on lanes come from in-scope paths and `references/lane-catalog.md` (`eng-*`, optional `hsm`)
+* spawn every lane in `{{blind_lanes}}` as a parallel readonly subagent at `{{lane_entrypoints}}.<lane>` from this process
 * wait for one sign-off per spawned lane under `{{run_dir}}` named `signoff-reviewer-<lane>.mdscript.md`
-* persist `{{run_dir}}/review-verdict.mdscript.md` only from the aggregated gabe-review decision (never invent Proven-for)
+* aggregate and persist `{{run_dir}}/review-verdict.mdscript.md` only from the parent aggregate (never invent Proven-for; never nest a gabe-review skill subagent to aggregate)
 * append `review_composed` to `{{run_dir}}/progress.jsonl`
 * if every spawned lane signed off, grade starts with `Proven for`, and `blocking_findings` is empty
   * append `review_passed`

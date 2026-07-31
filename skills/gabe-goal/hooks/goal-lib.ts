@@ -35,12 +35,20 @@ export interface GoalState {
   resume_heading?: string;
   /** Last stop-hook iteration written into the run MDScript. */
   iteration?: number;
+  /**
+   * When true, gabe-goal stop/session hooks no-op for this run.
+   * Used when the harness owns multi-round continuation via `/goal`
+   * (Grok host goal mode, Cursor `goal` skill, etc.).
+   */
+  skip_hooks?: boolean;
+  /** How the loop is driven: harness-goal | gabe-hooks. */
+  loop_driver?: "harness-goal" | "gabe-hooks";
 }
 
 export type ProofKind = "tui" | "ui" | "default";
 export type ProofTier = "unit" | "integration" | "live";
 
-export type GoalReviewerId = "a" | "b" | "c" | "rules" | "security" | "completeness";
+export type GoalReviewerId = "rules" | "security" | "completeness" | "hsm";
 
 export interface GoalPFinding {
   severity?: string;
@@ -94,38 +102,17 @@ export interface GoalSessionPaths {
   runId: string | null;
   sessionLog: string;
   runsDirectory: string;
-  goal: string;
-  /** Executable MDScript run tracker — stop hook resumes here. */
+  /** Executable MDScript run tracker — sole run state + resume target. */
   goalMdscript: string;
-  reviewVerdict: string;
   reviewPacket: string;
-  signoff: string;
-  signoffReviewerA: string;
-  signoffReviewerB: string;
-  signoffReviewerC: string;
-  signoffReviewerRules: string;
-  signoffReviewerSecurity: string;
-  signoffReviewerCompleteness: string;
   signoffReviewerRulesMdscript: string;
   signoffReviewerSecurityMdscript: string;
   signoffReviewerCompletenessMdscript: string;
+  signoffReviewerHsmMdscript: string;
   reviewVerdictMdscript: string;
   artifacts: string;
   artifactsManifest: string;
   progressLog: string;
-  progress: string;
-  legacy: boolean;
-  flatLayout: boolean;
-}
-
-/** @deprecated Pre-cutover pointer file; read only, never written. */
-export interface ActiveRunPointer {
-  run_id: string;
-  conversation_id: string;
-  started_at: string;
-  /** Relative path to the authoritative run MDScript tracker. */
-  goal_mdscript?: string;
-  active?: boolean;
 }
 
 export interface GoalCompletionStatus {
@@ -151,29 +138,24 @@ export interface GoalReviewVerdict {
   commands_run?: string[];
   review_round?: number;
   reviewed_at?: string;
+  multi_lane_blind?: boolean;
+  /** Older synonym for multi_lane_blind (still accepted when reading verdicts). */
   triple_blind?: boolean;
   lanes?: string[];
   signoff_paths?: string[];
 }
 
 export const MIN_SUMMARY_LENGTH = 40;
-/** Legacy pre-rename lanes. Kept for read fallback and cleanup only. */
-export const SIGNOFF_REVIEWER_A_FILE = "signoff-reviewer-a.json";
-export const SIGNOFF_REVIEWER_B_FILE = "signoff-reviewer-b.json";
-export const SIGNOFF_REVIEWER_C_FILE = "signoff-reviewer-c.json";
-/** Current lanes. Sign-offs and verdicts are re-enterable MDScript. */
+/** Blind-lane sign-offs and verdicts are re-enterable MDScript only. */
 export const SIGNOFF_RULES_MDSCRIPT = "signoff-reviewer-rules.mdscript.md";
 export const SIGNOFF_SECURITY_MDSCRIPT = "signoff-reviewer-security.mdscript.md";
 export const SIGNOFF_COMPLETENESS_MDSCRIPT = "signoff-reviewer-completeness.mdscript.md";
+export const SIGNOFF_HSM_MDSCRIPT = "signoff-reviewer-hsm.mdscript.md";
 export const REVIEW_VERDICT_MDSCRIPT = "review-verdict.mdscript.md";
 export const ARTIFACTS_MANIFEST_FILE = "manifest.json";
-/** @deprecated Pre-cutover pointer file; read only. Run state is MDScript front matter. */
-export const ACTIVE_RUN_FILE = "active-run.json";
 export const SESSION_LOG_FILE = "session-log.jsonl";
 export const PROGRESS_LOG_FILE = "progress.jsonl";
 export const GOAL_MDSCRIPT_FILE = "goal.mdscript.md";
-/** Legacy read-only fallback; never written for new runs. */
-export const REVIEW_VERDICT_FILE = "review-verdict.json";
 export const REVIEW_PACKET_FILE = "review-packet.md";
 export const RUNS_DIR_NAME = "runs";
 export const DEFAULT_RESUME_HEADING = "pursue-goal";
@@ -223,20 +205,7 @@ function projectSlug(root: string): string {
 }
 
 export const PROJECT_GOAL_LOG_PATH = "goal/goal-log.jsonl";
-export const LEGACY_GOAL_PATH = ".cursor/goal.json";
-export const LEGACY_SIGNOFF_PATH = ".cursor/goal-signoff.json";
-export const LEGACY_PROGRESS_PATH = ".cursor/goal-progress.md";
 export const SESSIONS_DIR = "goal/sessions";
-export const LEGACY_REPO_SESSIONS_DIR = ".cursor/goal/sessions";
-
-/** @deprecated Use SESSIONS_DIR. Kept for active sessions started under grind. */
-export const LEGACY_GRIND_SESSIONS_DIR = ".cursor/grind/sessions";
-/** @deprecated Kept for active sessions started under grind. */
-export const LEGACY_GRIND_PATH = ".cursor/grind.json";
-/** @deprecated Kept for active sessions started under grind. */
-export const LEGACY_GRIND_SIGNOFF_PATH = ".cursor/grind-signoff.json";
-/** @deprecated Kept for active sessions started under grind. */
-export const LEGACY_GRIND_PROGRESS_PATH = ".cursor/grind-progress.md";
 
 export function safeSessionId(conversationId: string): string {
   const sanitized = conversationId.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -299,11 +268,6 @@ export function sessionDirectory(root: string, conversationId: string): string {
   if (existsSync(home)) {
     return home;
   }
-  // Pre-cutover runs stayed in the repository; keep reading them in place.
-  const legacy = join(root, LEGACY_REPO_SESSIONS_DIR, id);
-  if (existsSync(legacy)) {
-    return legacy;
-  }
   // A run filed under a slug this process does not derive is still this run.
   const elsewhere = findSessionElsewhere(root, conversationId);
   if (elsewhere) {
@@ -320,9 +284,6 @@ function extendRunPaths(
   sessionDirectoryPath: string,
   runDirectoryPath: string,
   runId: string | null,
-  goalFile: string,
-  legacy: boolean,
-  flatLayout: boolean,
 ): GoalSessionPaths {
   const artifactsDirectory = join(runDirectoryPath, "artifacts");
   return {
@@ -331,32 +292,21 @@ function extendRunPaths(
     runId,
     sessionLog: join(sessionDirectoryPath, SESSION_LOG_FILE),
     runsDirectory: join(sessionDirectoryPath, RUNS_DIR_NAME),
-    goal: goalFile,
     goalMdscript: join(runDirectoryPath, GOAL_MDSCRIPT_FILE),
-    reviewVerdict: join(runDirectoryPath, REVIEW_VERDICT_FILE),
     reviewPacket: join(runDirectoryPath, REVIEW_PACKET_FILE),
-    signoff: join(runDirectoryPath, "signoff.json"),
-    signoffReviewerA: join(runDirectoryPath, SIGNOFF_REVIEWER_A_FILE),
-    signoffReviewerB: join(runDirectoryPath, SIGNOFF_REVIEWER_B_FILE),
-    signoffReviewerC: join(runDirectoryPath, SIGNOFF_REVIEWER_C_FILE),
-    signoffReviewerRules: join(runDirectoryPath, "signoff-reviewer-rules.json"),
-    signoffReviewerSecurity: join(runDirectoryPath, "signoff-reviewer-security.json"),
-    signoffReviewerCompleteness: join(runDirectoryPath, "signoff-reviewer-completeness.json"),
     signoffReviewerRulesMdscript: join(runDirectoryPath, SIGNOFF_RULES_MDSCRIPT),
     signoffReviewerSecurityMdscript: join(runDirectoryPath, SIGNOFF_SECURITY_MDSCRIPT),
     signoffReviewerCompletenessMdscript: join(runDirectoryPath, SIGNOFF_COMPLETENESS_MDSCRIPT),
+    signoffReviewerHsmMdscript: join(runDirectoryPath, SIGNOFF_HSM_MDSCRIPT),
     reviewVerdictMdscript: join(runDirectoryPath, REVIEW_VERDICT_MDSCRIPT),
     artifacts: artifactsDirectory,
     artifactsManifest: join(artifactsDirectory, ARTIFACTS_MANIFEST_FILE),
     progressLog: join(runDirectoryPath, PROGRESS_LOG_FILE),
-    progress: join(runDirectoryPath, "progress.md"),
-    legacy,
-    flatLayout,
   };
 }
 
-function extendSessionPaths(directory: string, goalFile: string, legacy: boolean): GoalSessionPaths {
-  return extendRunPaths(directory, directory, null, goalFile, legacy, true);
+function extendSessionPaths(directory: string): GoalSessionPaths {
+  return extendRunPaths(directory, directory, null);
 }
 
 export function newRunId(): string {
@@ -401,20 +351,9 @@ export function appendProgressLog(
   });
 }
 
-function buildRunPaths(
-  sessionRoot: string,
-  runId: string,
-  legacy: boolean,
-): GoalSessionPaths {
+function buildRunPaths(sessionRoot: string, runId: string): GoalSessionPaths {
   const runDirectory = join(sessionRoot, RUNS_DIR_NAME, runId);
-  return extendRunPaths(
-    sessionRoot,
-    runDirectory,
-    runId,
-    join(runDirectory, "goal.json"),
-    legacy,
-    false,
-  );
+  return extendRunPaths(sessionRoot, runDirectory, runId);
 }
 
 function ensureRunArtifactDirectories(paths: GoalSessionPaths): void {
@@ -426,60 +365,22 @@ function ensureRunArtifactDirectories(paths: GoalSessionPaths): void {
 }
 
 export function sessionPaths(root: string, conversationId: string): GoalSessionPaths {
-  return extendSessionPaths(
-    sessionDirectory(root, conversationId),
-    join(sessionDirectory(root, conversationId), "goal.json"),
-    false,
-  );
-}
-
-function legacyGrindSessionPaths(
-  root: string,
-  conversationId: string,
-): GoalSessionPaths {
-  const directory = join(root, LEGACY_GRIND_SESSIONS_DIR, safeSessionId(conversationId));
-  return extendSessionPaths(directory, join(directory, "grind.json"), true);
-}
-
-function legacyRootPaths(root: string, kind: "goal" | "grind"): GoalSessionPaths {
-  const isGrind = kind === "grind";
-  const directory = join(root, ".cursor");
-  return extendSessionPaths(
-    directory,
-    join(root, isGrind ? LEGACY_GRIND_PATH : LEGACY_GOAL_PATH),
-    true,
-  );
-}
-
-export function usesStrictGoalCompletion(paths: GoalSessionPaths): boolean {
-  // New runs use goal.mdscript.md. Legacy goal.json runs stay strict.
-  // Grind single-verifier sessions use grind.json / legacy=true and stay non-strict.
-  if (existsSync(paths.goalMdscript)) {
-    return true;
-  }
-  return paths.goal.endsWith("goal.json");
+  return extendSessionPaths(sessionDirectory(root, conversationId));
 }
 
 /**
- * Read a record that is authored as re-enterable MDScript: YAML front matter is
- * the state, the body carries the states an agent resumes from. Falls back to
- * the pre-cutover JSON file so old runs keep evaluating.
+ * Read a record authored as re-enterable MDScript (YAML front matter is the state).
  */
-export function loadMdscriptRecord<T>(
-  mdscriptPath: string,
-  legacyJsonPath: string,
-): T | null {
-  if (existsSync(mdscriptPath)) {
-    try {
-      const fm = parseMdscriptFrontMatter(readFileSync(mdscriptPath, "utf-8"));
-      if (fm) {
-        return fm as T;
-      }
-    } catch {
-      // Fall through to legacy JSON.
-    }
+export function loadMdscriptRecord<T>(mdscriptPath: string): T | null {
+  if (!existsSync(mdscriptPath)) {
+    return null;
   }
-  return loadJson<T>(legacyJsonPath);
+  try {
+    const fm = parseMdscriptFrontMatter(readFileSync(mdscriptPath));
+    return fm ? (fm as T) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function loadJson<T>(path: string): T | null {
@@ -657,37 +558,49 @@ export function goalStateFromFrontMatter(
         : typeof fm.iteration === "string" && /^-?\d+$/.test(fm.iteration)
           ? Number(fm.iteration)
           : undefined,
+    skip_hooks:
+      fm.skip_hooks === true ||
+      fm.skip_hooks === "true" ||
+      fm.loop_driver === "harness-goal"
+        ? true
+        : fm.skip_hooks === false || fm.skip_hooks === "false"
+          ? false
+          : undefined,
+    loop_driver:
+      fm.loop_driver === "harness-goal" || fm.loop_driver === "gabe-hooks"
+        ? fm.loop_driver
+        : undefined,
   };
 }
 
 export function loadGoalState(paths: GoalSessionPaths): GoalState | null {
-  if (existsSync(paths.goalMdscript)) {
-    try {
-      const text = readFileSync(paths.goalMdscript, "utf-8");
-      const fm = parseMdscriptFrontMatter(text);
-      if (fm) {
-        const state = goalStateFromFrontMatter(fm);
-        if (state) {
-          if (!state.goal_mdscript) {
-            state.goal_mdscript = paths.goalMdscript;
-          }
-          if (!state.run_id && paths.runId) {
-            state.run_id = paths.runId;
-          }
-          return state;
-        }
-      }
-    } catch {
-      // Fall through to legacy JSON.
-    }
+  if (!existsSync(paths.goalMdscript)) {
+    return null;
   }
-
-  // Legacy read-only fallback for pre-cutover runs / grind.
-  return loadJson<GoalState>(paths.goal);
+  try {
+    const body = readFileSync(paths.goalMdscript, "utf-8");
+    const fm = parseMdscriptFrontMatter(body);
+    if (!fm) {
+      return null;
+    }
+    const state = goalStateFromFrontMatter(fm);
+    if (!state) {
+      return null;
+    }
+    if (!state.goal_mdscript) {
+      state.goal_mdscript = paths.goalMdscript;
+    }
+    if (!state.run_id && paths.runId) {
+      state.run_id = paths.runId;
+    }
+    return state;
+  } catch {
+    return null;
+  }
 }
 
 export function runStateExists(paths: GoalSessionPaths): boolean {
-  return existsSync(paths.goalMdscript) || existsSync(paths.goal);
+  return existsSync(paths.goalMdscript);
 }
 
 export function ensureSessionDirectory(
@@ -707,11 +620,7 @@ export function ensureSessionDirectory(
     writeFileSync(projectGoalLogPath(root), "", "utf-8");
   }
 
-  return extendSessionPaths(
-    sessionRoot,
-    join(sessionRoot, "goal.json"),
-    false,
-  );
+  return extendSessionPaths(sessionRoot);
 }
 
 export function startGoalRun(
@@ -738,7 +647,7 @@ export function startGoalRun(
   }
 
   const runId = newRunId();
-  const paths = buildRunPaths(sessionRoot, runId, false);
+  const paths = buildRunPaths(sessionRoot, runId);
   mkdirSync(paths.runDirectory, { recursive: true });
   ensureRunArtifactDirectories(paths);
 
@@ -759,10 +668,6 @@ export function startGoalRun(
     resumeHeading: runState.resume_heading,
     status: "active",
   });
-  // Never write goal.json for new runs — MDScript front matter is authoritative.
-  if (existsSync(paths.goal)) {
-    unlinkSync(paths.goal);
-  }
   recordGoalEvent(root, conversationId, "goal_started", {
     run_id: runId,
     goal: runState.goal,
@@ -781,10 +686,7 @@ export function startGoalRun(
  * disagree with it. Prefer an active run; otherwise take the newest, since run
  * ids are timestamps and sort lexicographically.
  */
-function findCurrentRun(
-  sessionRoot: string,
-  legacy: boolean,
-): GoalSessionPaths | null {
+function findCurrentRun(sessionRoot: string): GoalSessionPaths | null {
   const runsRoot = join(sessionRoot, RUNS_DIR_NAME);
   if (!existsSync(runsRoot)) {
     return null;
@@ -796,7 +698,7 @@ function findCurrentRun(
     .reverse();
   let newest: GoalSessionPaths | null = null;
   for (const runId of runIds) {
-    const paths = buildRunPaths(sessionRoot, runId, legacy);
+    const paths = buildRunPaths(sessionRoot, runId);
     if (!runStateExists(paths)) {
       continue;
     }
@@ -813,41 +715,12 @@ function findCurrentRun(
 function resolveRunPathsFromSession(
   root: string,
   conversationId: string,
-  legacy: boolean,
 ): GoalSessionPaths | null {
   const sessionRoot = sessionDirectory(root, conversationId);
   if (!existsSync(sessionRoot)) {
     return null;
   }
-
-  const current = findCurrentRun(sessionRoot, legacy);
-  if (current) {
-    return current;
-  }
-
-  // Pre-cutover sessions still carry a pointer file; front matter wins when both
-  // exist, so a stale pointer cannot resurrect a superseded run.
-  const activeRun = loadJson<ActiveRunPointer>(join(sessionRoot, ACTIVE_RUN_FILE));
-  if (activeRun?.run_id) {
-    const paths = buildRunPaths(sessionRoot, activeRun.run_id, legacy);
-    if (runStateExists(paths)) {
-      return paths;
-    }
-  }
-
-  // Prefer MDScript tracker at session root if present.
-  const flatMdscript = join(sessionRoot, GOAL_MDSCRIPT_FILE);
-  if (existsSync(flatMdscript)) {
-    return extendSessionPaths(sessionRoot, join(sessionRoot, "goal.json"), legacy);
-  }
-
-  // Legacy pre-cutover flat goal.json.
-  const flatGoal = join(sessionRoot, "goal.json");
-  if (existsSync(flatGoal)) {
-    return extendSessionPaths(sessionRoot, flatGoal, legacy);
-  }
-
-  return null;
+  return findCurrentRun(sessionRoot);
 }
 
 function activeSessionPaths(
@@ -873,42 +746,21 @@ export function resolveGoalPathsIgnoringActive(
   root: string,
   conversationId: string,
 ): GoalSessionPaths | null {
-  return (
-    resolveRunPathsFromSession(root, conversationId, false) ??
-    legacyGrindSessionPaths(root, conversationId)
-  );
+  return resolveRunPathsFromSession(root, conversationId);
 }
 
 export function resolveActiveGoalPaths(
   root: string,
   conversationId?: string,
 ): GoalSessionPaths | null {
-  if (conversationId) {
-    const grindPaths = legacyGrindSessionPaths(root, conversationId);
-    const activeGrind = activeSessionPaths(grindPaths, conversationId);
-    if (activeGrind) {
-      return activeGrind;
-    }
-
-    const goalPaths = resolveRunPathsFromSession(root, conversationId, false);
-    if (goalPaths) {
-      return activeSessionPaths(goalPaths, conversationId);
-    }
-
+  if (!conversationId) {
     return null;
   }
-
-  for (const paths of [
-    legacyRootPaths(root, "goal"),
-    legacyRootPaths(root, "grind"),
-  ]) {
-    const state = loadGoalState(paths);
-    if (state?.active) {
-      return paths;
-    }
+  const goalPaths = resolveRunPathsFromSession(root, conversationId);
+  if (!goalPaths) {
+    return null;
   }
-
-  return null;
+  return activeSessionPaths(goalPaths, conversationId);
 }
 
 function citesAgentsMd(rulesReviewed: string[]): boolean {
@@ -1005,11 +857,7 @@ export function isValidSignoff(
       return false;
     }
     const requiresAgentsCitation =
-      !expectedReviewerId ||
-      expectedReviewerId === "rules" ||
-      expectedReviewerId === "a" ||
-      expectedReviewerId === "b" ||
-      expectedReviewerId === "c";
+      !expectedReviewerId || expectedReviewerId === "rules";
     if (
       requiresAgentsCitation &&
       root &&
@@ -1168,10 +1016,10 @@ export function writeGoalMdscript(
   const reasonsBullets =
     reasons.length > 0
       ? reasons.map((reason) => `* completion gate: ${reason}`).join("\n")
-      : "* completion gate: none recorded yet — evaluate artifacts and triple sign-off before stopping";
+      : "* completion gate: none recorded yet — evaluate artifacts and multi-lane gabe-review before stopping";
 
   const body = `---
-id: ${yamlScalar(paths.runId ?? "legacy-run")}
+id: ${yamlScalar(paths.runId ?? "run")}
 conversation_id: ${yamlScalar(state.conversation_id)}
 run_id: ${yamlScalar(paths.runId ?? "")}
 session_dir: ${yamlScalar(sessionRelative)}
@@ -1184,6 +1032,8 @@ resume_heading: ${yamlScalar(resumeHeading)}
 proof_kind: ${yamlScalar(proofKind)}
 live_proof: ${yamlScalar(state.live_proof ?? liveProof)}
 primary_user_action: ${yamlScalar(primaryAction)}
+skip_hooks: ${yamlScalar(Boolean(state.skip_hooks))}
+loop_driver: ${yamlScalar(state.loop_driver ?? (state.skip_hooks ? "harness-goal" : "gabe-hooks"))}
 reviewer_skill: gabe-review
 goal: ${yamlBlockScalar(goal)}
 completion_gate:
@@ -1201,13 +1051,13 @@ ${MDSCRIPT_EXEC_HEADER}
   > ${goal.replace(/\n/g, " ")}
 * conversation_id is \`${state.conversation_id}\`
 * run_dir is \`${runRelative}\`
-* goal_mdscript is \`${scriptRelative}\` — this file is the durable tracker and stop-hook resume target
+* goal_mdscript is \`${scriptRelative}\` — this file is the durable tracker and resume target
 * proof_kind is \`${proofKind}\`; live_proof is \`${state.live_proof ?? liveProof}\`
 * primary_user_action is \`${primaryAction || "(unset)"}\`
 * append-only surfaces: \`${runRelative}/progress.jsonl\`, session-log.jsonl, and the project goal-log.jsonl
 * immutable run rule: never reuse or delete prior runs/<run_id>/ directories
 * review rule: compose gabe-review for completion; orchestrator never self-authors a Proven verdict
-* completion requires on-disk artifacts/manifest matching proof_kind/live_proof and a durable gabe-review verdict with empty blocking_findings
+* completion requires on-disk artifacts/manifest matching proof_kind/live_proof and a durable multi-lane gabe-review verdict with empty blocking_findings
 
 ## Resume Goal
 
@@ -1232,11 +1082,12 @@ ${MDSCRIPT_EXEC_HEADER}
 ${reasonsBullets}
 * append one JSON line to \`{{run_dir}}/progress.jsonl\` with commands run, new artifact paths, and pass/fail evidence
 * add new timestamped artifact files under \`{{run_dir}}/artifacts/\` when proof changes; never overwrite prior artifact files
-* when proof is ready, write neutral \`{{run_dir}}/review-packet.md\` and compose gabe-review triple adversarial blind via mdscript-exec (rules + security + completeness lanes)
-* persist gabe-review's decision to \`{{run_dir}}/review-verdict.mdscript.md\` — only triple blind Proven-for (all three lane sign-offs + empty blocking_findings) completes the goal
+* when proof is ready, write neutral \`{{run_dir}}/review-packet.md\` and compose multi-lane gabe-review in this process via mdscript-exec
+* spawn only per-lane blind subagents (never a nested full gabe-review skill worker)
+* persist gabe-review's decision to \`{{run_dir}}/review-verdict.mdscript.md\` — only multi-lane Proven-for (selected blind lanes signed off + empty blocking_findings) completes the goal
 * resolve every blocking finding before re-review
 * wait for all background subagents / reviewer work to finish before attempting to stop
-* do not ask the user to re-prompt — the stop hook loops by re-execing this MDScript until gabe-review proves the goal; setting active:false without a gabe-review verdict re-opens the run
+* do not ask the user to re-prompt — continue via harness /goal or re-exec this MDScript until gabe-review proves the goal; setting active:false without a gabe-review verdict is not complete
 * if still incomplete after this wave, keep front-matter active:true and leave this MDScript current
 * if complete, jump to [Complete Goal](#complete-goal)
 * if blocked by a missing external resource that cannot be stood up, jump to [Manual Stop](#manual-stop)
@@ -1247,7 +1098,7 @@ ${reasonsBullets}
 * set front-matter active:false / status:completed on this MDScript
 * update \`{{session_dir}}/active-run.json\` to mark the run inactive when applicable
 * append goal_completed / run_completed to the append-only logs
-* stop and report the completed goal, \`{{run_dir}}\`, artifact summary, and that the rules, security, and completeness lanes signed off with empty p_findings
+* stop and report the completed goal, \`{{run_dir}}\`, artifact summary, and the multi-lane gabe-review Proven-for verdict
 
 ## Manual Stop
 
@@ -1262,11 +1113,8 @@ ${reasonsBullets}
 `;
 
   mkdirSync(paths.runDirectory, { recursive: true });
-  writeFileSync(paths.goalMdscript, `${body.trimEnd()}\n`, "utf-8");
-  // MDScript front matter is the sole run-state write path. Remove stale goal.json if present.
-  if (existsSync(paths.goal) && paths.goal.endsWith("goal.json")) {
-    unlinkSync(paths.goal);
-  }
+  writeFileSync(paths.goalMdscript, `${body.trimEnd()}
+`, "utf-8");
   return scriptRelative;
 }
 
@@ -1377,10 +1225,10 @@ export function buildActiveGoalContext(
     orchestratorModel?.trim()
       ? `* orchestrator_model: ${orchestratorModel.trim()} — pass model="${orchestratorModel.trim()}" on worker Task subagents (implementation, proof, explore, shell, CI)`
       : "",
-    "* reviewer_skill: gabe-review — compose via mdscript-exec; persist review-verdict.mdscript.md (do not invent parallel sign-off protocol)",
+    "* reviewer_skill: gabe-review — compose in this process via mdscript-exec; spawn only per-lane blind subagents; persist review-verdict.mdscript.md",
     ...completion.reasons.map((reason) => `* completion_gate: ${reason}`),
     "* while active: produce artifacts, compose gabe-review before stopping, append progress.jsonl only",
-    "* only a gabe-review Proven-for verdict with empty blocking_findings completes the goal",
+    "* only a multi-lane gabe-review Proven-for verdict with empty blocking_findings completes the goal",
     "* worker Task subagents use the orchestrator model; completion review is gabe-review composition",
     "* treat any stop-hook MDScript message or incomplete active run as mandatory continue — not done",
     `* exact resume command: ${resumeCommand}`,
@@ -1539,7 +1387,7 @@ export function validateArtifactsManifest(
   }
 
   if (manifest.goal.trim() !== goal.trim()) {
-    reasons.push("artifacts/manifest.json goal does not match goal.json.");
+    reasons.push("artifacts/manifest.json goal does not match the run goal.");
   }
   if (manifest.conversation_id.trim() !== conversationId.trim()) {
     reasons.push("artifacts/manifest.json conversation_id does not match this chat.");
@@ -1633,7 +1481,7 @@ export function signoffRejectionReason(
     : "Verifier";
 
   if (!signoff) {
-    return `No sign-off at \`${signoffPath}\`. Compose gabe-review triple adversarial blind lanes (rules + security + completeness); each subagent mdscript-execs its own blind-reviewer MDScript.`;
+    return `No sign-off at \`${signoffPath}\`. Compose multi-lane adversarial blind gabe-review; each subagent mdscript-execs its own blind-reviewer MDScript.`;
   }
   if (!signoff.signed_off) {
     const pCount = countPFindings(signoff.p_findings);
@@ -1649,7 +1497,7 @@ export function signoffRejectionReason(
     return `${label} sign-off conversation_id does not match this chat.`;
   }
   if (signoff.goal.trim() !== goal.trim()) {
-    return `${label} sign-off goal does not match this session's goal.json.`;
+    return `${label} sign-off goal does not match this run's goal.`;
   }
   if ((signoff.verifier_summary?.trim().length ?? 0) < MIN_SUMMARY_LENGTH) {
     return `${label} sign-off rejected: verifier_summary too vague.`;
@@ -1674,11 +1522,7 @@ export function signoffRejectionReason(
       return `${label} sign-off rejected: rules_reviewed must cite AGENTS.md (when present) and project rules checked.`;
     }
     const requiresAgentsCitation =
-      !expectedReviewerId ||
-      expectedReviewerId === "rules" ||
-      expectedReviewerId === "a" ||
-      expectedReviewerId === "b" ||
-      expectedReviewerId === "c";
+      !expectedReviewerId || expectedReviewerId === "rules";
     if (
       requiresAgentsCitation &&
       root &&
@@ -1698,21 +1542,15 @@ export function signoffRejectionReason(
 }
 
 export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
-  for (const signoffPath of [
-    paths.signoffReviewerA,
-    paths.signoffReviewerB,
-    paths.signoffReviewerC,
-    paths.signoffReviewerRules,
-    paths.signoffReviewerSecurity,
-    paths.signoffReviewerCompleteness,
+  for (const file of [
     paths.signoffReviewerRulesMdscript,
     paths.signoffReviewerSecurityMdscript,
     paths.signoffReviewerCompletenessMdscript,
-    paths.reviewVerdict,
+    paths.signoffReviewerHsmMdscript,
     paths.reviewVerdictMdscript,
   ]) {
-    if (existsSync(signoffPath)) {
-      unlinkSync(signoffPath);
+    if (existsSync(file)) {
+      unlinkSync(file);
     }
   }
 }
@@ -1762,7 +1600,8 @@ export function isValidGabeReviewVerdict(
   if ((verdict.reviewer_skill?.trim() || "gabe-review") !== "gabe-review") {
     return false;
   }
-  if (verdict.triple_blind !== true) {
+  // multi_lane_blind is current; triple_blind accepted as synonym for the always-on trio
+  if (verdict.multi_lane_blind !== true && verdict.triple_blind !== true) {
     return false;
   }
   const lanes = verdict.lanes ?? [];
@@ -1790,7 +1629,7 @@ export function gabeReviewRejectionReason(
   verdictPath: string,
 ): string {
   if (!verdict) {
-    return `No gabe-review verdict at \`${verdictPath}\`. Compose gabe-review triple adversarial blind (rules + security + completeness) and persist review-verdict.json with triple_blind:true.`;
+    return `No gabe-review verdict at \`${verdictPath}\`. Compose multi-lane adversarial blind gabe-review and persist review-verdict.mdscript.md with multi_lane_blind:true.`;
   }
   if (verdict.goal.trim() !== goal.trim()) {
     return "gabe-review verdict goal does not match this run's goal.";
@@ -1830,34 +1669,22 @@ export function validateTripleBlindSignoffs(
   conversationId: string,
 ): GoalCompletionStatus {
   const lanes: Array<{ id: GoalReviewerId; path: string }> = [
-    {
-      id: "rules",
-      path: paths.signoffReviewerRulesMdscript,
-      legacy: paths.signoffReviewerRules,
-    },
-    {
-      id: "security",
-      path: paths.signoffReviewerSecurityMdscript,
-      legacy: paths.signoffReviewerSecurity,
-    },
-    {
-      id: "completeness",
-      path: paths.signoffReviewerCompletenessMdscript,
-      legacy: paths.signoffReviewerCompleteness,
-    },
+    { id: "rules", path: paths.signoffReviewerRulesMdscript },
+    { id: "security", path: paths.signoffReviewerSecurityMdscript },
+    { id: "completeness", path: paths.signoffReviewerCompletenessMdscript },
   ];
   const reasons: string[] = [];
   const signoffs: GoalSignoff[] = [];
 
   for (const lane of lanes) {
-    const signoff = loadMdscriptRecord<GoalSignoff>(lane.path, lane.legacy);
-    if (!signoff || !isValidSignoff(signoff, goal, conversationId, lane.id, root)) {
+    const signoff = loadMdscriptRecord<GoalSignoff>(lane.path);
+    if (!signoff || !isValidSignoff(signoff)) {
       reasons.push(
         signoffRejectionReason(
           signoff,
           goal,
           conversationId,
-          relativePath(root, existsSync(lane.legacy) ? lane.legacy : lane.path),
+          relativePath(root, lane.path),
           lane.id,
           root,
         ),
@@ -1882,7 +1709,7 @@ export function validateTripleBlindSignoffs(
       return {
         complete: false,
         reasons: [
-          "Two or more blind lane summaries are identical — rules/security/completeness reviewers must scrutinize independently. Cleared sign-offs; re-run triple adversarial blind gabe-review.",
+          "Two or more blind lane summaries are identical — rules/security/completeness reviewers must scrutinize independently. Cleared sign-offs; re-run multi-lane adversarial blind gabe-review.",
         ],
       };
     }
@@ -1901,32 +1728,12 @@ export function evaluateGoalCompletion(
     return {
       complete: false,
       reasons: [
-        `Missing run tracker at \`${relativePath(root, paths.goalMdscript)}\` (legacy goal.json also absent).`,
+        `Missing run tracker at \`${relativePath(root, paths.goalMdscript)}\`.`,
       ],
     };
   }
 
   const goal = state.goal.trim() || "(unspecified goal)";
-
-  // Legacy grind / single-verifier sessions.
-  if (!usesStrictGoalCompletion(paths)) {
-    const legacySignoff = loadJson<GoalSignoff>(paths.signoff);
-    if (legacySignoff && isValidSignoff(legacySignoff, goal, conversationId)) {
-      return { complete: true, reasons: [] };
-    }
-    return {
-      complete: false,
-      reasons: [
-        signoffRejectionReason(
-          legacySignoff,
-          goal,
-          conversationId,
-          relativePath(root, paths.signoff),
-        ),
-      ],
-    };
-  }
-
   const reasons: string[] = [];
 
   const artifactsStatus = validateArtifactsManifest(root, paths, state);
@@ -1939,22 +1746,14 @@ export function evaluateGoalCompletion(
     reasons.push(...triple.reasons);
   }
 
-  const verdict = loadMdscriptRecord<GoalReviewVerdict>(
-    paths.reviewVerdictMdscript,
-    paths.reviewVerdict,
-  );
-  if (!verdict || !isValidGabeReviewVerdict(verdict, goal, conversationId)) {
+  const verdict = loadMdscriptRecord<GoalReviewVerdict>(paths.reviewVerdictMdscript);
+  if (!verdict || !isValidGabeReviewVerdict(verdict)) {
     reasons.push(
       gabeReviewRejectionReason(
         verdict,
         goal,
         conversationId,
-        relativePath(
-          root,
-          existsSync(paths.reviewVerdict)
-            ? paths.reviewVerdict
-            : paths.reviewVerdictMdscript,
-        ),
+        relativePath(root, paths.reviewVerdictMdscript),
       ),
     );
   }
@@ -1972,21 +1771,16 @@ export function deactivateGoal(
     active: false,
     ended_at: new Date().toISOString(),
   };
-  if (existsSync(paths.goalMdscript) || !paths.legacy) {
-    writeGoalMdscript(root, paths, deactivated, {
-      status: "stopped",
-      resumeHeading: state.resume_heading ?? "manual-stop",
-    });
-  } else if (existsSync(paths.goal)) {
-    // Pure legacy grind/root JSON sessions.
-    writeJson(paths.goal, deactivated);
-  }
+  writeGoalMdscript(root, paths, deactivated, {
+    status: "stopped",
+    resumeHeading: state.resume_heading ?? "manual-stop",
+  });
 }
 
 /**
  * Re-open a run that was marked inactive or completed without gabe-review
- * having closed it. Only the verdict plus three blind sign-offs end a goal; an
- * agent editing its own front matter must not be able to end the loop.
+ * having closed it. Only a multi-lane Proven-for verdict ends a goal; an agent
+ * editing its own front matter must not be able to end the loop.
  */
 export function reopenGoalRun(
   root: string,
@@ -2060,6 +1854,60 @@ export function readStdinJson<T>(): T {
     return {} as T;
   }
   return JSON.parse(text) as T;
+}
+
+/**
+ * Whether this harness already owns a multi-round `/goal` ability that
+ * continues work without gabe-goal Stop hooks.
+ *
+ * - Grok: host-owned `/goal` runs before the stop gate (see grok hooks docs).
+ * - Cursor/Claude/Codex: a skill named `goal` (not `gabe-goal`) is present.
+ *
+ * Override with `GABE_GOAL_FORCE_HOOKS=1` to force gabe-goal hooks even when a
+ * harness `/goal` ability exists, or `GABE_GOAL_SKIP_HOOKS=1` to always skip.
+ */
+export function harnessHasGoalAbility(dialect: HookDialect): boolean {
+  if (
+    process.env.GABE_GOAL_SKIP_HOOKS === "1" ||
+    process.env.GABE_GOAL_SKIP_HOOKS === "true"
+  ) {
+    return true;
+  }
+  if (
+    process.env.GABE_GOAL_FORCE_HOOKS === "1" ||
+    process.env.GABE_GOAL_FORCE_HOOKS === "true"
+  ) {
+    return false;
+  }
+  if (dialect === "grok") {
+    // Grok's /goal is a host feature, not a Stop hook. Using both double-loops.
+    return true;
+  }
+  const skillHomes = [
+    join(homedir(), ".agents", "skills", "goal"),
+    join(homedir(), ".cursor", "skills", "goal"),
+    join(homedir(), ".claude", "skills", "goal"),
+    join(homedir(), ".codex", "skills", "goal"),
+    join(homedir(), ".copilot", "skills", "goal"),
+    join(homedir(), ".grok", "skills", "goal"),
+  ];
+  return skillHomes.some((dir) => existsSync(join(dir, "SKILL.md")));
+}
+
+/**
+ * Hooks should no-op when the run opts out, or when the harness owns `/goal`.
+ */
+export function shouldSkipGoalHooks(
+  dialect: HookDialect,
+  state?: GoalState | null,
+): boolean {
+  if (state?.skip_hooks === true || state?.loop_driver === "harness-goal") {
+    return true;
+  }
+  if (state?.skip_hooks === false || state?.loop_driver === "gabe-hooks") {
+    return false;
+  }
+  return harnessHasGoalAbility(dialect);
 }
 
 /**

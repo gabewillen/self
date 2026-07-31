@@ -7,12 +7,18 @@ import {
   additionalContextPayload,
   readHookInput,
   safeSessionId,
+  shouldSkipGoalHooks,
   SESSIONS_DIR,
 } from "./goal-lib.ts";
 
 const input = readHookInput();
 const conversationId = input.conversationId;
 const root = input.root;
+
+// When the harness owns /goal, skip gabe-goal session injection — host goal drives rounds.
+if (shouldSkipGoalHooks(input.dialect)) {
+  finishHook();
+}
 
 if (!conversationId) {
   finishHook();
@@ -30,10 +36,10 @@ const contextLines = [
   `- current run: the newest runs/<run_id>/goal.mdscript.md with active: true in front matter`,
   `- session-log.jsonl: append-only per conversation — never truncate or overwrite`,
   `- ${PROJECT_GOAL_LOG_PATH}: append-only project audit log — never truncate or overwrite`,
-  `- start each goal with startGoalRun → runs/<run_id>/goal.mdscript.md (front matter is run state; no goal.json)`,
-  `- goal.mdscript.md: durable executable tracker; stop hook resumes with mdscript-exec <run>/goal.mdscript.md#pursue-goal`,
+  `- start each goal with startGoalRun → runs/<run_id>/goal.mdscript.md (front matter is sole run state)`,
+  `- goal.mdscript.md: durable executable tracker; resume with mdscript-exec <run>/goal.mdscript.md#pursue-goal`,
   `- progress.jsonl: append-only per run (one JSON line per iteration)`,
-  `- proof_kind in goal.json: tui → captures required; ui → images required; default → logs sufficient`,
+  `- proof_kind in front matter: tui → captures required; ui → images required; default → logs sufficient`,
   "Parallel chats use separate session directories. Never write another conversation's runs or logs.",
 ];
 

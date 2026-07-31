@@ -485,8 +485,9 @@ function reportBrokenSkillDirs(targetRoots, managedSkills) {
 
 const ROUTER_DIRECTIVE =
   "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before " +
-  "planning or answering, and let it choose the role: it routes to gabe-orchestrate, " +
-  "gabe-implement, gabe-review, gabe-watch, gabe-goal, gabe-hsm-review, and gabe-automate.";
+  "planning or answering, and let it choose the role: any parentless main agent is a root " +
+  "orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane " +
+  "MDScript); explicit routes cover gabe-watch, gabe-goal, gabe-hsm-review, and gabe-automate.";
 const ROUTER_BLOCK_START = "<!-- gabe-agents:router -->";
 const ROUTER_BLOCK_END = "<!-- /gabe-agents:router -->";
 const ROUTER_BLOCK_RE =

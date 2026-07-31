@@ -1,6 +1,6 @@
 ---
 name: gabe
-description: "ALWAYS use this skill for EVERY request. Run it first, before planning or answering, and let it pick the role. Routes by agent position: a subagent runs gabe-implement, a main agent that can spawn subagents runs gabe-orchestrate, a main agent that cannot runs gabe-implement, and any review request runs gabe-review. Explicit invocations route to gabe-watch, gabe-unwatch, gabe-goal, gabe-hsm-review, or gabe-automate first. Carries project-scoped Gabe MDScript operating-model work — tasks, comments, plans, goals, and instructions under ~/.agents/projects/project-name/. Select the best available model and effort level for each role and task."
+description: "ALWAYS use this skill for EVERY request. Run it first, before planning or answering, and let it pick the role. Any agent with no parent that is not a subagent is a root orchestrator (gabe-orchestrate). Subagents run gabe-implement only (or a single blind-lane MDScript when that is the assignment) — never gabe-review, gabe-orchestrate, or gabe-goal as their skill role. Explicit invocations still route to gabe-watch, gabe-unwatch, gabe-goal, gabe-hsm-review, or gabe-automate first. Review composition stays on the parent/orchestrator/implementer process with per-lane blind fanout only. Carries project-scoped Gabe MDScript work under ~/.agents/projects/project-name/. Select the best available model and effort level for each role and task."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -9,12 +9,13 @@ description: "ALWAYS use this skill for EVERY request. Run it first, before plan
 
 * set `{{skills_root}}` to `{{repo_root}}/skills` when `{{repo_root}}` is set and that directory exists
 * otherwise set `{{skills_root}}` to `~/.agents/skills`
-* set `{{agent_position}}` to `subagent` when this agent was spawned by another agent, carries a delegated contract, or has a `{{parent_agent}}` or `{{parent_reporting_path}}`
+* infer `{{parent_agent}}` and `{{parent_reporting_path}}` from the spawn contract, handoff, task file, or runtime parent fields when present
+* set `{{agent_position}}` to `subagent` when this agent was spawned by another agent, carries a delegated worker contract, or has a non-empty `{{parent_agent}}` or `{{parent_reporting_path}}`
 * otherwise set `{{agent_position}}` to `main`
+* set `{{is_root_orchestrator}}` to `true` when `{{agent_position}}` is `main` and `{{parent_agent}}` is empty and `{{parent_reporting_path}}` is empty
+* otherwise set `{{is_root_orchestrator}}` to `false`
 * set `{{can_spawn_subagents}}` to `true` when this runtime exposes a subagent, task, or child-thread creation tool
 * otherwise set `{{can_spawn_subagents}}` to `false`
-* set `{{is_review_request}}` to `true` when the request is an independent readiness review, blind-review pass, plan, diff, handoff, MR/PR readiness, goal, final report, or publication hygiene review
-* otherwise set `{{is_review_request}}` to `false`
 * [Route Gabe Request](#route-gabe-request)
 
 ## Route Gabe Request
@@ -41,25 +42,31 @@ description: "ALWAYS use this skill for EVERY request. Run it first, before plan
   * set `{{gabe_role}}` to `gabe-hsm-review`
   * [Execute Routed Role](#execute-routed-role)
 
-* if the request is a goal-driven proof loop until artifacts and triple adversarial blind review (`/gabe-goal`, `/goal`, deprecated `/grind`, or stricter goal-until-signoff work)
+* if the request is a goal-driven proof loop until artifacts and multi-lane adversarial blind review (`/gabe-goal`, `/goal`, or stricter goal-until-signoff work)
   * set `{{gabe_role}}` to `gabe-goal`
+  * when the harness already has a `/goal` ability (Grok host `/goal`, Cursor `goal` skill, etc.), gabe-goal prefers that for multi-round continuation and skips gabe-goal hooks while still following the gabe-goal MDScript workflow
   * [Execute Routed Role](#execute-routed-role)
 
 * if the user explicitly asks for an external automation tool or non-goal automation outside this repo-local skill copy
   * set `{{gabe_role}}` to `gabe-automate`
   * [Execute Routed Role](#execute-routed-role)
 
-* if `{{is_review_request}}` is `true`
-  * set `{{gabe_role}}` to `gabe-review`
-  * [Execute Routed Role](#execute-routed-role)
-
 * if `{{agent_position}}` is `subagent`
   * set `{{gabe_role}}` to `gabe-implement`
+  * do not route a subagent into `gabe-review`, `gabe-orchestrate`, or `gabe-goal` as its skill role
+  * if the delegated task is a single blind review lane, run only that lane's MDScript entrypoint from the parent packet, not the full gabe-review skill
   * [Execute Routed Role](#execute-routed-role)
 
-* if `{{can_spawn_subagents}}` is `false`
-  * set `{{gabe_role}}` to `gabe-implement`
-  * do not promise delegated lanes this runtime cannot create
+* if `{{is_root_orchestrator}}` is `true`
+  * set `{{gabe_role}}` to `gabe-orchestrate`
+  * any agent with no parent that is not a subagent is an orchestrator — do not reclassify it as implementer or full-skill reviewer
+  * when review is required, the orchestrator owns coordination and either composes multi-lane review on this process or requires the implementer lane to compose it; never treat root as a pure implementer because spawn tools are missing
+  * if `{{can_spawn_subagents}}` is `false`
+    * use single-process fallback and file-task role switches instead of promising separate subagent lanes
+  * [Execute Routed Role](#execute-routed-role)
+
+* if `{{agent_position}}` is `main` and a parent reporting path or parent agent exists (child orchestrator or parent-owned main thread)
+  * set `{{gabe_role}}` to `gabe-orchestrate`
   * [Execute Routed Role](#execute-routed-role)
 
 * set `{{gabe_role}}` to `gabe-orchestrate`
@@ -75,7 +82,7 @@ description: "ALWAYS use this skill for EVERY request. Run it first, before plan
 
 * run `/mdscript-exec {{skills_root}}/{{gabe_role}}/SKILL.md`
 
-* carry `{{gabe_role}}`, `{{agent_position}}`, and `{{can_spawn_subagents}}` into the routed skill
+* carry `{{gabe_role}}`, `{{agent_position}}`, `{{is_root_orchestrator}}`, `{{parent_agent}}`, `{{parent_reporting_path}}`, and `{{can_spawn_subagents}}` into the routed skill
 
 * if `{{gabe_role}}` is `gabe-orchestrate`
   * run `/mdscript-exec {{skills_root}}/gabe-common/workflows/goal-mdscript.md#write-goal-mdscript` before claiming ongoing monitoring, resumed coordination, or watcher ownership

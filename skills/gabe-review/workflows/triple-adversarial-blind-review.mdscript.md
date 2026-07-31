@@ -2,7 +2,9 @@
 
 ## Triple Adversarial Blind Review
 
-* require independent blind adversarial subagents for terminal readiness — do not self-grade as a single reviewer for completion
+* this workflow is run by the **parent** agent that can spawn subagents (implementer lane owner, goal orchestrator, or main chat) — never by a nested `gabe-review` subagent
+* do not spawn a subagent whose assignment is the full `gabe-review` skill or this whole composition skill
+* require independent blind adversarial **lane** subagents for terminal readiness — do not self-grade as a single reviewer for completion
 * set `{{review_skill_root}}` to this skill's absolute directory when empty
 * run [Select Review Lanes](select-review-lanes.md#select-review-lanes)
 * if `{{blind_lanes}}` is empty after selection
@@ -17,18 +19,19 @@
   * set that lane's sign-off path to `{{review_signoff_dir}}/signoff-reviewer-<lane>.mdscript.md`
 * write or refresh the neutral review packet first when the caller has not already written one
 * delete every existing `signoff-reviewer-*.mdscript.md` under `{{review_signoff_dir}}` before a new round
-* also delete legacy `signoff-reviewer-a.json` / `b` / `c` and any legacy `signoff-reviewer-*.json` in the same directory when present
 * [Spawn Selected Lanes](#spawn-selected-lanes)
 
 ## Spawn Selected Lanes
 
-* spawn **every lane in `{{blind_lanes}}` as a readonly blind subagent in one turn** (parallel)
+* spawn **every lane in `{{blind_lanes}}` as a readonly blind subagent in one turn** (parallel) from **this** parent process
 * for each lane id in `{{blind_lanes}}`
   * resolve `{{lane_entry}}` from `{{lane_entrypoints}}.<lane>`
   * if `{{lane_entry}}` is missing
     * set `{{blocker}}` to `missing entrypoint for lane <lane>`
     * stop and report the missing entrypoint
-  * execute `mdscript-exec {{lane_entry}}` for that subagent
+  * spawn one readonly subagent that runs only `mdscript-exec {{lane_entry}}`
+  * do not assign `/gabe-review`, `gabe-review/SKILL.md`, or this composition workflow as the subagent's role
+  * do not ask a lane subagent to spawn further subagents (many harnesses forbid nested fanout)
 * give each subagent only: neutral packet path, authorized paths, `{{proof_scope}}`, `{{goal_text}}` or `{{intended_done_state}}`, `{{conversation_id}}`, `{{review_signoff_dir}}`, `{{review_skill_root}}`, and its own MDScript entrypoint
 * for engineering-rules lanes, also pass `{{reviewer_lane}}` and `{{rules_file}}` only when the thin entrypoint does not set them itself
 * forbid each subagent from reading the other lanes' sign-offs or each other's prompts before writing its own file
@@ -36,7 +39,6 @@
 * do not reuse a subagent that already saw author fix narration for the same round
 * wait for every spawned lane to finish
 * read the front matter of every lane's sign-off MDScript
-* fall back to a legacy `signoff-reviewer-<lane>.json` only when the MDScript is absent
 * [Aggregate Triple Signoffs](#aggregate-triple-signoffs)
 
 ## Aggregate Triple Signoffs

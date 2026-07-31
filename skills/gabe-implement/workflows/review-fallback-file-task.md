@@ -2,21 +2,15 @@
 
 ## Run File Task Reviewer Fallback
 
-* if subagent tooling is available
-  * return to the caller and continue the live subagent path
-
-* create one reviewer file task for this round with a distinct task id, author, and parent set to the implementer task
-
-* add a file comment on the implementer task that records `subagent_tooling: unavailable`, the neutral packet artifact, reviewer task ids, and the fallback boundary
-
-* run one fresh reviewer pass from `/mdscript-exec {{repo_root}}/skills/gabe-review/SKILL.md#identify-review-scope`
-
-* require the reviewer pass to write its own reviewer file comment with `role: reviewer`, a distinct `author`, `claim_scope`, `proof_decision`, evidence, questions, and stop report
-
-* if the reviewer file comment is missing after the pass
-  * set `{{blocker}}` to the missing reviewer file comment
-  * run [Report To Orchestrator](report-to-orchestrator.md#report-to-orchestrator)
-
+* use this path only when subagent tooling is unavailable in a project control-plane workflow
+* create one reviewer file task per selected lane with a distinct task id, author, and parent set to the implementer task
+* add a file comment on the implementer task that records `subagent_tooling: unavailable`, the neutral packet artifact, selected `{{blind_lanes}}`, reviewer task ids, and the fallback boundary
+* for each lane in `{{blind_lanes}}`
+  * resolve `{{lane_entry}}` from `{{lane_entrypoints}}.<lane>`
+  * run that lane MDScript in this process with `/mdscript-exec {{lane_entry}}`
+  * require the lane pass to write `signoff-reviewer-<lane>.mdscript.md` under `{{review_signoff_dir}}`
+* never run the full `gabe-review` skill as a nested “reviewer role” substitute for multi-lane fanout
+* after every selected lane has a sign-off file, run [Aggregate Triple Signoffs](../../gabe-review/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs) in this process
 * do not claim public MR/PR merge-readiness through this fallback when the repository or tracker requires live blind subagents
-
 * use this fallback only for project control-plane source-health proof when no subagent surface exists
+* return to the caller

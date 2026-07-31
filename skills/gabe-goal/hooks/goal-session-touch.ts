@@ -4,12 +4,18 @@ import {
   finishHook,
   additionalContextPayload,
   readHookInput,
+  shouldSkipGoalHooks,
 } from "./goal-lib.ts";
 
 const input = readHookInput();
 const conversationId = input.conversationId;
 const root = input.root;
 const orchestratorModel = input.model;
+
+// When the harness owns /goal, skip gabe-goal prompt injection.
+if (shouldSkipGoalHooks(input.dialect)) {
+  finishHook({ continue: true });
+}
 
 if (conversationId) {
   ensureSessionDirectory(root, conversationId);
