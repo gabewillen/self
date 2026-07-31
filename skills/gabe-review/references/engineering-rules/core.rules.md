@@ -50,6 +50,14 @@ Filesystems, networks, clocks, random sources, environment variables, operating 
 
 Core logic MUST receive external data as inputs instead of reading external systems directly.
 
+# CORE-CFG-001 MUST Prefer Explicit Flags Over Environment Variables
+
+A setting a user is expected to choose MUST be reachable as an explicit command flag.
+
+An environment variable MAY carry the same setting.
+
+When a flag and an environment variable name the same setting, the flag MUST take precedence.
+
 # CORE-SEC-001 MUST Validate Untrusted Input
 
 All untrusted input MUST be validated before use.
@@ -79,6 +87,12 @@ Optimization decisions MUST be justified with profiling, benchmarks, or producti
 Logging, tracing, metrics, and diagnostics SHOULD be bounded, non-blocking, and cardinality-controlled.
 
 Diagnostics MUST NOT change functional behavior.
+
+# CORE-DOC-001 MUST NOT Keep Change History In Comments And Docs
+
+Comments, docstrings, and documentation MUST state the contract that governs the code now.
+
+Change history MUST NOT be carried in comments or documentation. Prior revisions, earlier attempts, what a previous author tried, and what changed and when belong to version control, which preserves them.
 
 # CORE-EXC-001 MUST Document Rule Exceptions
 
