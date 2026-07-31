@@ -28,6 +28,7 @@ A pre-cutover `.cursor/goal/` tree is read as legacy and never written for new r
 | `runs/<run_id>/signoff-reviewer-rules.mdscript.md` | Blind rules lane (AGENTS/CLAUDE/GEMINI): front matter + `Resume From Signoff` |
 | `runs/<run_id>/signoff-reviewer-security.mdscript.md` | Blind security/penetration lane: front matter + `Resume From Signoff` |
 | `runs/<run_id>/signoff-reviewer-completeness.mdscript.md` | Blind completeness lane: front matter + `Resume From Signoff` |
+| `runs/<run_id>/signoff-reviewer-hsm.mdscript.md` | Blind HSM lane (`gabe-hsm-review`), only when a state machine is in scope: front matter + `Resume From Signoff` |
 
 ## goal.mdscript.md front matter (authoritative run state)
 
@@ -93,6 +94,7 @@ Required headings: `Goal Contract`, `Resume Goal`, `Pursue Goal` (or current `re
     "signoff-reviewer-security.mdscript.md",
     "signoff-reviewer-completeness.mdscript.md"
   ],
+  "hsm_lane_verdict": "pass|fail|n/a — present only when the hsm lane ran; that lane is also added to lanes and signoff_paths",
   "proof_scope": "goal-completion|live-proof|…",
   "grade": "Proven for <proof_scope>",
   "proof_decision": "Proven for <proof_scope> at <threshold>",

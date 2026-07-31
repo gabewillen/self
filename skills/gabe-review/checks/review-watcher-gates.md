@@ -28,6 +28,11 @@
 
 * require one fresh blind reviewer per review round
 
+* if any in-scope path defines or changes a state machine, transition table, event dispatch, behavior-driving mode enum, or lifecycle/protocol sequencing
+  * require the blind `hsm` lane sign-off from `gabe-hsm-review` before the terminal readiness gate counts
+  * accept a `lane_applicable: false` / `n/a` sign-off only when it carries its own search evidence, attack attempts, and commands
+  * do not let a passing rules, security, or completeness lane stand in for the state machine lens
+
 * require review subagents to be closed, deleted, or archived after they hand off their scoped grade and answer questions about their own review
 
 * require review subagents to report their final scoped grade, stop reason, and any blocker to the spawning implementer before they are closed, deleted, archived, or left idle

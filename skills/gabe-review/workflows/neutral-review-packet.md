@@ -70,15 +70,26 @@
   * reject silent fallback from a requested local model, hosted model, adapter, navigator, driver, or helper agent to a more convenient substitute
   * require setup failures, missing credentials, hidden or ineligible agents, unavailable adapters, stale cursors, and normal-stop handoffs to fail closed or route through the same owner-input path a human would use
 
+* if any in-scope path defines or changes a state machine by structure (vertices plus transitions carrying triggers, guards, or targets), changes transition tables, event dispatch, behavior-driving mode/phase/status enums, lifecycle or protocol sequencing, or the behaviors a machine calls, or the goal names statechart / state machine / HSM / SML work
+  * set `{{hsm_in_scope}}` to `true`
+  * when the signal is ambiguous, set it to `true` anyway and let the `gabe-hsm-review` ownership gate decide `n/a`
+  * record in the packet which in-scope paths raised the signal, or the reason none can own lifecycle, mode, or protocol state
+
+* if `{{hsm_in_scope}}` is `true` and this is a non-terminal single-pass or rolling repair review
+  * run the `gabe-hsm-review` gates as the lead reviewer's state-machine lens: `/mdscript-exec ~/.agents/skills/gabe-hsm-review/SKILL.md#triage` with `{{review_scope}}` from the in-scope paths
+  * fold its `stands` findings into this round's findings with their rule ids and severities
+  * do not treat that inline pass as the blind HSM lane; the terminal gate still spawns its own lane
+
 * if this review is a **terminal readiness / goal-completion / merge-readiness / live-proof / release-readiness** gate (or the caller requested triple blind)
   * run [Triple Adversarial Blind Review](triple-adversarial-blind-review.mdscript.md#triple-adversarial-blind-review)
-  * do not self-author a Proven-for grade without all three lane sign-offs
+  * do not self-author a Proven-for grade without every lane sign-off
   * each blind subagent must `mdscript-exec` its own lane MDScript:
     * rules → `workflows/blind-reviewers/rules.mdscript.md#rules-blind-review` (AGENTS/CLAUDE/GEMINI + Cursor/VS Code/Windsurf rules)
     * security → `workflows/blind-reviewers/security.mdscript.md#security-blind-review` (penetration and security)
     * completeness → `workflows/blind-reviewers/completeness.mdscript.md#completeness-blind-review` (goal-literal completeness)
+    * hsm → `workflows/blind-reviewers/hsm.mdscript.md#hsm-blind-review` (UML 2.5 statechart semantics via `gabe-hsm-review`), whenever `{{hsm_in_scope}}` is `true`
   * union lane findings into `{{blocking_findings}}` when any lane fails
-  * only when all three lanes `signed_off: true` with empty `p_findings` may `{{grade}}` become `Proven for {{proof_scope}}`
+  * only when every spawned lane is `signed_off: true` with empty `p_findings` may `{{grade}}` become `Proven for {{proof_scope}}`
   * [Determine Grade](../SKILL.md#determine-grade)
 
 * if this is a non-terminal intermediate rolling repair pass and the caller did not request triple blind
