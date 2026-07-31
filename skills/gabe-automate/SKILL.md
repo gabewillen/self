@@ -182,5 +182,5 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 * if `{{blocker}}` is set
   * report `Blocked: {{blocker}}`
-  * before asking Agent, the user, a repository owner, or another authority surface for input, run [Prepare Prompt Return Script](../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-automation`
+  * before asking the user, a repository owner, or another authority surface for input, run [Prepare Prompt Return Script](../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-automation`
   * ask the smallest decision-ready question needed to proceed

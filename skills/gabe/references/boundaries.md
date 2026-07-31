@@ -52,7 +52,7 @@ executable flow lives in the skills themselves.
 
 * preserve the stop-report boundary: child orchestrators, implementers, reviewers, and goal-resumed agent lanes must report back to their parent agent or parent reporting path before they stop for any reason, including done, blocked, paused, obsolete, interrupted, tool-failed, authority-boundary, context-limit, or watcher-terminal states
 
-* preserve the prompt-return boundary: before any agent MDScript role asks Agent, the user, a repository owner, or another authority surface for input, it must write an executable return script under `~/.agents/projects/<project-name>/returns` and end the prompt with the exact `mdscript-exec` resume command
+* preserve the prompt-return boundary: before any agent MDScript role asks the user, a repository owner, or another authority surface for input, it must write an executable return script under `~/.agents/projects/<project-name>/returns` and end the prompt with the exact `mdscript-exec` resume command
 
 * preserve the thread-cleanup boundary: every agent owns cleanup for chat threads, child orchestrator threads, worker threads, reviewer threads, and subagents it creates; terminal or superseded threads must be closed, archived, deleted when explicitly allowed, transferred with a new owner, or reported as a cleanup blocker before the creating lane claims done, a satisfied review gate, or clean handoff
 

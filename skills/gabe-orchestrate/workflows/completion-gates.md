@@ -127,7 +127,7 @@
 
 * record `{{blocker}}` and the failed gate in the lane ledger
 * send the implementer the exact remediation jump for the failed gate when one exists
-* if authority or judgment is required from Agent, the user, or a repository owner
+* if authority or judgment is required from the user or a repository owner
   * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script)
   * return to the caller's stop-boundary state
 * stop and report `Blocked for {{claim_scope}}: {{blocker}}` when no repair jump is available

@@ -59,7 +59,7 @@
 * if a resumed goal was entered through a return script
   * apply the returned answer to the saved pending decision before refreshing live state
 * refresh current repo, tracker, MR/PR, CI, review, discussion, telemetry, and proof state only after reading the goal
-* do not reread or narrate full Agent, automation, watcher, and ledger context when the goal MDScript already captures the active contract
+* do not reread or narrate full skill-pack, automation, watcher, and ledger context when the goal MDScript already captures the active contract
 * if a new human correction, scope change, project change, or source-of-truth conflict invalidates the goal
   * run [Write Goal MDScript](#write-goal-mdscript)
   * stop and report that the goal was refreshed before acting

@@ -1,4 +1,4 @@
-# Agent-review blind lane catalog
+# Review blind lane catalog
 
 Lane selection lives in [select-review-lanes.md](../workflows/select-review-lanes.md). This catalog is the durable map of lane id → entrypoint → rule source → when to add.
 

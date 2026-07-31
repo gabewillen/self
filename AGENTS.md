@@ -29,7 +29,7 @@
 ## Public Artifacts
 
 - Write for future agents and humans with no prior knowledge of the repository, system, local environment, branch, or conversation.
-- Write in first person for the author's own actions, assumptions, reservations, and corrections. Preserve proxy-agent attribution wherever it affects meaning.
+- Write in first person for the author's own actions, assumptions, reservations, and corrections. Preserve proxy-output attribution wherever it affects meaning.
 - Do not invent user intent, outcomes, tests, motives, or feelings. Separate direct evidence from interpretation.
 - Use truthful author attribution, and satisfy whatever metadata contract the target publication surface defines rather than a remembered one.
 - Keep public artifacts portable and sanitized: never include local filesystem paths, credentials, tokens, secret values, private endpoints, customer data, or unredacted sensitive identifiers.

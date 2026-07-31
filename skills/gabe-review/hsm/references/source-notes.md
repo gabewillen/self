@@ -2,7 +2,7 @@
 
 **Status:** scratch only — not the skill yet. Review this before MDScript authoring.
 
-**Goal of the future skill:** `gabe-hsm-review` — MDScript skill that adversarially reviews HSM/SML work against Agent’s hard rules across `hsm.go` / multi-language HSM DSL, grantt, mjw-style usage, and emel.cpp SML actor rules.
+**Goal of the future skill:** `gabe-hsm-review` — MDScript skill that adversarially reviews HSM/SML work against pack hard rules across `hsm.go` / multi-language HSM DSL, grantt, mjw-style usage, and emel.cpp SML actor rules.
 
 ---
 

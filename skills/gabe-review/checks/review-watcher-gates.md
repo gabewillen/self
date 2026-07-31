@@ -96,8 +96,8 @@
     * add a finding with consequence and evidence pointer
   * if a resolvable thread was marked resolved before the concern was fixed, withdrawn, or explicitly accepted as closed
     * add a finding with consequence and evidence pointer
-* if a root or coordinating Agent thread owns the artifact
-  * if the root or coordinating Agent thread personally edits application code, owns ticket implementation, performs code review, spawns code reviewers, or treats coordinator inspection as the implementer's review gate
+* if a root or coordinating agent thread owns the artifact
+  * if the root or coordinating agent thread personally edits application code, owns ticket implementation, performs code review, spawns code reviewers, or treats coordinator inspection as the implementer's review gate
     * add a finding with consequence and evidence pointer
 * [Check Implementer Surfaces](#check-implementer-surfaces)
 

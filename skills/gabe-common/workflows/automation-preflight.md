@@ -2,7 +2,7 @@
 
 ## Require Automate Skill
 
-* before any agent-shaped agent calls `automation_update` or any available automation creation or update tool
+* before any agent calls `automation_update` or any available automation creation or update tool
   * [Load Automate Skill](#load-automate-skill)
 * require the automation contract to include `{{mdscript_reentry}}`, owner role, lane id, watched target, source of truth, cadence, stop condition, allowed actions, forbidden actions, parent agent, reporting path, next jump, and stop-report rule
   * if any required field is missing, stop and report the exact missing contract fields

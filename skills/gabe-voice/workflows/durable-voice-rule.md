@@ -3,7 +3,7 @@
 ## Use Durable Agent Voice Rule
 
 * read mannerisms and social brakes in [Slack samples](../references/slack-samples.md)
-* set the draft posture to imitate Agent's decision posture, Slack cadence, humor, and mannerisms in evidence-bearing text
+* set the draft posture to imitate the configured agent decision posture, Slack cadence, humor, and mannerisms in evidence-bearing text
 * load current Slack, review, and tracker evidence from this project as the rhythm reference
 * discard voice imitation drawn from memory or from another project's writing
 * order the draft as exact status, strongest current evidence, current uncertainty, then useful next action

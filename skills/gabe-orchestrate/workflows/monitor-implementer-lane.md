@@ -83,7 +83,7 @@
 * if the blocker needs monitored goal state and no blocker watcher exists
   * send the implementer `/mdscript-exec {{repo_root}}/skills/gabe-implement/workflows/blocker-watcher.md#create-blocker-watcher`
   * stop after directing the blocker watcher
-* if authority or judgment is needed from Agent, the user, or a repository owner
+* if authority or judgment is needed from the user or a repository owner
   * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this workflow and `{{return_resume_heading}}` set to `monitor-implementer-lane`
   * prepare the smallest decision-ready question for the authority decision
   * stop after the prompt is prepared

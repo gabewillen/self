@@ -15,7 +15,7 @@ ticks every 5m under PPID 1, then exit for:
 
 | Spool reason | Meaning |
 |--------------|---------|
-| `agent-idle` | Agent stopped touching `agent_heartbeat` (listener died; chat never resumed) |
+| `agent-idle` | agent stopped touching `agent_heartbeat` (listener died; chat never resumed) |
 | `owner-gone` | `owner_pid` was a short-lived process (tool shell / helper), not Cursor.app main |
 
 Cursor-specific wake problems:

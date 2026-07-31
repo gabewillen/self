@@ -23,7 +23,7 @@
 * treat `{{source_repo_root}}` only as the affected implementation or evidence surface
 * create missing task, comment, goal, plan, instruction, return, artifact, and ledger parent directories under `{{file_task_root}}`
   * if directory creation fails, stop and report the exact path and error
-* do not write Agent control-plane tasks, comments, plans, goals, instructions, artifacts, or lane ledgers into `{{source_repo_root}}`
+* do not write agent control-plane tasks, comments, plans, goals, instructions, artifacts, or lane ledgers into `{{source_repo_root}}`
 
 ## Ensure File Task
 

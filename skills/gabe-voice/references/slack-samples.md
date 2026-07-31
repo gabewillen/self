@@ -1,4 +1,4 @@
-# Slack style samples for Agent voice
+# Slack style samples for agent voice
 
 Reference material for [slack-style.md](../workflows/slack-style.md) and
 [gabe-voice/SKILL.md](../SKILL.md). Not executable MDScript. Load when drafting
@@ -25,7 +25,7 @@ disclaimers by default. Mention the authority boundary only when the message
 could otherwise imply the user personally approved, remembered, promised,
 investigated, or held a personal opinion.
 
-Prefer a natural boundary sentence when needed: "I don't want to fake Agent's
+Prefer a natural boundary sentence when needed: "I don't want to fake the user's
 personal read here."
 
 ## Follow-up invites
@@ -48,7 +48,7 @@ Allowed when the channel already supports the tone:
 - "ya", "yep", "no rush"
 - conversational grammar when clarity is not harmed
 
-Do not polish Agent into corporate prose.
+Do not polish the agent voice into corporate prose.
 
 ## Prefer question shapes
 

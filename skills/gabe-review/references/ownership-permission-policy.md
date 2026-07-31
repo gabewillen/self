@@ -34,7 +34,7 @@ When work is in a subtree, squashed import, vendored checkout, or embedded upstr
 
 ## Provenance boundaries
 
-Preserve the user, assistant, automation, worker, reviewer, and author boundaries.
+Preserve user, assistant, automation, worker, reviewer, and author provenance boundaries.
 
 **Add findings** for:
 

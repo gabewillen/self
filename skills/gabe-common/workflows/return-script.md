@@ -2,7 +2,7 @@
 
 ## Prepare Prompt Return Script
 
-* use this workflow before an MDScript agent role prompts Agent, the user, a repository owner, or another authority surface for input while execution is paused
+* use this workflow before an MDScript agent role prompts the user, a repository owner, or another authority surface for input while execution is paused
 * run [Resolve File Task Root](file-task-comments.md#resolve-file-task-root)
 * infer `{{return_source_workflow}}` from the current MDScript file being executed
 * infer `{{return_resume_heading}}` from the caller heading that should continue after the answer is applied
@@ -38,5 +38,5 @@
 * include the blocker, accepted options or requested value, consequence of each available path, and the proof or authority boundary that forced the prompt
 * end the user-facing prompt with `{{return_resume_command}}` as the final line
 * do not put any text after the resume command
-* do not prompt from a Agent MDScript workflow without first writing `{{return_script}}`
+* do not prompt from an agent MDScript workflow without first writing `{{return_script}}`
 * stop after the prompt while waiting for the answer

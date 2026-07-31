@@ -7,7 +7,7 @@
 * load the Slack outgoing-message skill before any Slack write
 * infer `{{mention_permalink}}`, `{{mention_channel}}`, `{{mention_ts}}`, `{{mention_author}}`, `{{thread_context}}`, `{{automation_memory_path}}`, `{{selected_project}}`, `{{preliminary_answer}}`, `{{evidence_basis}}`, `{{child_thread_id}}`, `{{pending_worktree_id}}`, `{{clone_assignment_state}}`, `{{communication_owner}}`, `{{gabe_dm_needed}}`, and `{{slack_response}}`
 * if `{{automation_memory_path}}` is empty
-  * set `{{automation_memory_path}}` to the memory file for the active Agent Slack mention watcher automation record
+  * set `{{automation_memory_path}}` to the memory file for the active agent Slack mention watcher automation record
 * if Slack tools fail before returning mention data
   * set `{{blocker}}` to the exact Slack connector error
   * [Report Slack Blocker](../SKILL.md#report-slack-blocker)
@@ -36,8 +36,8 @@
   * require the child thread to verify relevant subtrees against upstream before investigation
 * [Draft Agent Voice Response](../SKILL.md#draft-agent-voice-response)
 * post `{{slack_response}}` in the Slack thread or original conversation
-* if the same information is not already visible in Agent's DM
-  * send exactly one concise DM to Agent with mention permalink, selected project, preliminary answer if any, created thread or worktree id, and that ChatGPT is checking the mention
+* if the same information is not already visible in the user's DM
+  * send exactly one concise DM to the user with mention permalink, selected project, preliminary answer if any, created thread or worktree id, and that ChatGPT is checking the mention
 * append one run record to `{{automation_memory_path}}` with timestamp, permalink, author, decision, assignment, communication owner, answers, Slack and DM permalinks if sent, project, child id, and next owner
 
 ## Own Assigned Mention Thread
@@ -46,5 +46,5 @@
 * record `assigned_open` plus the child thread or pending worktree id in automation memory
 * on later runs, inspect the child thread or pending worktree before scanning unrelated mentions
 * when the child thread produces a useful state, prepare same-thread progress, blocker, clarifying question, or final answer for drafting
-* keep communication ownership until the conversation or objective is resolved, terminally blocked with the next owner or resource named, explicitly handed off, or the user or Agent says to stop
+* keep communication ownership until the conversation or objective is resolved, terminally blocked with the next owner or resource named, explicitly handed off, or the user says to stop
 * return to the caller

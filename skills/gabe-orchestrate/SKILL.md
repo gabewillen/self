@@ -157,7 +157,7 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 * if this is a child orchestrator, report the stop reason, blocker, next owner, and exact continuation jump to `{{parent_agent}}` or `{{parent_reporting_path}}` before stopping
 
-* before asking Agent, the user, a repository owner, or another authority surface for input
+* before asking the user, a repository owner, or another authority surface for input
   * run [Prepare Prompt Return Script](../gabe-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `stop-at-boundary`
 
 * ask the smallest decision-ready question needed to proceed

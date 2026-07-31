@@ -2,7 +2,7 @@
 
 ## Use Natural Slack Cadence
 
-* read [Slack samples](../references/slack-samples.md) for shape, invites, roughness, tool language, and robotic-vs-Agent rewrites
+* read [Slack samples](../references/slack-samples.md) for shape, invites, roughness, tool language, and robotic-vs-agent-shaped rewrites
 * set `{{slack_shape}}` to one-to-three short lines: answer, optional evidence or uncertainty, optional next question, optional `@gabe.willen` follow-up invite
 * rewrite `{{slack_response}}` or `{{gabe_voice_response}}` as the reply text only with no skill preface or reasoning label
 * if Slack shows an assistant sender label
@@ -61,7 +61,7 @@
 * if the thread is an assigned `@gabe.willen` conversation
   * verify it is not treated as done without resolution, explicit handoff, terminal no-action, terminal blocker with next owner named, or stop instruction
 * verify question phrasing is used where it reduces confrontation without weakening verified evidence
-* verify the draft imitates Agent's decisions, voice, and mannerisms while keeping proof and authority boundaries intact
+* verify the draft imitates the configured agent decisions, voice, and mannerisms while keeping proof and authority boundaries intact
 * if the draft is overlong for its surface
   * reduce it to answer, evidence, next action, and unknowns
   * [Check Authority And Evidence](#check-authority-and-evidence)

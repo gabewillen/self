@@ -8,7 +8,7 @@
 
 * infer `{{watched_channel}}`, `{{automation_memory}}`, `{{file_task_id}}`, `{{goal_mdscript}}`, `{{last_handled_slack_timestamp}}`, and `{{blocking_severity_threshold}}` from the saved automation contract
 
-* if `{{blocking_severity_threshold}}` is empty, set it to every unresolved finding that blocks the exact approval scope or is a Agent-unacceptable maintainability smell
+* if `{{blocking_severity_threshold}}` is empty, set it to every unresolved finding that blocks the exact approval scope or is an agent-unacceptable maintainability smell
 
 * treat `{{automation_memory}}` as an operational observation log, not as the durable owner of watcher state
 
@@ -112,9 +112,9 @@
 
 * if any finding meets or exceeds `{{blocking_severity_threshold}}`, continue at [Post Blocking Result](#post-blocking-result)
 
-* if any Agent-unacceptable maintainability smell exists below the configured severity threshold, continue at [Post Blocking Result](#post-blocking-result)
+* if any pack-unacceptable maintainability smell exists below the configured severity threshold, continue at [Post Blocking Result](#post-blocking-result)
 
-* record lower-severity findings below `{{blocking_severity_threshold}}` as nonblocking only when they do not block the exact approval scope and are not Agent-unacceptable smells
+* record lower-severity findings below `{{blocking_severity_threshold}}` as nonblocking only when they do not block the exact approval scope and are not pack-unacceptable smells
 
 * if the reviewer verdict is not `Proven` for the exact approval scope, continue at [Report Watcher Blocker](#report-watcher-blocker)
 
@@ -126,7 +126,7 @@
 
 ## Post Blocking Result
 
-* post one concise Agent-voice blocker sentence in the original Slack thread
+* post one concise agent-voice blocker sentence in the original Slack thread
 
 * keep the blocking GitHub thread unresolved until the concern is fixed, withdrawn, or explicitly accepted as closed
 
@@ -148,7 +148,7 @@
 
 * write the exact missing tool, access, project, source, or authority as a project comment MDScript
 
-* post one concise Agent-voice blocker sentence and the smallest useful question in the original Slack thread when delivery is authorized
+* post one concise agent-voice blocker sentence and the smallest useful question in the original Slack thread when delivery is authorized
 
 * continue at [Finish Watcher Run](#finish-watcher-run)
 

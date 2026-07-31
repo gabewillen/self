@@ -49,6 +49,6 @@
 
 * set `{{blocker}}` to the exact missing capability
 * report the blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before stopping when this is a child orchestrator or goal-resumed lane
-* if the caller will prompt Agent, the user, a repository owner, or another authority surface for a model or runner decision
+* if the caller will prompt the user, a repository owner, or another authority surface for a model or runner decision
   * run [Prepare Prompt Return Script](return-script.md#prepare-prompt-return-script)
 * stop before claiming the lane or goal is correctly configured

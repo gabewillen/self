@@ -45,7 +45,7 @@
 
 ## Stop On Disposition Blocker
 
-* if the caller will ask Agent, the user, a repository owner, or another authority surface for that authority decision
+* if the caller will ask the user, a repository owner, or another authority surface for that authority decision
   * run [Prepare Prompt Return Script](../../gabe-common/workflows/return-script.md#prepare-prompt-return-script)
   * return to the caller's stop-boundary state
 * stop and report `Blocked for {{claim_scope}}: {{blocker}}`

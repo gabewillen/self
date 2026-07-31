@@ -3,9 +3,9 @@
 ## Report Status
 
 * report count-first, evidence-first, and plainly
-* treat reporting back to the parent agent as a hard stop condition for every child orchestrator, implementer, reviewer, and goal-resumed Agent lane
+* treat reporting back to the parent agent as a hard stop condition for every child orchestrator, implementer, reviewer, and goal-resumed agent lane
 * run [Resolve File Task Root](file-task-comments.md#resolve-file-task-root)
-* before any child orchestrator, implementer, reviewer, or goal-resumed Agent lane stops for any reason
+* before any child orchestrator, implementer, reviewer, or goal-resumed agent lane stops for any reason
   * [Emit Stop Package](#emit-stop-package)
 * if a project control-plane workflow has a final parent-visible comment with `proof_decision: Proven for {{claim_scope}}`, all owned child and implementer tasks are terminal for that claim, reviewer consensus is recorded, and no next action remains inside granted authority
   * [Close Terminal Proven Lane](#close-terminal-proven-lane)

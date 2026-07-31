@@ -1,6 +1,6 @@
 # @gabewillen/agents
 
-agent-shaped **MDScript** agent skills.
+agent-shaped **MDScript** skills.
 
 The `mdscript-exec` and `mdscript-write` skills live in the [mdscript](https://github.com/gabewillen/mdscript) repo, which owns them. Install clones that repo to `~/.agents/repos/gabewillen-mdscript` and installs both alongside these skills, so every execution header here resolves.
 
