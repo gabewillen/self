@@ -1787,6 +1787,7 @@ function detectAgentSkillRoots() {
     join(home, ".claude", "skills"),
     join(home, ".cursor", "skills"),
     join(home, ".codex", "skills"),
+    join(home, ".grok", "skills"),
     join(home, ".copilot", "skills"),
     join(home, ".qwen", "skills"),
   ];
