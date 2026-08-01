@@ -491,7 +491,7 @@ export function resolveLearnMdscriptPath(): string {
   return sibling;
 }
 
-/** Stop-hook followup: single mdscript-exec clause only. */
+/** Stop-hook followup: multi-line instruction that includes the exact mdscript-exec clause. */
 export function formatLearnFollowup(learnMdscript: string): string {
   return [
     "Stop-hook required action before ending this turn:",

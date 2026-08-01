@@ -62,7 +62,7 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
   * skip [Arm Persistent Interval Loop](#arm-persistent-interval-loop)
 * if `{{harness_native_loop_available}}` is `false`
   * set `{{loop_driver}}` to `custom-ticker`
-  * [Prefer Harness Native Loop](#prefer-harness-native-loop)
+  * [Arm Persistent Interval Loop](#arm-persistent-interval-loop)
 
 ## Arm Persistent Interval Loop
 
