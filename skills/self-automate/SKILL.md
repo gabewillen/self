@@ -1,6 +1,6 @@
 ---
 name: self-automate
-description: "ALWAYS use this skill before calling automation_update or creating, updating, reviewing, or handing off monitors, reminders, PR/MR watchers, blocker watchers, lane wakeups, or thread follow-ups: design MDScript-driven automations with an exact mdscript-exec re-entry, role boundary, cadence, owner, stop condition, evidence/reporting contract, and file-task source of truth."
+description: "ALWAYS use this skill before calling automation_update or creating, updating, reviewing, or handing off monitors, reminders, PR/MR watchers, blocker watchers, lane wakeups, or thread follow-ups: prefer the current harness built-in automation/loop when one exists; otherwise design MDScript-driven automations with an exact mdscript-exec re-entry, role boundary, cadence, owner, stop condition, evidence/reporting contract, and file-task source of truth. Never invent a custom ticker when the harness already provides loops or automations."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -26,7 +26,22 @@ description: "ALWAYS use this skill before calling automation_update or creating
 * if the automation is for a GitLab issue, MR, PR, comment watcher, blocker watcher, or lane-management wakeup
   * require a stable MDScript heading entry point before creating it
 
+* [Prefer Harness Native Automation](#prefer-harness-native-automation)
 * [Design Automation Contract](#design-automation-contract)
+
+## Prefer Harness Native Automation
+
+* before creating a custom ticker, detached interval process, or external cron, detect whether the current harness already exposes automations, scheduled tasks, reminders, native watchers, or equivalent loops
+* set `{{harness_native_automation_available}}` to `true` when that built-in mechanism can own the cadence and invoke the exact `{{mdscript_reentry}}`
+* otherwise set `{{harness_native_automation_available}}` to `false`
+* if `{{harness_native_automation_available}}` is `true`
+  * set `{{automation_driver}}` to `harness-native`
+  * implement the automation through the harness-native API or control surface only
+  * do **not** start `self-watch-ticker.sh`, a hand-rolled sleep loop, or another custom ticker
+* if `{{harness_native_automation_available}}` is `false`
+  * set `{{automation_driver}}` to `external-or-tool`
+  * only then use `automation_update` or another explicit non-harness automation tool the user requested
+* record `automation_driver` in the goal/task evidence for the lane
 
 ## Design Automation Contract
 

@@ -1848,6 +1848,42 @@ function writeJson(path, data) {
  * agent working, so one writer serves the three. Cursor's flat array and
  * `followup_message` stay on their own path.
  */
+
+/**
+ * Codex requires the hooks feature and per-command trust (/hooks) before Stop
+ * hooks will run. Enable features.hooks in ~/.codex/config.toml when missing.
+ */
+function ensureCodexHooksFeature(home = os.homedir()) {
+  const configPath = join(home, ".codex", "config.toml");
+  let text = "";
+  try {
+    text = readFileSync(configPath, "utf8");
+  } catch {
+    text = "";
+  }
+  const hasFeatures = /^\[features\]/m.test(text);
+  const hooksEnabled =
+    /(?:^|\n)\s*hooks\s*=\s*true\s*(?:\n|$)/m.test(text) ||
+    /(?:^|\n)\s*codex_hooks\s*=\s*true\s*(?:\n|$)/m.test(text);
+  if (hooksEnabled) {
+    return { path: configPath, changed: false };
+  }
+  if (!hasFeatures) {
+    text = `${text.trimEnd()}\n\n[features]\nhooks = true\n`;
+  } else {
+    text = text.replace(/^(\[features\][^\n]*\n)/m, (m) => `${m}hooks = true\n`);
+  }
+  mkdirSync(dirname(configPath), { recursive: true });
+  writeFileSync(configPath, text.endsWith("\n") ? text : `${text}\n`);
+  return { path: configPath, changed: true };
+}
+
+function remindCodexHookTrust() {
+  console.log(
+    "[self-agents] Codex Stop hooks are installed. In Codex run /hooks and trust the self-* Stop/UserPromptSubmit/SessionStart commands (changed hashes are skipped until trusted).",
+  );
+}
+
 const NESTED_HOOK_TARGETS = {
   "claude-settings": { home: ".claude", file: () => "settings.json" },
   "codex-hooks": { home: ".codex", file: () => "hooks.json" },

@@ -1,6 +1,6 @@
 ---
 name: self-unwatch
-description: "ALWAYS use this skill when the user runs /self-unwatch, asks to stop watching a PR, or cancels self-watch: kill the detached ticker/sentinel, mark watch state inactive, and update the watch goal MDScript."
+description: "ALWAYS use this skill when the user runs /self-unwatch, asks to stop watching a PR, or cancels self-watch: stop the harness-native loop when loop_driver is harness-native, otherwise kill the detached ticker/sentinel; mark watch state inactive; and update the watch goal MDScript."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -20,6 +20,12 @@ description: "ALWAYS use this skill when the user runs /self-unwatch, asks to st
 ## Stop Watch Loop
 
 * read `{{watch_mdscript}}` front matter when not already loaded, falling back to a legacy `self-watch/pr-{{pr_number}}.json` only when no MDScript exists
+* set `{{loop_driver}}` from front matter when present
+* if `{{loop_driver}}` is `harness-native`
+  * cancel or disable the harness-native automation/loop/reminder recorded for this watch
+  * do not require a ticker PID kill path when no custom ticker was armed
+  * set front matter on `{{watch_mdscript}}` to `watch_active: false`, terminal `status`, `resume_heading: stop-watch`, `stopped_at`, and `stop_reason` (`user-unwatch` unless the caller already set `{{stop_reason}}`)
+  * return to the caller
 * set `{{sentinel}}` from front matter (default `AGENT_LOOP_TICK_self_watch_{{pr_number}}`)
 * set `{{ticker_pid}}`, `{{ticker_pgid}}`, `{{ticker_pid_file}}`, `{{tick_spool}}`, and `{{stop_file}}` from front matter when present
 * create `{{stop_file}}` first — the detached ticker exits on its own at the next interval even if the kill path fails or the PID is stale
