@@ -76,7 +76,7 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * if `{{is_root_orchestrator}}` is `true`
   * set `{{self_role}}` to `self-orchestrate`
   * any agent with no parent that is not a subagent is an orchestrator — do not reclassify it as implementer or full-skill reviewer
-  * when review is required, the orchestrator owns coordination and either composes multi-lane review on this process or requires the implementer lane to compose it; never treat root as a pure implementer because spawn tools are missing
+  * when review is required (only before PR/MR create or merge), the orchestrator owns coordination and either composes multi-lane review on this process or requires the implementer lane to compose it; never treat root as a pure implementer because spawn tools are missing
   * if `{{can_spawn_subagents}}` is `false`
     * use single-process fallback and file-task role switches instead of promising separate subagent lanes
   * [Execute Routed Role](#execute-routed-role)

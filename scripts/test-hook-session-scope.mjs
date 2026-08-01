@@ -80,6 +80,9 @@ const cases = [
   [{ conversation_id: "c1", workspace_roots: ["/tmp"] }, "cursor", "c1"],
   [{ session_id: "s1", transcript_path: "/t" }, "claude", "s1"],
   [{ session_id: "s2", turn_id: "t1" }, "codex", "s2"],
+  // Codex Stop without misclassifying camelCase as Grok when permission_mode present.
+  [{ sessionId: "cx1", turnId: "t9", hook_event_name: "Stop", permission_mode: "default", stop_hook_active: false }, "codex", "cx1"],
+  [{ session_id: "cx2", hook_event_name: "Stop", permission_mode: "default", last_assistant_message: "hi" }, "codex", "cx2"],
   [{ sessionId: "g1", hookEventName: "stop" }, "grok", "g1"],
 ];
 for (const [raw, wantDialect, wantId] of cases) {
@@ -184,6 +187,48 @@ assert(
   outClaude.decision === "block" &&
     String(outClaude.reason || "").includes("reflect-and-learn"),
   `claude stop blocks with reason (got ${JSON.stringify(outClaude)})`,
+);
+
+
+// Codex stop must continue with decision:block + systemMessage (universal field).
+const touchCodex = runHook(learnTouch, {
+  session_id: "codex-sess",
+  turn_id: "t-c1",
+  hook_event_name: "UserPromptSubmit",
+  permission_mode: "default",
+  prompt: "please fix the bug",
+});
+assert(touchCodex.status === 0, "codex touch ok");
+const stopCodex = runHook(learnStop, {
+  session_id: "codex-sess",
+  turn_id: "t-c2",
+  hook_event_name: "Stop",
+  permission_mode: "default",
+  stop_hook_active: false,
+  last_assistant_message: "done",
+  status: "completed",
+});
+const outCodex = parseOut(stopCodex.stdout);
+assert(
+  outCodex.decision === "block" &&
+    typeof outCodex.reason === "string" &&
+    outCodex.reason.includes("reflect-and-learn") &&
+    outCodex.systemMessage === "self stop hook continuing turn",
+  `codex stop blocks with systemMessage (got ${JSON.stringify(outCodex)})`,
+);
+
+// Empty allow-stop should use empty stdout (no bare {}).
+const stopCodexActive = runHook(learnStop, {
+  session_id: "codex-sess",
+  turn_id: "t-c3",
+  hook_event_name: "Stop",
+  permission_mode: "default",
+  stop_hook_active: true,
+  status: "completed",
+});
+assert(
+  stopCodexActive.stdout === "",
+  `codex stop_hook_active empty stdout (got ${JSON.stringify(stopCodexActive.stdout)})`,
 );
 
 // stop_hook_active must never re-inject

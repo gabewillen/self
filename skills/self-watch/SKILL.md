@@ -1,6 +1,6 @@
 ---
 name: self-watch
-description: "ALWAYS use this skill when the user runs /self-watch or wants interval PR babysitting for review comments, CI repair, or base-branch drift: arm one detached ticker with a standing grant to fix/push/resolve until /self-unwatch or PR merge/close, keep state only in goals/self-watch-<N>.mdscript.md, and pick fast vs high-effort models by repair difficulty."
+description: "ALWAYS use this skill when the user runs /self-watch or wants interval PR babysitting for review comments, CI repair, or base-branch drift: prefer the harness built-in loop/automation when one exists; otherwise arm one detached ticker fallback with a standing grant to fix/push/resolve until /self-unwatch or PR merge/close, keep state only in goals/self-watch-<N>.mdscript.md, and pick fast vs high-effort models by repair difficulty."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -47,7 +47,22 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 * treat legacy `pr-{{pr_number}}.json` as read-only fallback only
 * run [Establish Watch Grant](#establish-watch-grant)
 * tell the user the watch contract: PR, interval, models, `{{watch_mdscript}}`, the standing grant, and that the loop runs until `/self-unwatch`
-* [Arm Persistent Interval Loop](#arm-persistent-interval-loop)
+* [Prefer Harness Native Loop](#prefer-harness-native-loop)
+
+## Prefer Harness Native Loop
+
+* before starting any custom detached ticker, detect whether the current harness already provides an interval loop, scheduled automation, reminder, or equivalent native watcher
+* set `{{harness_native_loop_available}}` to `true` when such a built-in mechanism exists and can run `/mdscript-exec {{watch_mdscript}}#resume-watch` on the watch cadence
+* otherwise set `{{harness_native_loop_available}}` to `false`
+* if `{{harness_native_loop_available}}` is `true`
+  * set `{{loop_driver}}` to `harness-native`
+  * create or update the harness-native automation/loop/reminder with exact re-entry `/mdscript-exec {{watch_mdscript}}#resume-watch`, the standing grant, stop condition (`/self-unwatch` or PR merged/closed), and owner session binding
+  * record `loop_driver: harness-native` and the harness automation id in `{{watch_mdscript}}` front matter
+  * do **not** launch `self-watch-ticker.sh` or any other custom ticker while the harness-native loop is active
+  * skip [Arm Persistent Interval Loop](#arm-persistent-interval-loop)
+* if `{{harness_native_loop_available}}` is `false`
+  * set `{{loop_driver}}` to `custom-ticker`
+  * [Arm Persistent Interval Loop](#arm-persistent-interval-loop)
 
 ## Arm Persistent Interval Loop
 

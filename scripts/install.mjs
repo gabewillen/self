@@ -1848,6 +1848,73 @@ function writeJson(path, data) {
  * agent working, so one writer serves the three. Cursor's flat array and
  * `followup_message` stay on their own path.
  */
+
+/**
+ * Codex requires the hooks feature and per-command trust (/hooks) before Stop
+ * hooks will run. Enable features.hooks in ~/.codex/config.toml when missing.
+ * Updates an existing hooks/codex_hooks key in [features] instead of duplicating.
+ */
+function ensureCodexHooksFeature(home = os.homedir()) {
+  const configPath = join(home, ".codex", "config.toml");
+  let text = "";
+  try {
+    text = readFileSync(configPath, "utf8");
+  } catch {
+    text = "";
+  }
+
+  // Already enabled anywhere in the file.
+  if (
+    /(?:^|\n)\s*hooks\s*=\s*true\s*(?:\n|$)/m.test(text) ||
+    /(?:^|\n)\s*codex_hooks\s*=\s*true\s*(?:\n|$)/m.test(text)
+  ) {
+    return { path: configPath, changed: false };
+  }
+
+  let next = text;
+  let changed = false;
+
+  // Flip existing false/off values for either key name.
+  const flipped = next.replace(
+    /^(\s*(?:hooks|codex_hooks)\s*=\s*)(?:false|0|"false"|'false')(\s*(?:#.*)?)$/gm,
+    (_m, pre, post) => {
+      changed = true;
+      return `${pre}true${post || ""}`;
+    },
+  );
+  next = flipped;
+
+  if (
+    !/(?:^|\n)\s*hooks\s*=\s*true\s*(?:\n|$)/m.test(next) &&
+    !/(?:^|\n)\s*codex_hooks\s*=\s*true\s*(?:\n|$)/m.test(next)
+  ) {
+    if (/^\[features\]/m.test(next)) {
+      // Insert immediately under the first [features] header.
+      next = next.replace(/^(\[features\][^\n]*\n)/m, (m) => {
+        changed = true;
+        return `${m}hooks = true\n`;
+      });
+    } else {
+      next = `${next.trimEnd()}\n\n[features]\nhooks = true\n`;
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return { path: configPath, changed: false };
+  }
+
+  mkdirSync(dirname(configPath), { recursive: true });
+  writeFileSync(configPath, next.endsWith("\n") ? next : `${next}\n`);
+  return { path: configPath, changed: true };
+}
+
+function remindCodexHookTrust() {
+  console.log(
+    "[self-agents] Codex Stop hooks are installed. In Codex run /hooks and trust the self-* Stop/UserPromptSubmit/SessionStart commands (changed hashes are skipped until trusted).",
+  );
+}
+
 const NESTED_HOOK_TARGETS = {
   "claude-settings": { home: ".claude", file: () => "settings.json" },
   "codex-hooks": { home: ".codex", file: () => "hooks.json" },
@@ -1936,6 +2003,13 @@ function mergeNestedHooks({ skillInstallDir, manifest, runtime, targetPath }) {
   };
 
   writeJson(targetPath, existing);
+  if (/(?:^|[/\\])\.codex[/\\]hooks\.json$/.test(targetPath)) {
+    const ensured = ensureCodexHooksFeature();
+    if (ensured.changed) {
+      console.log(`[self-agents] enabled features.hooks in ${ensured.path}`);
+    }
+    remindCodexHookTrust();
+  }
   return { hooksPath: targetPath, added, replaced };
 }
 

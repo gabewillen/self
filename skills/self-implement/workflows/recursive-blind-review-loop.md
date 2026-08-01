@@ -2,6 +2,13 @@
 
 ## Use Multi-Lane Review
 
+* if `{{self_review_required}}` is empty
+  * set `{{self_review_required}}` to `true` only when this lane is about to create or update a pull/merge request, or when merge into the target branch is requested or in scope
+  * otherwise set `{{self_review_required}}` to `false`
+* if `{{self_review_required}}` is `false`
+  * set `{{review_gate}}` to `not-required-until-pr-or-merge`
+  * set `{{proof_decision}}` empty for review
+  * return to the caller without spawning reviewers
 * this implementer (or goal/orchestrator process that owns the lane) runs the self-review **composition** itself
 * never spawn a subagent whose job is `/self-review` or `mdscript-exec …/self-review/SKILL.md` as a whole skill
 * the only review subagents allowed are **per-lane** blind reviewers that execute one lane MDScript under `self-review/workflows/blind-reviewers/`

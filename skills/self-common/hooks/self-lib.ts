@@ -84,10 +84,6 @@ export function detectDialect(raw: Record<string, unknown>): HookDialect {
   ) {
     return "grok";
   }
-  // Grok stdin is camelCase throughout (hookEventName, sessionId, stopHookActive).
-  if (raw.hookEventName !== undefined || raw.sessionId !== undefined) {
-    return "grok";
-  }
   // Cursor: conversation_id + workspace_roots (+ generation_id, loop_count).
   if (
     raw.conversation_id !== undefined ||
@@ -96,9 +92,30 @@ export function detectDialect(raw: Record<string, unknown>): HookDialect {
   ) {
     return "cursor";
   }
-  // Codex turn-scoped events carry turn_id; Claude does not.
-  if (raw.turn_id !== undefined) return "codex";
-  // Claude Code (and Codex SessionStart without turn_id): session_id snake_case.
+  // Codex CLI/app wire format: turn_id/turnId on turn-scoped events, or
+  // permission_mode + hook_event_name on SessionStart/Stop/UserPromptSubmit.
+  // IMPORTANT: do not classify Codex as Grok just because sessionId is camelCase.
+  const hookEventRaw = raw.hook_event_name ?? raw.hookEventName;
+  const hookEvent = typeof hookEventRaw === "string" ? hookEventRaw : "";
+  if (
+    raw.turn_id !== undefined ||
+    raw.turnId !== undefined ||
+    (
+      (raw.permission_mode !== undefined || raw.permissionMode !== undefined) &&
+      (raw.session_id !== undefined || raw.sessionId !== undefined) &&
+      /^(Stop|SubagentStop|UserPromptSubmit|SessionStart|SessionEnd|PreToolUse|PostToolUse|PreCompact|PostCompact|PermissionRequest|SubagentStart)$/i.test(
+        hookEvent,
+      )
+    )
+  ) {
+    return "codex";
+  }
+  // Grok stdin is camelCase throughout (hookEventName, sessionId, stopHookActive)
+  // without Codex permission_mode / turn ids.
+  if (raw.hookEventName !== undefined || raw.sessionId !== undefined) {
+    return "grok";
+  }
+  // Claude Code default: snake_case session_id, no turn_id/permission_mode pair.
   return "claude";
 }
 
@@ -230,6 +247,15 @@ export function continueWorkingPayload(
     return { followup_message: message };
   }
   // Claude, Codex, Grok: block-stop with reason fed back as the next user message.
+  // Codex Stop is deny_unknown_fields; systemMessage is a universal allowed field
+  // and makes the continuation visible in the TUI.
+  if (dialect === "codex") {
+    return {
+      decision: "block",
+      reason: message,
+      systemMessage: "self stop hook continuing turn",
+    };
+  }
   return { decision: "block", reason: message };
 }
 
@@ -238,6 +264,10 @@ export function respond(payload: Record<string, unknown>): void {
 }
 
 export function finishHook(payload: Record<string, unknown> = {}): never {
+  // Empty allow-stop: empty stdout is the documented Codex completed/no-op form.
+  if (!payload || Object.keys(payload).length === 0) {
+    process.exit(0);
+  }
   respond(payload);
   process.exit(0);
 }
@@ -461,7 +491,11 @@ export function resolveLearnMdscriptPath(): string {
   return sibling;
 }
 
-/** Stop-hook followup: single mdscript-exec clause only. */
+/** Stop-hook followup: multi-line instruction that includes the exact mdscript-exec clause. */
 export function formatLearnFollowup(learnMdscript: string): string {
-  return `/mdscript-exec ${learnMdscript}#reflect-and-learn`;
+  return [
+    "Stop-hook required action before ending this turn:",
+    `Run exactly: /mdscript-exec ${learnMdscript}#reflect-and-learn`,
+    "Scan only direct user corrections from this turn. If none, stamp nothing-to-learn and stop.",
+  ].join("\n");
 }

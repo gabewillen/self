@@ -61,7 +61,14 @@
 
 ## Verify Review Gate For Change Type
 
-* if the change is MDScript-only, documentation-only, or instruction-only
+* set `{{self_review_required}}` to `true` only when the lane is creating or updating a pull/merge request, or merge into the target branch is requested or in scope
+* otherwise set `{{self_review_required}}` to `false`
+* if `{{self_review_required}}` is `false`
+  * accept `review_gate=not-required-until-pr-or-merge` as a passing review gate for non-PR completion
+  * do not require multi-lane self-review sign-offs for local implementation-only completion
+  * continue to the next completion check
+* if `{{self_review_required}}` is `true`
+  * if the change is MDScript-only, documentation-only, or instruction-only
   * [Verify Non Code Review Gate](#verify-non-code-review-gate)
 * [Verify Code Review Gate](#verify-code-review-gate)
 
