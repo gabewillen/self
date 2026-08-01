@@ -181,3 +181,14 @@ See:
 Tests MUST exercise runtime behavior for completion, failure, timeout, stale-event, deferred-event, and observer paths when those semantics matter.
 
 Static topology assertions alone are insufficient for behavior claims.
+
+# HSM-NAME-001 MUST Name Domain Artifacts Without HSM Affixes
+
+See:
+- [PAT-HSM-001](patterns.rules.md#pat-hsm-001-must-explicit-hierarchical-state-modeling)
+
+New files, variables, classes, types, symbols, and models MUST be named for the domain or lifecycle they represent.
+
+They MUST NOT use `hsm` as a prefix or suffix in any casing or separator form, including `hsm_`, `_hsm`, `Hsm`, `HSM`, `hsmFoo`, `FooHsm`, `foo_hsm`, and `hsm-foo`.
+
+The framework package, import path, or module identity named `hsm` is exempt only when it is the actual HSM library boundary, not a domain artifact name.
