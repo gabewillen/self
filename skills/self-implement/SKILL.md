@@ -49,7 +49,7 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 * do not create execution subworkers, manage portfolio chat threads, or delegate portfolio triage unless the orchestrator explicitly grants that authority
 
-* own self-review **composition** in this process; never spawn a subagent whose assignment is `/self-review` or the full `self-review` skill
+* when self-review is required (PR/MR create or merge only), own self-review **composition** in this process; never spawn a subagent whose assignment is `/self-review` or the full `self-review` skill
 * allow review subagents only as **per-lane** blind reviewers under `self-review/workflows/blind-reviewers/`; limit them to one lane MDScript, handoff/sign-off, Q&A about that lane, and close/delete cleanup
 * do not expect lane subagents to spawn further subagents
 
@@ -119,18 +119,32 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 ## Use Multi-Lane Review
 
-* run [Use Multi-Lane Review](workflows/recursive-blind-review-loop.md#use-multi-lane-review)
+* set `{{self_review_required}}` to `true` only when this lane is about to create or update a pull/merge request, or when merge into the target branch is requested or in scope
+* otherwise set `{{self_review_required}}` to `false`
+* if `{{self_review_required}}` is `false`
+  * skip multi-lane self-review for this completion
+  * record `review_gate=not-required-until-pr-or-merge` in the task evidence
+  * continue with [Prepare MR Or PR](#prepare-mr-or-pr) without starting review rounds
+* if `{{self_review_required}}` is `true`
+  * run [Use Multi-Lane Review](workflows/recursive-blind-review-loop.md#use-multi-lane-review)
+  * [Start Review Round](#start-review-round)
 
 ## Start Review Round
 
+* if `{{self_review_required}}` is not `true`
+  * continue with [Prepare MR Or PR](#prepare-mr-or-pr)
 * run [Start Review Round](workflows/recursive-blind-review-loop.md#start-review-round)
 
 ## Collect Review Round Results
 
+* if `{{self_review_required}}` is not `true`
+  * continue with [Prepare MR Or PR](#prepare-mr-or-pr)
 * run [Collect Review Round Results](workflows/recursive-blind-review-loop.md#collect-review-round-results)
 
 ## Close Review Subagents
 
+* if `{{self_review_required}}` is not `true`
+  * continue with [Prepare MR Or PR](#prepare-mr-or-pr)
 * run [Close Review Subagents](workflows/recursive-blind-review-loop.md#close-review-subagents)
 
 ## Cleanup Created Threads
@@ -139,6 +153,8 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 ## Decide Review Loop
 
+* if `{{self_review_required}}` is not `true`
+  * continue with [Prepare MR Or PR](#prepare-mr-or-pr)
 * run [Decide Review Loop](workflows/recursive-blind-review-loop.md#decide-review-loop)
 
 ## Prepare MR Or PR

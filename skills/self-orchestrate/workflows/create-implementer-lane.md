@@ -58,7 +58,7 @@
 * instruct the worker to use `/mdscript-exec {{repo_root}}/skills/self-implement/SKILL.md#load-worker-context`
 * include title, objective, repository or surface, tracker, file task id, file comment path, goal MDScript path, granted permissions, forbidden actions, and required evidence
 * include `{{claim_scope}}`, contract preconditions, postconditions, invariants, proof path, proof boundary, expected local resource path when infrastructure or services are involved, expected tests, and expected real-resource artifacts when claimed
-* include implementer-owned review gate, MR/PR goal requirement, no execution subdelegation, no portfolio chat management, attribution, parent agent, and reporting path back to this orchestrator
+* include implementer-owned review gate (required only before PR/MR create or merge), MR/PR goal requirement, no execution subdelegation, no portfolio chat management, attribution, parent agent, and reporting path back to this orchestrator
 * include `model: {{required_model}}`, `reasoning: {{required_reasoning}}`, and `model_selection_basis: {{model_selection_basis}}`
 * require the implementer to report back to this orchestrator before stopping for any reason
 * require the implementer to create or maintain `{{goal_mdscript}}` after its first context read when the lane will be monitored or resumed
@@ -67,7 +67,7 @@
 * tell the implementer that missing infrastructure is not a valid blocker until the local stack, bootstrap, preflight, dev server, fixture target, compose profile, or safe local resource path has been found and used, or explicitly shown absent, unsafe, or unable to satisfy the precondition
 * tell the implementer not to ask reviewers for vague readiness; the review request must name the typed claim scope
 * include the GitLab sudo alias requirement for `-implementor` and `-reviewer` public writes and project control-plane comment MDScripts before mirrored public GitLab writes
-* make clear that the implementer owns execution and self-review composition (including per-lane blind fanout), while this orchestrator owns coordination, lane state, permission boundaries, final decision reporting, and orchestrator-owned goals
+* make clear that the implementer owns execution and, only before PR/MR create or merge, self-review composition (including per-lane blind fanout), while this orchestrator owns coordination, lane state, permission boundaries, final decision reporting, and orchestrator-owned goals
 * forbid the implementer from re-delegating the full `/self-review` skill to a nested subagent; lane MDScripts only
 * tell the implementer that reports may include direct jumps such as `/mdscript-exec {{repo_root}}/skills/self-orchestrate/SKILL.md#monitor-implementer-lane`
 * tell the implementer to execute and report matching `{{event_exec}}` for `TARGET_DRIFT`, `HANDOFF_UNACKED`, `STALE_MR`, and `DISPOSITION_READY` when those contracts apply

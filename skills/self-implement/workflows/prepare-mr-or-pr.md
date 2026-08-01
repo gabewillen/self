@@ -2,6 +2,10 @@
 
 ## Prepare MR Or PR
 
+* set `{{self_review_required}}` to `true` because this step creates or updates a pull/merge request
+* if multi-lane self-review has not completed for the current head with an accepted review gate for this PR/MR create or update
+  * run [Use Multi-Lane Review](recursive-blind-review-loop.md#use-multi-lane-review)
+  * if the review gate is blocked, stop and report the blocker before opening or updating the PR/MR
 * create or update the issue and MR/PR required by `{{tracker}}`, `{{repository}}`, and local instructions
 
 * run [Resolve GitLab Sudo Alias](../../self-common/workflows/gitlab-sudo-alias.md#resolve-gitlab-sudo-alias) with `{{self_role}}` set to `implementer`
