@@ -189,6 +189,6 @@ See:
 
 New files, variables, classes, types, symbols, and models MUST be named for the domain or lifecycle they represent.
 
-They MUST NOT use `hsm` as a prefix or suffix in any casing or separator form, including `hsm_`, `_hsm`, `Hsm`, `HSM`, `hsmFoo`, `FooHsm`, `foo_hsm`, and `hsm-foo`.
+They MUST NOT use `hsm` as a prefix or suffix in any casing or separator form, including `hsm_`, `_hsm`, `Hsm`, `HSM`, `hsmFoo`, `FooHsm`, `foo_hsm`, `hsm-foo`, and `foo-hsm`.
 
 The framework package, import path, or module identity named `hsm` is exempt only when it is the actual HSM library boundary, not a domain artifact name.
