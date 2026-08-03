@@ -12,6 +12,8 @@
 - Do not let a project overlay weaken a core rule or demote it out of blocking.
 - Do not accept orthogonal or parallel regions; require actors coordinating by events.
 - Do not accept duplicated same-event transitions on siblings when an ancestor can own them.
+- Do not accept behavior hidden inside entry, exit, effect, or activity bodies; require it in the graph.
 - Do not accept multi-guard fan-outs that gate actions; prefer an explicit state. Guards only prevent transitions.
+- Do not accept multi-step workflows inside one activity; decompose into states and drive them with completion events.
 - Do not accept "the activity mutates the struct directly" — activities run outside the RTC step.
 - Do not rewrite machines in this skill — findings and remediation only.
