@@ -17,10 +17,13 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  readdirSync,
   realpathSync,
+  statSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -318,6 +321,71 @@ export function loadLearnPass(path: string): LearnPass | null {
   }
 }
 
+const STOP_EVENT_RETENTION = 128;
+
+/**
+ * Collision-safe marker directory for the complete hook/session identity.
+ * Hashing the full values avoids truncation collisions while keeping path
+ * components below filesystem limits.
+ */
+export function stopEventMarkerPath(hookName: string, input: HookInput): string {
+  const markerKey = (value: string): string =>
+    createHash("sha256").update(value, "utf8").digest("hex");
+  return join(
+    learnHome(),
+    "stop-events",
+    markerKey(hookName),
+    markerKey(input.sessionKey),
+  );
+}
+
+/**
+ * Retain only the newest bounded set for one hook/session directory. A
+ * lockfile serializes cleanup workers without participating in claims; claim
+ * creation remains atomic and never waits on cleanup.
+ */
+function cleanupStopEventMarkers(directory: string): void {
+  const lock = join(directory, ".cleanup.lock");
+  let lockFd: number | undefined;
+  try {
+    lockFd = openSync(lock, "wx");
+    const files = readdirSync(directory)
+      .filter((name) => name.endsWith(".json"))
+      .map((name) => {
+        const path = join(directory, name);
+        try {
+          return { path, mtimeMs: statSync(path).mtimeMs };
+        } catch {
+          return null;
+        }
+      })
+      .filter((entry): entry is { path: string; mtimeMs: number } => entry !== null)
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+    for (const entry of files.slice(STOP_EVENT_RETENTION)) {
+      try {
+        unlinkSync(entry.path);
+      } catch {
+        // A concurrent process may have removed it; retention is best effort.
+      }
+    }
+  } catch {
+    // Cleanup must never turn a successful atomic claim into a failed claim.
+  } finally {
+    if (lockFd !== undefined) {
+      try {
+        closeSync(lockFd);
+      } catch {
+        // ignore
+      }
+      try {
+        unlinkSync(lock);
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
 export function writeLearnPass(path: string, pass: LearnPass): void {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(pass, null, 2) + "\n", "utf8");
@@ -474,6 +542,28 @@ export function clearUserTurn(
   }
 }
 
+/** Whether this completed Stop has an armed learn pass that must run first. */
+export function learnPassRequiredForStop(input: HookInput): boolean {
+  if (
+    shouldSkipLearnHooks() ||
+    input.stopHookActive ||
+    input.status !== "completed" ||
+    !input.conversationId ||
+    !input.sessionKey
+  ) {
+    return false;
+  }
+  const pass = loadLearnPass(learnPassPath(input.root, input.sessionKey));
+  if (
+    pass &&
+    (pass.status === "satisfied" ||
+      pass.status === "in_flight" ||
+      pass.followup_injected_at)
+  ) {
+    return false;
+  }
+  return hasUserTurn(input.conversationId, input.dialect);
+}
 /**
  * Claim one Stop event for a hook and harness turn.
  *
@@ -486,23 +576,22 @@ export function clearUserTurn(
  */
 export function claimStopEvent(hookName: string, input: HookInput): boolean {
   if (!input.sessionKey || !input.turnId) return true;
-
-  const safePart = (value: string): string =>
-    value.replace(/[^a-zA-Z0-9._:-]+/g, "_").slice(0, 160) || "unknown";
+  const markerKey = (value: string): string =>
+    createHash("sha256").update(value, "utf8").digest("hex");
+  const markerDirectory = stopEventMarkerPath(hookName, input);
   const marker = join(
-    learnHome(),
-    "stop-events",
-    safePart(hookName),
-    safePart(input.sessionKey),
-    `${safePart(input.turnId)}.json`,
+    markerDirectory,
+    `${markerKey(input.turnId)}.json`,
   );
 
   let fd: number | undefined;
+  let created = false;
   try {
     mkdirSync(dirname(marker), { recursive: true });
     // wx is the important part: concurrent Stop processes cannot both claim
     // the same session/turn marker.
     fd = openSync(marker, "wx");
+    created = true;
     writeFileSync(
       fd,
       JSON.stringify({
@@ -513,6 +602,7 @@ export function claimStopEvent(hookName: string, input: HookInput): boolean {
       }) + "\n",
       "utf8",
     );
+    cleanupStopEventMarkers(markerDirectory);
     return true;
   } catch (error) {
     if (
@@ -523,9 +613,15 @@ export function claimStopEvent(hookName: string, input: HookInput): boolean {
     ) {
       return false;
     }
-    // A marker filesystem failure should not prevent the hook from doing its
-    // existing work; the harness can still apply stop_hook_active protection.
-    return true;
+    // Fail closed: no marker filesystem error may authorize a followup.
+    if (created) {
+      try {
+        unlinkSync(marker);
+      } catch {
+        // Preserve the failed claim; a later invocation will see EEXIST.
+      }
+    }
+    return false;
   } finally {
     if (fd !== undefined) {
       try {

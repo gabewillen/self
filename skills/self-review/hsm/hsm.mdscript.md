@@ -74,5 +74,7 @@
 ## Request Waiver
 
 * set `{{waiver_requested}}` to `true`
-* if the user already named waived rule ids, set `{{waived_rule_ids}}` and [Emit Findings](#emit-findings)
+* if the user already named waived rule ids
+  * set `{{waived_rule_ids}}`
+  * [Emit Findings](#emit-findings)
 * run [Request Waiver](workflows/request-waiver.mdscript.md#request-waiver)

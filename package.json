@@ -40,7 +40,7 @@
     "install-skills:pull": "node ./scripts/install.mjs --live --pull",
     "install-skills:no-adapters": "node ./scripts/install.mjs --live --no-adapters",
     "pack:check": "npm pack --dry-run",
-    "test": "node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs && node scripts/test-self-review-install.mjs && node scripts/test-self-implement-install.mjs && node scripts/test-gabe-to-self-cutover.mjs && node scripts/test-install-symlink.mjs",
+    "test": "node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs && node scripts/test-self-review-install.mjs && node scripts/test-self-implement-install.mjs && node scripts/test-gabe-to-self-cutover.mjs && node scripts/test-hook-session-scope.mjs && node scripts/test-install-symlink.mjs",
     "validate": "node scripts/validate-mdscript.mjs",
     "test:install-review": "node scripts/test-self-review-install.mjs",
     "test:install-implement": "node scripts/test-self-implement-install.mjs",

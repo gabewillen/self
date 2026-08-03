@@ -1,10 +1,12 @@
 import {
   abortGoalRun,
   appendProgressLog,
+  claimStopEvent,
   completeGoalRun,
   evaluateGoalCompletion,
   finishHook,
   formatGoalFollowupMessage,
+  learnPassRequiredForStop,
   loadGoalState,
   nextGoalIteration,
   continueWorkingPayload,
@@ -26,6 +28,9 @@ if (input.dialect === "grok" && input.reason && input.reason !== "end_turn") {
 
 // Harness owns multi-round continuation via /goal — do not double-loop with Stop hooks.
 if (shouldSkipGoalHooks(input.dialect)) {
+  finishHook();
+}
+if (input.stopHookActive) {
   finishHook();
 }
 
@@ -69,6 +74,9 @@ if (!state.active) {
   if (closed.complete) {
     finishHook();
   }
+  if (!claimStopEvent("self-stop", input)) {
+    finishHook();
+  }
   reopenGoalRun(root, paths, state);
   const reopenIteration = nextGoalIteration(input.loopCount, paths);
   appendProgressLog(paths, {
@@ -102,11 +110,19 @@ if (input.status === "aborted" || input.status === "error") {
 if (input.status !== "completed") {
   finishHook();
 }
+// self-learn owns priority for a real user turn. Do not claim this generation
+// before the required learn pass, regardless of hook invocation order.
+if (learnPassRequiredForStop(input)) {
+  finishHook();
+}
 
 const completion = evaluateGoalCompletion(root, paths, conversationId);
 
 if (completion.complete) {
   completeGoalRun(root, paths, state);
+  finishHook();
+}
+if (!claimStopEvent("self-stop", input)) {
   finishHook();
 }
 

@@ -17,6 +17,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { startGoalRun } from "../skills/self-goal/hooks/self-lib.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
@@ -29,6 +30,8 @@ const bun = process.env.BUN_BIN || "bun";
 const home = mkdtempSync(join(tmpdir(), "self-hook-scope-"));
 const agentsHome = join(home, ".agents");
 mkdirSync(join(agentsHome, "learn"), { recursive: true });
+process.env.AGENTS_HOME = agentsHome;
+process.env.HOME = home;
 
 function runHook(script, payload, envExtra = {}) {
   const r = spawnSync(bun, [script], {
@@ -303,8 +306,8 @@ assert(
     outA3.followup_message.includes("reflect-and-learn"),
   `new user turn may inject learn again (got ${JSON.stringify(outA3)})`,
 );
-// A watch tick is claimed once per Cursor generation. Repeated/intermediate
-// Stop events for the same generation must not inject the same resume command.
+// A required learn pass wins regardless of whether watch or learn Stop runs
+// first. Secondary hooks defer before claiming the shared generation marker.
 const watchSpool = join(agentsHome, "projects/watch-demo/ticks.jsonl");
 const watchGoal = join(
   agentsHome,
@@ -338,57 +341,155 @@ const watchStopPayload = {
   stop_hook_active: false,
   generation_id: "watch-generation-0",
 };
-// self-common's learn Stop runs before self-watch and drains pending ticks.
-// The shared claim prevents self-watch from injecting a duplicate followup.
-const learnWatchStop = runHook(learnStop, watchStopPayload, {
+const touchWatch = runHook(learnTouch, {
+  conversation_id: "cursor-watch",
+  workspace_roots: [pkgRoot],
+  generation_id: "watch-user-generation",
+  prompt: "watch session user turn",
+});
+assert(touchWatch.status === 0, "watch ordering user touch exits 0");
+const watchFirst = runHook(watchStop, watchStopPayload, {
   SELF_WATCH_SKIP_HOOKS: "0",
 });
-const learnWatchOut = parseOut(learnWatchStop.stdout);
+const watchFirstOut = parseOut(watchFirst.stdout);
 assert(
-  typeof learnWatchOut.followup_message === "string" &&
-    learnWatchOut.followup_message.includes("#resume-watch"),
-  `learn stop drains pending watch tick (got ${JSON.stringify(learnWatchOut)})`,
+  !watchFirstOut.followup_message,
+  `watch-first defers to required learn (got ${JSON.stringify(watchFirstOut)})`,
 );
-const duplicateWatchStop = runHook(watchStop, watchStopPayload, {
+const learnAfterWatch = runHook(learnStop, watchStopPayload, {
   SELF_WATCH_SKIP_HOOKS: "0",
 });
-const duplicateWatchOut = parseOut(duplicateWatchStop.stdout);
+const learnAfterWatchOut = parseOut(learnAfterWatch.stdout);
 assert(
-  !duplicateWatchOut.followup_message,
-  `watch stop must not duplicate learn followup (got ${JSON.stringify(duplicateWatchOut)})`,
+  typeof learnAfterWatchOut.followup_message === "string" &&
+    learnAfterWatchOut.followup_message.includes("reflect-and-learn"),
+  `learn-after-watch still injects required learn (got ${JSON.stringify(learnAfterWatchOut)})`,
+);
+const watchAfterLearn = runHook(watchStop, watchStopPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+assert(
+  !parseOut(watchAfterLearn.stdout).followup_message,
+  `watch-after-learn cannot duplicate same-generation followup (got ${JSON.stringify(parseOut(watchAfterLearn.stdout))})`,
 );
 
 const firstWatchPayload = {
   ...watchStopPayload,
-  generation_id: "watch-generation-1",
+  generation_id: "watch-generation-2",
 };
-const watchStop1 = runHook(watchStop, firstWatchPayload, {
+const watchStop3 = runHook(watchStop, firstWatchPayload, {
   SELF_WATCH_SKIP_HOOKS: "0",
 });
-const watchOut1 = parseOut(watchStop1.stdout);
-assert(
-  typeof watchOut1.followup_message === "string" &&
-    watchOut1.followup_message.includes("#resume-watch"),
-  `first watch stop injects pending tick (got ${JSON.stringify(watchOut1)})`,
-);
-const watchStop2 = runHook(watchStop, firstWatchPayload, {
-  SELF_WATCH_SKIP_HOOKS: "0",
-});
-const watchOut2 = parseOut(watchStop2.stdout);
-assert(
-  !watchOut2.followup_message,
-  `repeated watch stop must not re-fire (got ${JSON.stringify(watchOut2)})`,
-);
-const watchStop3 = runHook(
-  watchStop,
-  { ...watchStopPayload, generation_id: "watch-generation-2" },
-  { SELF_WATCH_SKIP_HOOKS: "0" },
-);
 const watchOut3 = parseOut(watchStop3.stdout);
 assert(
   typeof watchOut3.followup_message === "string" &&
     watchOut3.followup_message.includes("#resume-watch"),
   `later watch turn may drain pending tick (got ${JSON.stringify(watchOut3)})`,
+);
+const watchStop4 = runHook(watchStop, firstWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const watchOut4 = parseOut(watchStop4.stdout);
+assert(
+  !watchOut4.followup_message,
+  `repeated independent watch stop must not re-fire (got ${JSON.stringify(watchOut4)})`,
+);
+
+// An active incomplete goal is also subordinate to learn in either invocation
+// order, and cannot emit a second followup after learn claims the generation.
+const goalConversationId = "cursor-goal-order";
+const goalPaths = startGoalRun(pkgRoot, goalConversationId, {
+  active: true,
+  goal: "exercise incomplete goal ordering",
+  conversation_id: goalConversationId,
+  proof_kind: "default",
+  skip_hooks: false,
+  loop_driver: "self-hooks",
+});
+assert(existsSync(goalPaths.goalMdscript), "active incomplete goal tracker exists");
+const touchGoal = runHook(learnTouch, {
+  conversation_id: goalConversationId,
+  workspace_roots: [pkgRoot],
+  generation_id: "goal-user-generation",
+  prompt: "goal session user turn",
+});
+assert(touchGoal.status === 0, "goal ordering user touch exits 0");
+const goalPayload = {
+  conversation_id: goalConversationId,
+  workspace_roots: [pkgRoot],
+  status: "completed",
+  loop_count: 0,
+  stop_hook_active: false,
+  generation_id: "goal-generation-0",
+};
+const goalFirst = runHook(
+  join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts"),
+  goalPayload,
+  { SELF_GOAL_FORCE_HOOKS: "1" },
+);
+assert(
+  !parseOut(goalFirst.stdout).followup_message,
+  `goal-first defers to required learn (got ${JSON.stringify(parseOut(goalFirst.stdout))})`,
+);
+const learnAfterGoal = runHook(learnStop, goalPayload);
+const learnAfterGoalOut = parseOut(learnAfterGoal.stdout);
+assert(
+  typeof learnAfterGoalOut.followup_message === "string" &&
+    learnAfterGoalOut.followup_message.includes("reflect-and-learn"),
+  `learn-after-goal still injects required learn (got ${JSON.stringify(learnAfterGoalOut)})`,
+);
+const goalAfterLearn = runHook(
+  join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts"),
+  goalPayload,
+  { SELF_GOAL_FORCE_HOOKS: "1" },
+);
+assert(
+  !parseOut(goalAfterLearn.stdout).followup_message,
+  `goal-after-learn cannot duplicate same-generation followup (got ${JSON.stringify(parseOut(goalAfterLearn.stdout))})`,
+);
+
+// Marker claims fail closed on unavailable paths, distinguish long ids that
+// share a truncated prefix, and retain only a bounded marker set.
+const markerProbe = spawnSync(
+  bun,
+  [
+    "-e",
+    `import { writeFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { claimStopEvent, stopEventMarkerPath } from ${JSON.stringify(learnLib)};
+const base = {
+  dialect: "cursor", conversationId: "session", sessionKey: "cursor:session",
+  root: process.cwd(), status: "completed", loopCount: 0, stopHookActive: false, raw: {}
+};
+process.env.AGENTS_HOME = ${JSON.stringify(join(home, "marker-home"))};
+const inaccessible = join(${JSON.stringify(home)}, "not-a-directory");
+writeFileSync(inaccessible, "file");
+process.env.AGENTS_HOME = inaccessible;
+if (claimStopEvent("self-stop", { ...base, turnId: "blocked" })) process.exit(2);
+process.env.AGENTS_HOME = ${JSON.stringify(join(home, "marker-home"))};
+const prefix = "x".repeat(180);
+if (!claimStopEvent("self-stop", { ...base, sessionKey: "cursor:" + prefix + "a", turnId: "turn" })) process.exit(3);
+if (!claimStopEvent("self-stop", { ...base, sessionKey: "cursor:" + prefix + "b", turnId: "turn" })) process.exit(4);
+for (let i = 0; i < 130; i++) {
+  if (!claimStopEvent("retention", { ...base, turnId: "turn-" + i })) process.exit(5);
+}
+const retentionPath = stopEventMarkerPath("retention", base);
+const count = readdirSync(retentionPath).filter((name) => name.endsWith(".json")).length;
+if (count > 128) { console.error("retention count", count); process.exit(6); }
+console.log(JSON.stringify({ count }));
+`,
+  ],
+  {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      AGENTS_HOME: join(home, "marker-home"),
+    },
+  },
+);
+assert(
+  markerProbe.status === 0,
+  `marker claims fail closed, avoid collisions, and clean up (got ${markerProbe.stderr || markerProbe.stdout})`,
 );
 
 rmSync(home, { recursive: true, force: true });

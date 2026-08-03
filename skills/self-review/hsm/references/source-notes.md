@@ -1,8 +1,8 @@
-# self-hsm-review — scratch requirements (review draft)
+# self-review HSM reference notes
 
-**Status:** scratch only — not the skill yet. Review this before MDScript authoring.
+**Status:** active reference for the HSM lane in `self-review`.
 
-**Goal of the future skill:** `self-hsm-review` — MDScript skill that adversarially reviews HSM/SML work against pack hard rules across `hsm.go` / multi-language HSM DSL, grantt, mjw-style usage, and emel.cpp SML actor rules.
+**Purpose:** the HSM lane in `self-review` adversarially reviews HSM/SML work against pack hard rules across `hsm.go` / multi-language HSM DSL, grantt, mjw-style usage, and emel.cpp SML actor rules.
 
 ---
 
@@ -239,9 +239,9 @@ Anti-patterns to flag when seen opposite of above.
 
 ---
 
-## 6. Review procedure (what the MDScript skill should do)
+## 6. Review procedure (what the HSM lane does)
 
-Proposed states for later `self-hsm-review` MDILL:
+Current HSM lane entrypoints:
 
 1. **Identify scope** — paths, dialect, project policy files present  
 2. **Load rule packs** — CORE + dialect (hsm.go rules and/or sml.rules) + project overlays  
@@ -288,23 +288,23 @@ sml::event<sml::_>
 
 ---
 
-## 7. Open questions for you (before MDScript)
+## 7. Design decisions
 
-1. **Dialect default:** Should `self-hsm-review` auto-detect only, or require explicit `hsm.go` vs `sml.cpp`?
-2. **Severity:** Confirm P0–P2 all block (like self-goal) or only P0–P1?
-3. **Scope of “pure guards/effects”:** `hsm/AGENTS.md` says no side effects in effects/entry/exit; grantt allows dispatching CompletionEventKind from entry/activity. Treat **dispatch of machine-owned completion/error events** as allowed exception?
-4. **JS HSM rules** (static model, absolute paths, namespace import) — fold in as third dialect `hsm.js`?
-5. **grantt-only pins** (v1.3.1, NATS actor mandate) — always-on when `go.mod` path under grantt, else skip?
-6. **Output artifact:** findings JSON + markdown under run dir, or just chat + optional file?
-7. **Relation to self-review:** standalone skill vs check pack invoked from self-review?
+1. **Dialect default:** auto-detect the active HSM/SML dialect and pin any resolved library version.
+2. **Severity:** P0–P2 findings block; P3 findings remain visible as residuals.
+3. **Pure guards/effects:** machine-owned completion/error dispatch is allowed only where the active dialect explicitly permits it.
+4. **JS HSM rules:** apply when the target tree imports the JavaScript HSM runtime.
+5. **Grantt overlays:** apply only when grantt project policy files are present.
+6. **Output artifact:** emit findings JSON and Markdown under the run directory.
+7. **Relation to self-review:** this HSM lane is selected by the parent self-review composition.
 
 ---
 
-## 8. Proposed skill shape (after approval)
+## 8. Current pack shape
 
 ```text
-skills/self-hsm-review/
-  hsm.mdscript.md                   # MDScript entry
+skills/self-review/hsm/
+  hsm.mdscript.md                   # HSM lane entry
   workflows/
     identify-scope.md
     load-rule-packs.md
@@ -321,10 +321,10 @@ skills/self-hsm-review/
     hsm-go-rules.md                 # HSM01–54 + grantt overlays
     sml-cpp-rules.md                # SML invariants + emel layout
     check-patterns.md               # rg/ast patterns
-  scratch-hsm-requirements.md       # this file
+  references/source-notes.md        # this file
 ```
 
-No Cursor adapter planned unless you want stop-hook style enforcement later.
+No Cursor adapter is needed; the HSM lane is invoked by self-review composition.
 
 ---
 
@@ -337,7 +337,7 @@ No Cursor adapter planned unless you want stop-hook style enforcement later.
 
 ---
 
-*End of scratch. Next: you mark edits / answers to §7, then we write MDScript.*
+*End of reference notes.*
 
 
 ## Update (UML-first)

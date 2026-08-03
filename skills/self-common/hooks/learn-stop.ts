@@ -5,6 +5,7 @@ import {
   finishHook,
   formatLearnFollowup,
   hasUserTurn,
+  learnPassRequiredForStop,
   loadLearnPass,
   readHookInput,
   resolveLearnMdscriptPath,
@@ -12,10 +13,6 @@ import {
   writeLearnPass,
   learnPassPath,
 } from "./self-lib.ts";
-import {
-  formatPendingWatchFollowup,
-  listPendingWatchesForSession,
-} from "../../self-watch/hooks/self-lib.ts";
 
 const input = readHookInput();
 
@@ -42,24 +39,6 @@ if (!input.conversationId || !input.sessionKey) {
   finishHook();
 }
 
-// Pending self-watch ticks for *this* session only (never steal another chat).
-const watchSkip =
-  process.env.SELF_WATCH_SKIP_HOOKS || process.env.GABE_WATCH_SKIP_HOOKS;
-if (watchSkip !== "1" && watchSkip !== "true") {
-  const pending = listPendingWatchesForSession(
-    input.conversationId,
-    input.dialect,
-  );
-  if (pending.length) {
-    const msg = formatPendingWatchFollowup(pending);
-    if (msg) {
-      if (!claimStopEvent("self-stop", input)) {
-        finishHook();
-      }
-      finishHook(continueWorkingPayload(input.dialect, msg));
-    }
-  }
-}
 
 if (shouldSkipLearnHooks()) {
   finishHook();
@@ -84,6 +63,9 @@ if (pass && (pass.status === "in_flight" || pass.followup_injected_at)) {
 // Only a real user-originated turn may start learn (session-touch sets USER_TURN).
 // Followup prompts must not re-arm USER_TURN (see learn-session-touch).
 if (!hasUserTurn(input.conversationId, input.dialect)) {
+  finishHook();
+}
+if (!learnPassRequiredForStop(input)) {
   finishHook();
 }
 if (!claimStopEvent("self-stop", input)) {

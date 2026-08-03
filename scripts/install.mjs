@@ -1559,6 +1559,25 @@ function isGabePackHookId(id) {
   );
 }
 
+function scrubLegacyMetadata(metadata) {
+  if (!metadata || typeof metadata !== "object") return false;
+  let changed = false;
+  for (const namespace of ["self", "self-agents"]) {
+    const entries = metadata[namespace];
+    if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+    for (const key of Object.keys(entries)) {
+      if (key === "gabe" || key.startsWith("gabe-")) {
+        delete entries[key];
+        changed = true;
+      }
+    }
+  }
+  if (metadata["gabe-agents"]) {
+    delete metadata["gabe-agents"];
+    changed = true;
+  }
+  return changed;
+}
 /**
  * Strip pre-rename gabe pack hooks/metadata from a harness hook config.
  * Returns true when the file was modified.
@@ -1570,11 +1589,7 @@ function scrubHookConfigFile(configPath, { cursorFlat = false } = {}) {
   let changed = false;
 
   if (existing.metadata && typeof existing.metadata === "object") {
-    if (existing.metadata["gabe-agents"]) {
-      delete existing.metadata["gabe-agents"];
-      changed = true;
-    }
-    // Empty metadata object can stay; harmless.
+    changed = scrubLegacyMetadata(existing.metadata) || changed;
   }
 
   if (!existing.hooks || typeof existing.hooks !== "object") {
