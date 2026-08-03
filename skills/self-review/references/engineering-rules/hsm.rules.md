@@ -99,6 +99,18 @@ HSM guards MUST be pure predicates.
 
 Guards MUST NOT perform I/O, logging, allocation-heavy work, or state mutation.
 
+# HSM-GUARD-002 MUST Prefer States Over Guards For Action Gating
+
+See:
+- [PAT-GUARD-002](patterns.rules.md#pat-guard-002-must-prefer-states-over-guards-for-action-gating)
+- [PAT-HSM-001](patterns.rules.md#pat-hsm-001-must-explicit-hierarchical-state-modeling)
+
+Guards MUST only prevent transitions.
+
+States MUST be preferred over guards when preventing actions or selecting which behavior may run.
+
+When multiple transitions from the same source need multiple guards to choose among outcomes or allowed actions, the design MUST introduce an explicit state (or choice with nested states) instead of a multi-guard fan-out.
+
 # HSM-STATE-001 MUST Keep Durable State Machine Owned
 
 See:

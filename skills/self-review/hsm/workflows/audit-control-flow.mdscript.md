@@ -8,6 +8,11 @@
   * if it is local data work with one continuation, allow it under `CF-03`
 * require mutually exclusive outcomes to appear as guarded transitions or a choice with a default
   (`CF-01`, `CF-04`) — `P0`
+* for each source vertex where multiple outgoing transitions use multiple guards to choose outcomes
+  or allowed actions, record `CF-09` / `HSM-GUARD-002` — `P0`, and require an explicit state instead
+  of the multi-guard fan-out
+* for each guard used to prevent an action or select behavior rather than only block a transition,
+  record `CF-08` / `HSM-GUARD-002` — `P0`, and prefer a state that owns the allowed action set
 * for each guard with any side effect — dispatch, mutation, I/O, logging that matters — record
   `BH-01` — `P0`. A guard that reports its own failure by dispatching is still a side effect
 * for each entry, exit, or effect doing blocking, long-running, or async work, record

@@ -82,9 +82,14 @@ The machine is the only writer and the only reader of its own data.
 | CF-05 | **NEVER** hide the graph in `if` / `switch` / lookup tables inside behaviors. |
 | CF-06 | Guards on the **same trigger in the same state** must be provably disjoint, or the set must end in one unguarded default. |
 | CF-07 | **NEVER** rely on guard evaluation order for correctness beyond that trailing default. UML leaves the order unspecified. |
+| CF-08 | A **guard only prevents a transition**. Prefer an explicit **state** over a guard when preventing actions or selecting which behavior may run. |
+| CF-09 | When **multiple transitions** from the same source need **multiple guards** to choose outcomes or allowed actions, that fan-out **MUST** become a state (or nested states under a choice), not a multi-guard edge set. |
 
 **Bad:** `effect: if ok { success } else { failure }`
 **Good:** transition to choice → `[ok] Succeeded` / `[else] Failed`
+
+**Bad:** one source with several guarded transitions that gate which action may run
+**Good:** enter a state that owns the allowed action set; use a guard only to block an illegal transition
 
 ---
 

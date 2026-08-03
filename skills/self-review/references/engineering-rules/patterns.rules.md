@@ -39,6 +39,18 @@ Guards MUST be pure predicates.
 
 Guards MUST NOT perform I/O, mutate state, allocate unexpectedly, or trigger side effects.
 
+# PAT-GUARD-002 MUST Prefer States Over Guards For Action Gating
+
+See:
+- [PAT-HSM-001](#pat-hsm-001-must-explicit-hierarchical-state-modeling)
+- [PAT-GUARD-001](#pat-guard-001-must-pure-guards)
+
+Guards MUST only prevent transitions.
+
+States MUST be preferred over guards for preventing actions or selecting which behavior may run.
+
+When multiple transitions from the same source require multiple guards to choose outcomes or allowed actions, the design MUST use an explicit state instead of a multi-guard fan-out.
+
 # PAT-EVENT-001 MUST Typed Event Boundaries
 
 See:
