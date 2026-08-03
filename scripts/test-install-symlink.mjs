@@ -26,15 +26,14 @@ const aliasRoot = mkdtempSync(join(tmpdir(), "self-install-symlink-"));
 const home = mkdtempSync(join(aliasRoot, "home-"));
 const destination = join(aliasRoot, "skills");
 const expectedSource = resolve(join(pkgRoot, "skills", "self"));
+let exitCode = 0;
 
 try {
   const canonicalRoot = realpathSync(aliasRoot);
   if (canonicalRoot === aliasRoot) {
     console.log("SKIP: temporary directory has no /private/var-style alias");
-    process.exit(0);
-  }
-
-  const result = spawnSync(
+  } else {
+    const result = spawnSync(
     process.execPath,
     [
       install,
@@ -54,41 +53,43 @@ try {
       env: {
         ...process.env,
         HOME: home,
+        AGENTS_HOME: join(home, ".agents"),
         SELF_LIVE_BRANCH: "0",
         GABE_LIVE_BRANCH: "0",
       },
     },
-  );
-
-  const output = `${result.stdout || ""}\n${result.stderr || ""}`;
-  if (result.error || result.status !== 0) {
-    console.error("[test-install-symlink] installer failed");
-    console.error(output);
-    if (result.error) console.error(result.error);
-    process.exit(1);
-  }
-
-  const link = join(destination, "self");
-  if (!existsSync(link)) {
-    console.error(`[test-install-symlink] missing ${link}`);
-    process.exit(1);
-  }
-
-  const linkTarget = readlinkSync(link);
-  if (linkTarget !== expectedSource) {
-    console.error(
-      `[test-install-symlink] expected absolute target ${expectedSource}, got ${linkTarget}`,
     );
-    process.exit(1);
-  }
-  if (realpathSync(link) !== realpathSync(expectedSource)) {
-    console.error("[test-install-symlink] symlink does not resolve to its source");
-    process.exit(1);
-  }
 
-  console.log(
-    `[test-install-symlink] ok: ${link} -> ${linkTarget} via ${aliasRoot} -> ${canonicalRoot}`,
-  );
+    const output = `${result.stdout || ""}\n${result.stderr || ""}`;
+    if (result.error || result.status !== 0) {
+      console.error("[test-install-symlink] installer failed");
+      console.error(output);
+      if (result.error) console.error(result.error);
+      exitCode = 1;
+    } else {
+      const link = join(destination, "self");
+      if (!existsSync(link)) {
+        console.error(`[test-install-symlink] missing ${link}`);
+        exitCode = 1;
+      } else {
+        const linkTarget = readlinkSync(link);
+        if (linkTarget !== expectedSource) {
+          console.error(
+            `[test-install-symlink] expected absolute target ${expectedSource}, got ${linkTarget}`,
+          );
+          exitCode = 1;
+        } else if (realpathSync(link) !== realpathSync(expectedSource)) {
+          console.error("[test-install-symlink] symlink does not resolve to its source");
+          exitCode = 1;
+        } else {
+          console.log(
+            `[test-install-symlink] ok: ${link} -> ${linkTarget} via ${aliasRoot} -> ${canonicalRoot}`,
+          );
+        }
+      }
+    }
+  }
 } finally {
   rmSync(aliasRoot, { recursive: true, force: true });
 }
+process.exit(exitCode);

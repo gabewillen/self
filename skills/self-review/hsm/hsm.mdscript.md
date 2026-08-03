@@ -1,17 +1,15 @@
-
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Triage
 
 * set `{{skill_root}}` to this skill directory
+* set `{{review_skill_root}}` to the installed self-review skill root
 * set `{{repo_root}}` to the working repository root, or the path the user named
 * run [Resolve Agent Home](../../self-common/workflows/agent-home.md#resolve-agent-home)
 * set `{{review_scope}}` from the user request; if empty, default to the working diff
 * set `{{full_sweep}}` to `true` only if the user asked for a complete or whole-tree review
 * read [anti-patterns.md](references/anti-patterns.md) and hold it for every gate
 * run [Triage](workflows/triage.mdscript.md#triage)
-* if `{{machine_inventory}}` is empty and no changed component qualifies under the ownership gate
-  * stop and report `n/a`: nothing in scope owns state
 * if `{{full_sweep}}` is not `true`
   * narrow `{{machine_inventory}}` to machines the change touches
 * [Gate 0 Ownership](#gate-0-ownership)
@@ -21,8 +19,6 @@
 * run [Audit Ownership](workflows/audit-ownership.mdscript.md#audit-ownership)
 * if any finding was recorded
   * [Verify](#verify)
-* if `{{machine_inventory}}` is empty
-  * stop and report `n/a`: no machine changed
 * [Gate 1 Graph](#gate-1-graph)
 
 ## Gate 1 Graph

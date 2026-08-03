@@ -1,12 +1,10 @@
 import {
   abortGoalRun,
   appendProgressLog,
-  claimStopEvent,
   completeGoalRun,
   evaluateGoalCompletion,
   finishHook,
   formatGoalFollowupMessage,
-  learnPassRequiredForStop,
   loadGoalState,
   nextGoalIteration,
   continueWorkingPayload,
@@ -16,6 +14,12 @@ import {
   resolveGoalPathsIgnoringActive,
   shouldSkipGoalHooks,
 } from "./self-lib.ts";
+import {
+  claimStopEvent,
+  learnPassRequiredForStop,
+  releaseStopEventClaim,
+  stopEventClaimFailed,
+} from "../../self-common/hooks/self-lib.ts";
 
 const input = readHookInput();
 const root = input.root;
@@ -56,6 +60,11 @@ if (!state) {
 if (shouldSkipGoalHooks(input.dialect, state)) {
   finishHook();
 }
+// self-learn owns priority for a real user turn, including inactive runs that
+// would otherwise reopen themselves before the required learn pass.
+if (learnPassRequiredForStop(input)) {
+  finishHook();
+}
 
 // An inactive run is only legitimate when self-review actually closed it.
 // Without this check, marking the goal complete in its own front matter ends
@@ -75,31 +84,44 @@ if (!state.active) {
     finishHook();
   }
   if (!claimStopEvent("self-stop", input)) {
+    if (stopEventClaimFailed()) {
+      finishHook(
+        continueWorkingPayload(
+          input.dialect,
+          "Stop-hook marker storage is unavailable; do not end this turn until goal completion can be recorded.",
+        ),
+      );
+    }
     finishHook();
   }
-  reopenGoalRun(root, paths, state);
-  const reopenIteration = nextGoalIteration(input.loopCount, paths);
-  appendProgressLog(paths, {
-    event: "completion_rejected",
-    iteration: reopenIteration,
-    loop_count: input.loopCount,
-    reasons: closed.reasons,
-  });
-  finishHook(
-    continueWorkingPayload(
-      input.dialect,
-      formatGoalFollowupMessage(
-        root,
-        paths,
-        { ...state, active: true, resume_heading: "pursue-goal" },
-        reopenIteration,
-        [
-          "This goal was marked complete without a self-review verdict; the run has been re-opened.",
-          ...closed.reasons,
-        ],
+  try {
+    reopenGoalRun(root, paths, state);
+    const reopenIteration = nextGoalIteration(input.loopCount, paths);
+    appendProgressLog(paths, {
+      event: "completion_rejected",
+      iteration: reopenIteration,
+      loop_count: input.loopCount,
+      reasons: closed.reasons,
+    });
+    finishHook(
+      continueWorkingPayload(
+        input.dialect,
+        formatGoalFollowupMessage(
+          root,
+          paths,
+          { ...state, active: true, resume_heading: "pursue-goal" },
+          reopenIteration,
+          [
+            "This goal was marked complete without a self-review verdict; the run has been re-opened.",
+            ...closed.reasons,
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  } catch {
+    releaseStopEventClaim("self-stop", input);
+    finishHook();
+  }
 }
 
 if (input.status === "aborted" || input.status === "error") {
@@ -110,11 +132,6 @@ if (input.status === "aborted" || input.status === "error") {
 if (input.status !== "completed") {
   finishHook();
 }
-// self-learn owns priority for a real user turn. Do not claim this generation
-// before the required learn pass, regardless of hook invocation order.
-if (learnPassRequiredForStop(input)) {
-  finishHook();
-}
 
 const completion = evaluateGoalCompletion(root, paths, conversationId);
 
@@ -123,23 +140,36 @@ if (completion.complete) {
   finishHook();
 }
 if (!claimStopEvent("self-stop", input)) {
+  if (stopEventClaimFailed()) {
+    finishHook(
+      continueWorkingPayload(
+        input.dialect,
+        "Stop-hook marker storage is unavailable; do not end this turn until goal progress can be recorded.",
+      ),
+    );
+  }
   finishHook();
 }
 
 const iteration = nextGoalIteration(input.loopCount, paths);
-appendProgressLog(paths, {
-  event: "iteration_blocked",
-  iteration,
-  loop_count: input.loopCount,
-  reasons: completion.reasons,
-});
+try {
+  appendProgressLog(paths, {
+    event: "iteration_blocked",
+    iteration,
+    loop_count: input.loopCount,
+    reasons: completion.reasons,
+  });
 
-const followupMessage = formatGoalFollowupMessage(
-  root,
-  paths,
-  state,
-  iteration,
-  completion.reasons,
-);
+  const followupMessage = formatGoalFollowupMessage(
+    root,
+    paths,
+    state,
+    iteration,
+    completion.reasons,
+  );
 
-finishHook(continueWorkingPayload(input.dialect, followupMessage));
+  finishHook(continueWorkingPayload(input.dialect, followupMessage));
+} catch {
+  releaseStopEventClaim("self-stop", input);
+  finishHook();
+}

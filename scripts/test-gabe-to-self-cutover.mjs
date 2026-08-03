@@ -7,6 +7,7 @@
  */
 import {
   existsSync,
+  mkdtempSync,
   mkdirSync,
   writeFileSync,
   readFileSync,
@@ -16,12 +17,20 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { homedir } from "node:os";
+import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
 const install = join(pkgRoot, "scripts", "install.mjs");
-const home = homedir();
+const home = mkdtempSync(join(tmpdir(), "self-cutover-home-"));
+const agentsHome = join(home, ".agents");
+process.on("exit", () => {
+  try {
+    rmSync(home, { recursive: true, force: true });
+  } catch {
+    // Best-effort cleanup on normal and error exits.
+  }
+});
 
 function plant() {
   // Marker files
@@ -165,6 +174,8 @@ const r = spawnSync(
     encoding: "utf8",
     env: {
       ...process.env,
+      HOME: home,
+      AGENTS_HOME: agentsHome,
       SELF_LIVE_BRANCH: "0",
       GABE_LIVE_BRANCH: "0",
     },

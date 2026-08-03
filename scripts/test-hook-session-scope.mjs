@@ -83,6 +83,7 @@ import { detectDialect, resolveConversationId, sessionKeyFor } from ${JSON.strin
 const cases = [
   [{ conversation_id: "c1", workspace_roots: ["/tmp"] }, "cursor", "c1"],
   [{ session_id: "s1", transcript_path: "/t" }, "claude", "s1"],
+  [{ session_id: "s1b", transcript_path: "/t", permission_mode: "default", hook_event_name: "Stop" }, "claude", "s1b"],
   [{ session_id: "s2", turn_id: "t1" }, "codex", "s2"],
   // Codex Stop without misclassifying camelCase as Grok when permission_mode present.
   [{ sessionId: "cx1", turnId: "t9", hook_event_name: "Stop", permission_mode: "default", stop_hook_active: false }, "codex", "cx1"],
@@ -159,6 +160,16 @@ assert(
     outA.followup_message.includes("reflect-and-learn"),
   `stop A injects learn (got ${JSON.stringify(outA)})`,
 );
+assert(
+  !existsSync(join(agentsHome, "learn/ACTIVE")),
+  "learn does not write a global ACTIVE pointer",
+);
+assert(
+  (spawnSync("find", [join(agentsHome, "learn"), "-name", "ACTIVE.*"], {
+    encoding: "utf8",
+  }).stdout || "").includes("cursor:cursor-A"),
+  "learn writes a session-scoped ACTIVE pointer",
+);
 
 // Unscoped (no conversation id) must not write global unknown stamps
 const touchEmpty = runHook(learnTouch, {
@@ -191,6 +202,58 @@ assert(
   outClaude.decision === "block" &&
     String(outClaude.reason || "").includes("reflect-and-learn"),
   `claude stop blocks with reason (got ${JSON.stringify(outClaude)})`,
+);
+const claudeWatchSpool = join(agentsHome, "projects/claude-watch/ticks.jsonl");
+const claudeWatchGoal = join(
+  agentsHome,
+  "projects/claude-watch/goals/self-watch-1.mdscript.md",
+);
+mkdirSync(dirname(claudeWatchSpool), { recursive: true });
+mkdirSync(dirname(claudeWatchGoal), { recursive: true });
+writeFileSync(
+  claudeWatchSpool,
+  JSON.stringify({ event: "tick", seq: 1, at: new Date().toISOString() }) + "\n",
+);
+writeFileSync(
+  claudeWatchGoal,
+  [
+    "---",
+    "watch_active: true",
+    'pr_number: "1"',
+    `tick_spool: ${claudeWatchSpool}`,
+    "last_processed_seq: 0",
+    "owner_conversation_id: claude-watch",
+    "owner_dialect: claude",
+    "---",
+    "",
+  ].join("\n"),
+);
+const claudeWatchPayload = {
+  session_id: "claude-watch",
+  transcript_path: "/tmp/claude-watch.jsonl",
+  cwd: pkgRoot,
+  hook_event_name: "Stop",
+  permission_mode: "default",
+  status: "completed",
+  stop_hook_active: false,
+  last_assistant_message: "same completed Claude assistant turn",
+};
+const claudeWatchFirst = runHook(watchStop, claudeWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const claudeWatchFirstOut = parseOut(claudeWatchFirst.stdout);
+assert(
+  claudeWatchFirst.status === 0 &&
+    claudeWatchFirstOut.decision === "block" &&
+    String(claudeWatchFirstOut.reason || "").includes("resume-watch"),
+  `Claude watch owns its session (got ${JSON.stringify(claudeWatchFirst)})`,
+);
+const claudeWatchSecond = runHook(watchStop, claudeWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+assert(
+  claudeWatchSecond.status === 0 && !claudeWatchSecond.stdout,
+  `same Claude assistant turn is deduplicated (got ${JSON.stringify(claudeWatchSecond)})`,
 );
 
 
@@ -428,6 +491,10 @@ const goalFirst = runHook(
   { SELF_GOAL_FORCE_HOOKS: "1" },
 );
 assert(
+  goalFirst.status === 0 && !goalFirst.stderr,
+  `goal-first probe imports cleanly (got ${JSON.stringify(goalFirst)})`,
+);
+assert(
   !parseOut(goalFirst.stdout).followup_message,
   `goal-first defers to required learn (got ${JSON.stringify(parseOut(goalFirst.stdout))})`,
 );
@@ -444,8 +511,30 @@ const goalAfterLearn = runHook(
   { SELF_GOAL_FORCE_HOOKS: "1" },
 );
 assert(
+  goalAfterLearn.status === 0 && !goalAfterLearn.stderr,
+  `goal-after-learn probe imports cleanly (got ${JSON.stringify(goalAfterLearn)})`,
+);
+assert(
   !parseOut(goalAfterLearn.stdout).followup_message,
   `goal-after-learn cannot duplicate same-generation followup (got ${JSON.stringify(parseOut(goalAfterLearn.stdout))})`,
+);
+
+const goalEmptyProbe = spawnSync(
+  bun,
+  [join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts")],
+  {
+    input: "",
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      AGENTS_HOME: agentsHome,
+      SELF_GOAL_FORCE_HOOKS: "1",
+    },
+  },
+);
+assert(
+  goalEmptyProbe.status === 0 && !goalEmptyProbe.stderr,
+  `goal empty payload import exits cleanly (got ${JSON.stringify({ status: goalEmptyProbe.status, stderr: goalEmptyProbe.stderr })})`,
 );
 
 // Marker claims fail closed on unavailable paths, distinguish long ids that

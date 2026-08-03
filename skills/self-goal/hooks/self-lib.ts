@@ -1933,6 +1933,9 @@ export interface HookInput {
   stopHookActive: boolean;
   /** grok only: "end_turn" for a real turn end, else a session-end observe fire. */
   reason?: string;
+  /** Per-generation identity used by common Stop marker claims. */
+  turnId?: string;
+  raw: Record<string, unknown>;
   /** Orchestrator model when the harness reports one. */
   model?: string;
 }
@@ -2020,7 +2023,16 @@ export function readHookInput(): HookInput {
     loopCount,
     stopHookActive: Boolean(raw.stop_hook_active ?? raw.stopHookActive),
     reason: firstString(raw.reason) || undefined,
+    turnId:
+      firstString(
+        raw.generation_id,
+        raw.turn_id,
+        raw.turnId,
+        raw.last_assistant_message,
+        raw.lastAssistantMessage,
+      ) || undefined,
     model: firstString(raw.model) || undefined,
+    raw,
   };
 }
 

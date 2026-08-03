@@ -11,6 +11,7 @@ import {
   finishHook,
   learnPassRequiredForStop,
   readHookInput,
+  stopEventClaimFailed,
 } from "../../self-common/hooks/self-lib.ts";
 import {
   formatPendingWatchFollowup,
@@ -64,6 +65,14 @@ if (!pending.length) {
   finishHook();
 }
 if (!claimStopEvent("self-stop", input)) {
+  if (stopEventClaimFailed()) {
+    finishHook(
+      continueWorkingPayload(
+        input.dialect,
+        "Stop-hook marker storage is unavailable; do not end this turn until the pending watch can be recorded.",
+      ),
+    );
+  }
   finishHook();
 }
 
