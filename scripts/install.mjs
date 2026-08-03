@@ -685,10 +685,20 @@ function installSkillSymlink(src, dest) {
     // Replace previous managed install (dir or symlink)
     removePath(dest);
   }
-  // Relative symlink when possible for portability inside home
+  // Relative symlink when possible for portability inside home. The path used
+  // to create the link may contain an alias (macOS /var -> /private/var), so
+  // validate the candidate from the destination's canonical parent first.
   let linkTarget = absSrc;
   try {
-    linkTarget = relative(dirname(dest), absSrc) || absSrc;
+    const destParent = dirname(dest);
+    const relativeTarget = relative(destParent, absSrc) || absSrc;
+    const resolvedFromDestParent = resolve(
+      realpathSync(destParent),
+      relativeTarget,
+    );
+    if (resolvedFromDestParent === absSrc) {
+      linkTarget = relativeTarget;
+    }
   } catch {
     linkTarget = absSrc;
   }
