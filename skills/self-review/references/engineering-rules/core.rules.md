@@ -44,6 +44,14 @@ Public APIs MUST document inputs, outputs, ownership, lifetime, concurrency safe
 
 Boundary APIs MUST classify initialization-only, runtime-safe, and external-system behavior.
 
+# CORE-GEN-001 MUST Prefer Agnostic Mechanisms Over Ad-Hoc Special Cases
+
+When a contract applies to a whole class of values (every event schema, every serialization hop, every selection), the fix MUST live on the shared mechanism.
+
+Ad-hoc branches, name checks, or one-product rebuilds that only make a single case work are forbidden when a typed schema, shared projection, or common validator already owns the boundary.
+
+Ceremony-only helpers that merely rename an obvious construction of an existing type MUST NOT be introduced; write the construction at the call site or fix the generic path.
+
 # CORE-BOUND-001 MUST Explicit Platform Boundaries
 
 Filesystems, networks, clocks, random sources, environment variables, operating systems, hardware, and external services MUST be isolated behind explicit boundary layers.
