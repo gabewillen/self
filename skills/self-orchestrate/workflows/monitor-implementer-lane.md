@@ -5,6 +5,8 @@
 * read worker state before steering
 * resolve `{{goal_mdscript}}` from the active orchestrator or implementer goal path when present
 * for watcher wakeups and urgent state changes, run [Hot Path Event Handling](hot-path-event-handling.md#hot-path-event-handling) first
+* verify each delegated background lane is actually executing — check its live process, resource, receipt, or output progress against expected cadence; never assume a lane is working because a wake-up or notification is armed
+* if a delegated lane is stalled or idle past its expected cadence, resume it with the exact missing step or take the work over directly in this process — do not sit idle waiting on notifications that may never fire
 * avoid interrupting coherent active work unless there is a blocker, material drift, stale evidence, permission risk, missing watcher, or agent-addressed handoff
 * [Verify Implementer Monitor Requirements](#verify-implementer-monitor-requirements)
 
