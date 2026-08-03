@@ -118,9 +118,14 @@ if (!state.active) {
         ),
       ),
     );
-  } catch {
+} catch {
     releaseStopEventClaim("self-stop", input);
-    finishHook();
+    finishHook(
+      continueWorkingPayload(
+        input.dialect,
+        "Stop-hook could not record goal reopen state; do not end this turn until goal progress can be written.",
+      ),
+    );
   }
 }
 
@@ -171,5 +176,10 @@ try {
   finishHook(continueWorkingPayload(input.dialect, followupMessage));
 } catch {
   releaseStopEventClaim("self-stop", input);
-  finishHook();
+  finishHook(
+    continueWorkingPayload(
+      input.dialect,
+      "Stop-hook could not record goal progress; do not end this turn until goal state can be written.",
+    ),
+  );
 }

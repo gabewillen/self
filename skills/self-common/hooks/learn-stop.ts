@@ -96,7 +96,12 @@ try {
   clearUserTurn(input.conversationId, input.dialect);
 } catch {
   releaseStopEventClaim("self-stop", input);
-  finishHook();
+  finishHook(
+    continueWorkingPayload(
+      input.dialect,
+      "Stop-hook could not record the required learn pass; do not end this turn until learn state can be written.",
+    ),
+  );
 }
 
 finishHook(

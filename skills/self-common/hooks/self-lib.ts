@@ -179,9 +179,14 @@ export function sessionKeyFor(dialect: HookDialect, conversationId: string): str
 }
 
 export function sanitizeSessionKey(sessionKey: string): string {
-  return (sessionKey || "unscoped")
+  const raw = sessionKey || "unscoped";
+  // Hash the full identity so long prefix-sharing keys never collide on disk.
+  // Keep a short readable prefix for local debugging only.
+  const digest = createHash("sha256").update(raw, "utf8").digest("hex");
+  const readable = raw
     .replace(/[^a-zA-Z0-9._:-]+/g, "_")
-    .slice(0, 160);
+    .slice(0, 48);
+  return `${readable}.${digest}`;
 }
 
 export function readHookInput(): HookInput {
@@ -472,23 +477,43 @@ function cleanupGlobalStopEventMarkers(): void {
         return;
       }
     }
-    const markers: Array<{ path: string; mtimeMs: number }> = [];
+const markers: Array<{ path: string; mtimeMs: number }> = [];
+    // Layout is stop-events/<hookHash>/<sessionHash>/<turn>.json — walk both
+    // levels so abandoned sessions still count against the global bound.
     for (const namespace of readdirSync(root)) {
       if (namespace.startsWith(".")) continue;
-      const directory = join(root, namespace);
-      let names: string[];
+      const hookDirectory = join(root, namespace);
+      let sessionNames: string[];
       try {
-        names = readdirSync(directory);
+        sessionNames = readdirSync(hookDirectory);
       } catch {
         continue;
       }
-      for (const name of names) {
-        if (!name.endsWith(".json")) continue;
-        const path = join(directory, name);
+      for (const sessionName of sessionNames) {
+        if (sessionName.startsWith(".")) continue;
+        const sessionDirectory = join(hookDirectory, sessionName);
+        let markerNames: string[];
         try {
-          markers.push({ path, mtimeMs: statSync(path).mtimeMs });
+          // A flat .json at the hook level is accepted for older layouts.
+          if (sessionName.endsWith(".json")) {
+            markers.push({
+              path: sessionDirectory,
+              mtimeMs: statSync(sessionDirectory).mtimeMs,
+            });
+            continue;
+          }
+          markerNames = readdirSync(sessionDirectory);
         } catch {
-          // concurrent removal
+          continue;
+        }
+        for (const markerName of markerNames) {
+          if (!markerName.endsWith(".json")) continue;
+          const path = join(sessionDirectory, markerName);
+          try {
+            markers.push({ path, mtimeMs: statSync(path).mtimeMs });
+          } catch {
+            // concurrent removal
+          }
         }
       }
     }

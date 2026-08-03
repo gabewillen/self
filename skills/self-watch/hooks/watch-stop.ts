@@ -75,7 +75,16 @@ if (!claimStopEvent("self-stop", input)) {
   }
   finishHook();
 }
-
-finishHook(
-  continueWorkingPayload(input.dialect, formatPendingWatchFollowup(pending)),
-);
+try {
+  finishHook(
+    continueWorkingPayload(input.dialect, formatPendingWatchFollowup(pending)),
+  );
+} catch {
+  // Keep claim until TTL recovery if finishHook itself fails mid-write.
+  finishHook(
+    continueWorkingPayload(
+      input.dialect,
+      "Stop-hook could not emit the pending watch followup; do not end this turn until the watch can be recorded.",
+    ),
+  );
+}

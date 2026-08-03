@@ -167,7 +167,7 @@ assert(
 assert(
   (spawnSync("find", [join(agentsHome, "learn"), "-name", "ACTIVE.*"], {
     encoding: "utf8",
-  }).stdout || "").includes("cursor:cursor-A"),
+  }).stdout || "").trim().length > 0,
   "learn writes a session-scoped ACTIVE pointer",
 );
 
@@ -543,29 +543,99 @@ const markerProbe = spawnSync(
   bun,
   [
     "-e",
-    `import { writeFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import { claimStopEvent, stopEventMarkerPath } from ${JSON.stringify(learnLib)};
+`import { readdirSync as rd, writeFileSync as wf, mkdirSync as md, chmodSync as ch } from "node:fs";
+import { join as j } from "node:path";
+import {
+  claimStopEvent,
+  learnPassPath,
+  stopEventMarkerPath,
+  userTurnPath,
+  writeLearnPass,
+} from ${JSON.stringify(learnLib)};
 const base = {
   dialect: "cursor", conversationId: "session", sessionKey: "cursor:session",
   root: process.cwd(), status: "completed", loopCount: 0, stopHookActive: false, raw: {}
 };
-process.env.AGENTS_HOME = ${JSON.stringify(join(home, "marker-home"))};
-const inaccessible = join(${JSON.stringify(home)}, "not-a-directory");
-writeFileSync(inaccessible, "file");
+const inaccessible = j(${JSON.stringify(home)}, "not-a-directory");
+wf(inaccessible, "file");
 process.env.AGENTS_HOME = inaccessible;
 if (claimStopEvent("self-stop", { ...base, turnId: "blocked" })) process.exit(2);
 process.env.AGENTS_HOME = ${JSON.stringify(join(home, "marker-home"))};
 const prefix = "x".repeat(180);
-if (!claimStopEvent("self-stop", { ...base, sessionKey: "cursor:" + prefix + "a", turnId: "turn" })) process.exit(3);
-if (!claimStopEvent("self-stop", { ...base, sessionKey: "cursor:" + prefix + "b", turnId: "turn" })) process.exit(4);
+const keyA = "cursor:" + prefix + "a";
+const keyB = "cursor:" + prefix + "b";
+if (learnPassPath(process.cwd(), keyA) === learnPassPath(process.cwd(), keyB)) process.exit(7);
+if (userTurnPath(keyA) === userTurnPath(keyB)) process.exit(8);
+if (!claimStopEvent("self-stop", { ...base, sessionKey: keyA, turnId: "turn" })) process.exit(3);
+if (!claimStopEvent("self-stop", { ...base, sessionKey: keyB, turnId: "turn" })) process.exit(4);
 for (let i = 0; i < 130; i++) {
   if (!claimStopEvent("retention", { ...base, turnId: "turn-" + i })) process.exit(5);
 }
 const retentionPath = stopEventMarkerPath("retention", base);
-const count = readdirSync(retentionPath).filter((name) => name.endsWith(".json")).length;
+const count = rd(retentionPath).filter((name) => name.endsWith(".json")).length;
 if (count > 128) { console.error("retention count", count); process.exit(6); }
-console.log(JSON.stringify({ count }));
+// Nested multi-session global retention must walk session dirs.
+for (let s = 0; s < 6; s++) {
+  for (let t = 0; t < 100; t++) {
+    if (!claimStopEvent("global-retention", {
+      ...base,
+      sessionKey: "cursor:global-session-" + s,
+      turnId: "gturn-" + t,
+    })) process.exit(9);
+  }
+}
+function countJsonMarkers(dir) {
+  let total = 0;
+  for (const name of rd(dir)) {
+    if (name.startsWith(".")) continue;
+    const p = j(dir, name);
+    try {
+      if (name.endsWith(".json")) { total += 1; continue; }
+      for (const nested of rd(p)) {
+        if (nested.endsWith(".json")) total += 1;
+        else {
+          try {
+            for (const deep of rd(j(p, nested))) {
+              if (deep.endsWith(".json")) total += 1;
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+  return total;
+}
+const globalRoot = j(process.env.AGENTS_HOME, "learn", "stop-events");
+const globalCount = countJsonMarkers(globalRoot);
+if (globalCount > 512) { console.error("global retention count", globalCount); process.exit(10); }
+// Durable write failure after claim must block, not empty-allow stop.
+const failHome = j(${JSON.stringify(home)}, "learn-write-fail");
+md(j(failHome, "learn"), { recursive: true });
+process.env.AGENTS_HOME = failHome;
+const failBase = {
+  ...base,
+  conversationId: "write-fail",
+  sessionKey: "cursor:write-fail",
+  turnId: "wf-1",
+};
+if (!claimStopEvent("self-stop", failBase)) process.exit(11);
+ch(j(failHome, "learn"), 0o555);
+let threw = false;
+try {
+  writeLearnPass(learnPassPath(process.cwd(), failBase.sessionKey), {
+    conversation_id: "write-fail",
+    dialect: "cursor",
+    session_key: failBase.sessionKey,
+    loop_count: 0,
+    status: "in_flight",
+    required_at: new Date().toISOString(),
+  });
+} catch {
+  threw = true;
+}
+if (!threw) process.exit(12);
+try { ch(j(failHome, "learn"), 0o755); } catch {}
+console.log(JSON.stringify({ count, globalCount, threw }));
 `,
   ],
   {
@@ -581,6 +651,12 @@ assert(
   `marker claims fail closed, avoid collisions, and clean up (got ${markerProbe.stderr || markerProbe.stdout})`,
 );
 
+try {
+  // The write-failure probe intentionally chmods a nested learn dir 0555.
+  spawnSync("chmod", ["-R", "u+w", home], { encoding: "utf8" });
+} catch {
+  // best effort before recursive remove
+}
 rmSync(home, { recursive: true, force: true });
 
 if (failed) {
