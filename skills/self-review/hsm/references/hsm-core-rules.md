@@ -73,8 +73,11 @@ The machine is the only writer and the only reader of its own data.
 
 ## CF — Control flow is the graph (P0)
 
+**Primary rule:** behavior is modeled explicitly in the graph. It is never hidden inside entry, exit, effect, or activity bodies.
+
 | ID | Rule |
 |----|------|
+| CF-00 | **Model behavior explicitly.** Modes, sequencing, branching, waiting, retries, cancellation, and allowed actions live in states, transitions, guards, choices, and typed events — **never** concealed in entry, exit, effect, or activity code. |
 | CF-01 | Model control flow with **transitions**, **guards**, and **choice**. |
 | CF-02 | **NEVER** use a conditional in entry, exit, effect, or activity to choose which path, event, transition, or outcome runs next. |
 | CF-03 | Conditionals inside behaviors are allowed **only** for local data work that does not change control flow. |

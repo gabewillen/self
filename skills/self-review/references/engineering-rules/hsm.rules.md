@@ -7,6 +7,20 @@ HSM code MUST comply with the relevant host-language rules and hierarchical stat
 
 Host-language aliases MUST map directly to canonical HSM semantics and MUST NOT introduce separate behavior.
 
+# HSM-BEHAVIOR-001 MUST Model Behavior Explicitly In The Graph
+
+See:
+- [PAT-HSM-001](patterns.rules.md#pat-hsm-001-must-explicit-hierarchical-state-modeling)
+- [PAT-HSM-002](patterns.rules.md#pat-hsm-002-must-model-behavior-explicitly-in-the-graph)
+- [HSM-GUARD-002](#hsm-guard-002-must-prefer-states-over-guards-for-action-gating)
+- [HSM-ACTIVITY-002](#hsm-activity-002-must-decompose-multi-step-work-into-states)
+
+Behavioral modes, sequencing, branching, retries, waiting, cancellation, and allowed actions MUST be modeled explicitly as states, transitions, guards, choices, and typed events.
+
+Behavior MUST NOT be hidden inside entry actions, exit actions, effects, or activities.
+
+Entry, exit, effect, and activity bodies MAY perform local work for the current step, but MUST NOT conceal the next mode, next phase, or control-flow decision that belongs in the graph.
+
 # HSM-INIT-001 MUST Define Initial Transitions
 
 See:

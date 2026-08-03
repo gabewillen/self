@@ -2,6 +2,12 @@
 
 ## Audit Control Flow
 
+* treat explicit graph modeling as the primary control-flow contract: modes, sequencing, branching,
+  waiting, retries, cancellation, and allowed actions must appear as states, transitions, guards,
+  choices, or typed events
+* for each control-flow decision, next-step selection, phase sequence, or allowed-action policy
+  hidden inside entry, exit, effect, or activity bodies, record `CF-00` / `HSM-BEHAVIOR-001` /
+  `PAT-HSM-002` — `P0`
 * for each conditional in a guard, effect, entry, exit, or activity
   * if it selects a transition, a target, which event drives the machine next, or retry versus fail
     versus success, record `CF-02` / `CF-05` — `P0`, with the location and the exact expression
