@@ -21,6 +21,18 @@ Behavior MUST NOT be hidden inside entry actions, exit actions, effects, or acti
 
 Entry, exit, effect, and activity bodies MAY perform local work for the current step, but MUST NOT conceal the next mode, next phase, or control-flow decision that belongs in the graph.
 
+# HSM-HIERARCHY-001 MUST Lift Shared Workflow Behavior Into Parent States
+
+See:
+- [PAT-HSM-001](patterns.rules.md#pat-hsm-001-must-explicit-hierarchical-state-modeling)
+- [PAT-HSM-003](patterns.rules.md#pat-hsm-003-must-lift-shared-workflow-behavior-into-parents)
+
+Workflows with multiple step states MUST use a hierarchical parent/composite state for the shared workflow scope.
+
+Shared handlers that apply across step states — including defer, cancel, abort, timeout, and common completion routing — MUST be declared once on the parent state.
+
+Leaf/step states MUST NOT duplicate the same `defer`, transition, entry, exit, or activity that a parent can own.
+
 # HSM-INIT-001 MUST Define Initial Transitions
 
 See:
