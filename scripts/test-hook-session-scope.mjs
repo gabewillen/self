@@ -17,17 +17,21 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { startGoalRun } from "../skills/self-goal/hooks/self-lib.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
 const learnLib = join(pkgRoot, "skills/self-common/hooks/self-lib.ts");
 const learnTouch = join(pkgRoot, "skills/self-common/hooks/learn-session-touch.ts");
 const learnStop = join(pkgRoot, "skills/self-common/hooks/learn-stop.ts");
+const watchStop = join(pkgRoot, "skills/self-watch/hooks/watch-stop.ts");
 const bun = process.env.BUN_BIN || "bun";
 
 const home = mkdtempSync(join(tmpdir(), "self-hook-scope-"));
 const agentsHome = join(home, ".agents");
 mkdirSync(join(agentsHome, "learn"), { recursive: true });
+process.env.AGENTS_HOME = agentsHome;
+process.env.HOME = home;
 
 function runHook(script, payload, envExtra = {}) {
   const r = spawnSync(bun, [script], {
@@ -79,6 +83,7 @@ import { detectDialect, resolveConversationId, sessionKeyFor } from ${JSON.strin
 const cases = [
   [{ conversation_id: "c1", workspace_roots: ["/tmp"] }, "cursor", "c1"],
   [{ session_id: "s1", transcript_path: "/t" }, "claude", "s1"],
+  [{ session_id: "s1b", transcript_path: "/t", permission_mode: "default", hook_event_name: "Stop" }, "claude", "s1b"],
   [{ session_id: "s2", turn_id: "t1" }, "codex", "s2"],
   // Codex Stop without misclassifying camelCase as Grok when permission_mode present.
   [{ sessionId: "cx1", turnId: "t9", hook_event_name: "Stop", permission_mode: "default", stop_hook_active: false }, "codex", "cx1"],
@@ -155,6 +160,16 @@ assert(
     outA.followup_message.includes("reflect-and-learn"),
   `stop A injects learn (got ${JSON.stringify(outA)})`,
 );
+assert(
+  !existsSync(join(agentsHome, "learn/ACTIVE")),
+  "learn does not write a global ACTIVE pointer",
+);
+assert(
+  (spawnSync("find", [join(agentsHome, "learn"), "-name", "ACTIVE.*"], {
+    encoding: "utf8",
+  }).stdout || "").trim().length > 0,
+  "learn writes a session-scoped ACTIVE pointer",
+);
 
 // Unscoped (no conversation id) must not write global unknown stamps
 const touchEmpty = runHook(learnTouch, {
@@ -187,6 +202,58 @@ assert(
   outClaude.decision === "block" &&
     String(outClaude.reason || "").includes("reflect-and-learn"),
   `claude stop blocks with reason (got ${JSON.stringify(outClaude)})`,
+);
+const claudeWatchSpool = join(agentsHome, "projects/claude-watch/ticks.jsonl");
+const claudeWatchGoal = join(
+  agentsHome,
+  "projects/claude-watch/goals/self-watch-1.mdscript.md",
+);
+mkdirSync(dirname(claudeWatchSpool), { recursive: true });
+mkdirSync(dirname(claudeWatchGoal), { recursive: true });
+writeFileSync(
+  claudeWatchSpool,
+  JSON.stringify({ event: "tick", seq: 1, at: new Date().toISOString() }) + "\n",
+);
+writeFileSync(
+  claudeWatchGoal,
+  [
+    "---",
+    "watch_active: true",
+    'pr_number: "1"',
+    `tick_spool: ${claudeWatchSpool}`,
+    "last_processed_seq: 0",
+    "owner_conversation_id: claude-watch",
+    "owner_dialect: claude",
+    "---",
+    "",
+  ].join("\n"),
+);
+const claudeWatchPayload = {
+  session_id: "claude-watch",
+  transcript_path: "/tmp/claude-watch.jsonl",
+  cwd: pkgRoot,
+  hook_event_name: "Stop",
+  permission_mode: "default",
+  status: "completed",
+  stop_hook_active: false,
+  last_assistant_message: "same completed Claude assistant turn",
+};
+const claudeWatchFirst = runHook(watchStop, claudeWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const claudeWatchFirstOut = parseOut(claudeWatchFirst.stdout);
+assert(
+  claudeWatchFirst.status === 0 &&
+    claudeWatchFirstOut.decision === "block" &&
+    String(claudeWatchFirstOut.reason || "").includes("resume-watch"),
+  `Claude watch owns its session (got ${JSON.stringify(claudeWatchFirst)})`,
+);
+const claudeWatchSecond = runHook(watchStop, claudeWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+assert(
+  claudeWatchSecond.status === 0 && !claudeWatchSecond.stdout,
+  `same Claude assistant turn is deduplicated (got ${JSON.stringify(claudeWatchSecond)})`,
 );
 
 
@@ -302,7 +369,352 @@ assert(
     outA3.followup_message.includes("reflect-and-learn"),
   `new user turn may inject learn again (got ${JSON.stringify(outA3)})`,
 );
+// A required learn pass wins regardless of whether watch or learn Stop runs
+// first. Secondary hooks defer before claiming the shared generation marker.
+const watchSpool = join(agentsHome, "projects/watch-demo/ticks.jsonl");
+const watchGoal = join(
+  agentsHome,
+  "projects/watch-demo/goals/self-watch-1.mdscript.md",
+);
+mkdirSync(dirname(watchSpool), { recursive: true });
+mkdirSync(dirname(watchGoal), { recursive: true });
+writeFileSync(
+  watchSpool,
+  JSON.stringify({ event: "tick", seq: 1, at: new Date().toISOString() }) + "\n",
+);
+writeFileSync(
+  watchGoal,
+  [
+    "---",
+    "watch_active: true",
+    'pr_number: "1"',
+    `tick_spool: ${watchSpool}`,
+    "last_processed_seq: 0",
+    "owner_conversation_id: cursor-watch",
+    "owner_dialect: cursor",
+    "---",
+    "",
+  ].join("\n"),
+);
+const watchStopPayload = {
+  conversation_id: "cursor-watch",
+  workspace_roots: [pkgRoot],
+  status: "completed",
+  loop_count: 0,
+  stop_hook_active: false,
+  generation_id: "watch-generation-0",
+};
+const touchWatch = runHook(learnTouch, {
+  conversation_id: "cursor-watch",
+  workspace_roots: [pkgRoot],
+  generation_id: "watch-user-generation",
+  prompt: "watch session user turn",
+});
+assert(touchWatch.status === 0, "watch ordering user touch exits 0");
+const watchFirst = runHook(watchStop, watchStopPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const watchFirstOut = parseOut(watchFirst.stdout);
+assert(
+  !watchFirstOut.followup_message,
+  `watch-first defers to required learn (got ${JSON.stringify(watchFirstOut)})`,
+);
+const learnAfterWatch = runHook(learnStop, watchStopPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const learnAfterWatchOut = parseOut(learnAfterWatch.stdout);
+assert(
+  typeof learnAfterWatchOut.followup_message === "string" &&
+    learnAfterWatchOut.followup_message.includes("reflect-and-learn"),
+  `learn-after-watch still injects required learn (got ${JSON.stringify(learnAfterWatchOut)})`,
+);
+const watchAfterLearn = runHook(watchStop, watchStopPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+assert(
+  !parseOut(watchAfterLearn.stdout).followup_message,
+  `watch-after-learn cannot duplicate same-generation followup (got ${JSON.stringify(parseOut(watchAfterLearn.stdout))})`,
+);
 
+const firstWatchPayload = {
+  ...watchStopPayload,
+  generation_id: "watch-generation-2",
+};
+const watchStop3 = runHook(watchStop, firstWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const watchOut3 = parseOut(watchStop3.stdout);
+assert(
+  typeof watchOut3.followup_message === "string" &&
+    watchOut3.followup_message.includes("#resume-watch"),
+  `later watch turn may drain pending tick (got ${JSON.stringify(watchOut3)})`,
+);
+const watchStop4 = runHook(watchStop, firstWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const watchOut4 = parseOut(watchStop4.stdout);
+assert(
+  !watchOut4.followup_message,
+  `repeated independent watch stop must not re-fire (got ${JSON.stringify(watchOut4)})`,
+);
+
+// An active incomplete goal is also subordinate to learn in either invocation
+// order, and cannot emit a second followup after learn claims the generation.
+const goalConversationId = "cursor-goal-order";
+const goalPaths = startGoalRun(pkgRoot, goalConversationId, {
+  active: true,
+  goal: "exercise incomplete goal ordering",
+  conversation_id: goalConversationId,
+  proof_kind: "default",
+  skip_hooks: false,
+  loop_driver: "self-hooks",
+});
+assert(existsSync(goalPaths.goalMdscript), "active incomplete goal tracker exists");
+const touchGoal = runHook(learnTouch, {
+  conversation_id: goalConversationId,
+  workspace_roots: [pkgRoot],
+  generation_id: "goal-user-generation",
+  prompt: "goal session user turn",
+});
+assert(touchGoal.status === 0, "goal ordering user touch exits 0");
+const goalPayload = {
+  conversation_id: goalConversationId,
+  workspace_roots: [pkgRoot],
+  status: "completed",
+  loop_count: 0,
+  stop_hook_active: false,
+  generation_id: "goal-generation-0",
+};
+const goalFirst = runHook(
+  join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts"),
+  goalPayload,
+  { SELF_GOAL_FORCE_HOOKS: "1" },
+);
+assert(
+  goalFirst.status === 0 && !goalFirst.stderr,
+  `goal-first probe imports cleanly (got ${JSON.stringify(goalFirst)})`,
+);
+assert(
+  !parseOut(goalFirst.stdout).followup_message,
+  `goal-first defers to required learn (got ${JSON.stringify(parseOut(goalFirst.stdout))})`,
+);
+const learnAfterGoal = runHook(learnStop, goalPayload);
+const learnAfterGoalOut = parseOut(learnAfterGoal.stdout);
+assert(
+  typeof learnAfterGoalOut.followup_message === "string" &&
+    learnAfterGoalOut.followup_message.includes("reflect-and-learn"),
+  `learn-after-goal still injects required learn (got ${JSON.stringify(learnAfterGoalOut)})`,
+);
+const goalAfterLearn = runHook(
+  join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts"),
+  goalPayload,
+  { SELF_GOAL_FORCE_HOOKS: "1" },
+);
+assert(
+  goalAfterLearn.status === 0 && !goalAfterLearn.stderr,
+  `goal-after-learn probe imports cleanly (got ${JSON.stringify(goalAfterLearn)})`,
+);
+assert(
+  !parseOut(goalAfterLearn.stdout).followup_message,
+  `goal-after-learn cannot duplicate same-generation followup (got ${JSON.stringify(parseOut(goalAfterLearn.stdout))})`,
+);
+
+const goalEmptyProbe = spawnSync(
+  bun,
+  [join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts")],
+  {
+    input: "",
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      AGENTS_HOME: agentsHome,
+      SELF_GOAL_FORCE_HOOKS: "1",
+    },
+  },
+);
+assert(
+  goalEmptyProbe.status === 0 && !goalEmptyProbe.stderr && goalEmptyProbe.stdout === "",
+  `goal empty payload import exits cleanly with empty stdout (got ${JSON.stringify({ status: goalEmptyProbe.status, stdout: goalEmptyProbe.stdout, stderr: goalEmptyProbe.stderr })})`,
+);
+
+// CamelCase Codex payloads must share dialect/session namespace between goal and learn.
+const camelCodexConversation = "camel-codex-1";
+const camelPaths = startGoalRun(pkgRoot, camelCodexConversation, {
+  active: true,
+  goal: "camel codex ordering",
+  status: "active",
+  resume_heading: "pursue-goal",
+  conversation_id: camelCodexConversation,
+});
+assert(existsSync(camelPaths.goalMdscript), "camel codex goal tracker exists");
+const camelTouch = runHook(learnTouch, {
+  sessionId: camelCodexConversation,
+  turnId: "camel-turn",
+  hook_event_name: "UserPromptSubmit",
+  permission_mode: "default",
+  prompt: "camel codex user turn",
+});
+assert(camelTouch.status === 0, "camel codex user touch exits 0");
+const camelPayload = {
+  sessionId: camelCodexConversation,
+  turnId: "camel-stop",
+  hook_event_name: "Stop",
+  permission_mode: "default",
+  stop_hook_active: false,
+  status: "completed",
+  last_assistant_message: "done",
+};
+const camelGoalFirst = runHook(
+  join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts"),
+  camelPayload,
+  { SELF_GOAL_FORCE_HOOKS: "1" },
+);
+assert(
+  camelGoalFirst.status === 0 && !camelGoalFirst.stderr && !parseOut(camelGoalFirst.stdout).followup_message && !parseOut(camelGoalFirst.stdout).decision,
+  `camel codex goal-first defers to learn (got ${JSON.stringify(camelGoalFirst)})`,
+);
+const camelLearn = runHook(learnStop, camelPayload);
+const camelLearnOut = parseOut(camelLearn.stdout);
+assert(
+  camelLearn.status === 0 &&
+    typeof camelLearnOut.reason === "string" &&
+    camelLearnOut.reason.includes("reflect-and-learn"),
+  `camel codex learn injects required learn (got ${JSON.stringify(camelLearnOut)})`,
+);
+const camelGoalAfter = runHook(
+  join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts"),
+  camelPayload,
+  { SELF_GOAL_FORCE_HOOKS: "1" },
+);
+assert(
+  camelGoalAfter.status === 0 &&
+    !camelGoalAfter.stderr &&
+    !parseOut(camelGoalAfter.stdout).followup_message &&
+    !parseOut(camelGoalAfter.stdout).decision &&
+    camelGoalAfter.stdout === "",
+  `camel codex goal-after cannot duplicate same generation (got ${JSON.stringify(camelGoalAfter)})`,
+);
+
+// Marker claims fail closed on unavailable paths, distinguish long ids that
+// share a truncated prefix, and retain only a bounded marker set.
+const markerProbe = spawnSync(
+  bun,
+  [
+    "-e",
+`import { readdirSync as rd, writeFileSync as wf, mkdirSync as md, chmodSync as ch } from "node:fs";
+import { join as j } from "node:path";
+import {
+  claimStopEvent,
+  learnPassPath,
+  stopEventMarkerPath,
+  userTurnPath,
+  writeLearnPass,
+} from ${JSON.stringify(learnLib)};
+const base = {
+  dialect: "cursor", conversationId: "session", sessionKey: "cursor:session",
+  root: process.cwd(), status: "completed", loopCount: 0, stopHookActive: false, raw: {}
+};
+const inaccessible = j(${JSON.stringify(home)}, "not-a-directory");
+wf(inaccessible, "file");
+process.env.AGENTS_HOME = inaccessible;
+if (claimStopEvent("self-stop", { ...base, turnId: "blocked" })) process.exit(2);
+process.env.AGENTS_HOME = ${JSON.stringify(join(home, "marker-home"))};
+const prefix = "x".repeat(180);
+const keyA = "cursor:" + prefix + "a";
+const keyB = "cursor:" + prefix + "b";
+if (learnPassPath(process.cwd(), keyA) === learnPassPath(process.cwd(), keyB)) process.exit(7);
+if (userTurnPath(keyA) === userTurnPath(keyB)) process.exit(8);
+if (!claimStopEvent("self-stop", { ...base, sessionKey: keyA, turnId: "turn" })) process.exit(3);
+if (!claimStopEvent("self-stop", { ...base, sessionKey: keyB, turnId: "turn" })) process.exit(4);
+for (let i = 0; i < 130; i++) {
+  if (!claimStopEvent("retention", { ...base, turnId: "turn-" + i })) process.exit(5);
+}
+const retentionPath = stopEventMarkerPath("retention", base);
+const count = rd(retentionPath).filter((name) => name.endsWith(".json")).length;
+if (count > 128) { console.error("retention count", count); process.exit(6); }
+// Nested multi-session global retention must walk session dirs.
+for (let s = 0; s < 6; s++) {
+  for (let t = 0; t < 100; t++) {
+    if (!claimStopEvent("global-retention", {
+      ...base,
+      sessionKey: "cursor:global-session-" + s,
+      turnId: "gturn-" + t,
+    })) process.exit(9);
+  }
+}
+function countJsonMarkers(dir) {
+  let total = 0;
+  for (const name of rd(dir)) {
+    if (name.startsWith(".")) continue;
+    const p = j(dir, name);
+    try {
+      if (name.endsWith(".json")) { total += 1; continue; }
+      for (const nested of rd(p)) {
+        if (nested.endsWith(".json")) total += 1;
+        else {
+          try {
+            for (const deep of rd(j(p, nested))) {
+              if (deep.endsWith(".json")) total += 1;
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+  return total;
+}
+const globalRoot = j(process.env.AGENTS_HOME, "learn", "stop-events");
+const globalCount = countJsonMarkers(globalRoot);
+if (globalCount > 512) { console.error("global retention count", globalCount); process.exit(10); }
+// Durable write failure after claim must block, not empty-allow stop.
+const failHome = j(${JSON.stringify(home)}, "learn-write-fail");
+md(j(failHome, "learn"), { recursive: true });
+process.env.AGENTS_HOME = failHome;
+const failBase = {
+  ...base,
+  conversationId: "write-fail",
+  sessionKey: "cursor:write-fail",
+  turnId: "wf-1",
+};
+if (!claimStopEvent("self-stop", failBase)) process.exit(11);
+ch(j(failHome, "learn"), 0o555);
+let threw = false;
+try {
+  writeLearnPass(learnPassPath(process.cwd(), failBase.sessionKey), {
+    conversation_id: "write-fail",
+    dialect: "cursor",
+    session_key: failBase.sessionKey,
+    loop_count: 0,
+    status: "in_flight",
+    required_at: new Date().toISOString(),
+  });
+} catch {
+  threw = true;
+}
+if (!threw) process.exit(12);
+try { ch(j(failHome, "learn"), 0o755); } catch {}
+console.log(JSON.stringify({ count, globalCount, threw }));
+`,
+  ],
+  {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      AGENTS_HOME: join(home, "marker-home"),
+    },
+  },
+);
+assert(
+  markerProbe.status === 0,
+  `marker claims fail closed, avoid collisions, and clean up (got ${markerProbe.stderr || markerProbe.stdout})`,
+);
+
+try {
+  // The write-failure probe intentionally chmods a nested learn dir 0555.
+  spawnSync("chmod", ["-R", "u+w", home], { encoding: "utf8" });
+} catch {
+  // best effort before recursive remove
+}
 rmSync(home, { recursive: true, force: true });
 
 if (failed) {

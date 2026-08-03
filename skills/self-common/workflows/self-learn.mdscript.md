@@ -5,9 +5,10 @@
 * this is an MDScript-only learn pass — not a skill role and not a parent-required worker
 * set `{{skills_root}}` to `{{repo_root}}/skills` when that directory exists, otherwise `~/.agents/skills`
 * set `{{learn_mdscript}}` to `{{skills_root}}/self-common/workflows/self-learn.mdscript.md`
-* set `{{learn_pass_path}}` from the contents of `~/.agents/learn/ACTIVE` when that file exists (strip trailing newline)
+* set `{{session_key}}` from the current harness session context (dialect and session id)
+* set `{{learn_pass_path}}` from the contents of `~/.agents/learn/ACTIVE.{{session_key}}` when that file exists (strip trailing newline)
 * if `{{learn_pass_path}}` is empty
-  * set `{{learn_pass_path}}` to `~/.agents/learn/unknown.json`
+  * set `{{learn_pass_path}}` to `~/.agents/learn/{{session_key}}.json`
 * set `{{learn_findings}}` to an empty list
 * collect only **user** messages from this turn: human chat, explicit user corrections, and direct user instructions that change how future agents must behave
 * do **not** treat the agent's own debugging, discoveries, tool failures, model failures, self-critique, evaluation design, or inferred best practices as learnable lessons
@@ -46,9 +47,9 @@
 ## Mark Learn Pass Complete
 
 * if `{{learn_pass_path}}` is empty
-  * set `{{learn_pass_path}}` from the contents of `~/.agents/learn/ACTIVE` when that file exists
+  * set `{{learn_pass_path}}` from the contents of `~/.agents/learn/ACTIVE.{{session_key}}` when that file exists
 * if `{{learn_pass_path}}` is still empty
-  * set `{{learn_pass_path}}` to `~/.agents/learn/unknown.json`
+  * set `{{learn_pass_path}}` to `~/.agents/learn/{{session_key}}.json`
 * write a JSON stamp to `{{learn_pass_path}}` with `status` set to the string `satisfied`, `learn_status` set to `{{learn_status}}`, and `completed_at` as ISO time (merge with any existing fields when present; clear `followup_injected_at` when rewriting)
 * report `learn_status={{learn_status}}` and any `{{skill_files_changed}}` or that nothing durable and **user-sourced** needed a skill update
 * stop

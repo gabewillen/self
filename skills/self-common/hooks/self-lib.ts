@@ -12,13 +12,18 @@
  * cannot steal USER_TURN, learn passes, or ACTIVE pointers from each other.
  */
 import {
+  closeSync,
   existsSync,
   mkdirSync,
+  openSync,
   readFileSync,
+  readdirSync,
   realpathSync,
+  statSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -41,6 +46,20 @@ export interface HookInput {
   model?: string;
   /** Raw stdin object for dialect-specific fields (last_assistant_message, etc.). */
   raw: Record<string, unknown>;
+}
+
+/** Roll back a claim when durable followup generation fails after claiming. */
+export function releaseStopEventClaim(hookName: string, input: HookInput): void {
+  if (!input.sessionKey || !input.turnId) return;
+  const markerKey = (value: string): string =>
+    createHash("sha256").update(value, "utf8").digest("hex");
+  const markerDirectory = stopEventMarkerPath(hookName, input);
+  const marker = join(markerDirectory, `${markerKey(input.turnId)}.json`);
+  try {
+    unlinkSync(marker);
+  } catch {
+    // Rollback is best effort; the stale-claim TTL remains the recovery path.
+  }
 }
 
 export interface LearnPass {
@@ -97,6 +116,16 @@ export function detectDialect(raw: Record<string, unknown>): HookDialect {
   // IMPORTANT: do not classify Codex as Grok just because sessionId is camelCase.
   const hookEventRaw = raw.hook_event_name ?? raw.hookEventName;
   const hookEvent = typeof hookEventRaw === "string" ? hookEventRaw : "";
+  // Claude Code Stop payloads overlap Codex on session_id, permission_mode,
+  // and hook_event_name. transcript_path/Claude version are authoritative
+  // Claude-only fields and must win before the generic Codex branch.
+  if (
+    raw.transcript_path !== undefined ||
+    raw.claude_code_version !== undefined ||
+    raw.claudeCodeVersion !== undefined
+  ) {
+    return "claude";
+  }
   if (
     raw.turn_id !== undefined ||
     raw.turnId !== undefined ||
@@ -150,9 +179,14 @@ export function sessionKeyFor(dialect: HookDialect, conversationId: string): str
 }
 
 export function sanitizeSessionKey(sessionKey: string): string {
-  return (sessionKey || "unscoped")
+  const raw = sessionKey || "unscoped";
+  // Hash the full identity so long prefix-sharing keys never collide on disk.
+  // Keep a short readable prefix for local debugging only.
+  const digest = createHash("sha256").update(raw, "utf8").digest("hex");
+  const readable = raw
     .replace(/[^a-zA-Z0-9._:-]+/g, "_")
-    .slice(0, 160);
+    .slice(0, 48);
+  return `${readable}.${digest}`;
 }
 
 export function readHookInput(): HookInput {
@@ -198,7 +232,15 @@ export function readHookInput(): HookInput {
     stopHookActive,
     reason: firstString(raw.reason) || undefined,
     turnId:
-      firstString(raw.generation_id, raw.turn_id, raw.turnId) || undefined,
+      firstString(
+        raw.generation_id,
+        raw.turn_id,
+        raw.turnId,
+        // Claude Stop has no turn_id. The assistant message is stable for the
+        // completed generation and provides a collision-safe fallback.
+        raw.last_assistant_message,
+        raw.lastAssistantMessage,
+      ) || undefined,
     model: firstString(raw.model) || undefined,
     raw,
   };
@@ -237,6 +279,11 @@ export function isHarnessFollowupPrompt(text: string): boolean {
   // Goal stop followups are also mdscript-exec clauses from formatGoalFollowupMessage.
   if (/\/mdscript-exec\b/i.test(t) && /#/.test(t)) return true;
   return false;
+}
+
+/** True only for the current claim when marker storage was unavailable. */
+export function stopEventClaimFailed(): boolean {
+  return stopEventClaimFailure;
 }
 
 export function continueWorkingPayload(
@@ -316,6 +363,186 @@ export function loadLearnPass(path: string): LearnPass | null {
   }
 }
 
+const STOP_EVENT_RETENTION = 128;
+const STOP_EVENT_GLOBAL_RETENTION = 512;
+const STOP_EVENT_CLAIM_TTL_MS = 5 * 60 * 1000;
+const STOP_EVENT_CLEANUP_LOCK_TTL_MS = 60 * 1000;
+const LEARN_IN_FLIGHT_TTL_MS = 5 * 60 * 1000;
+let stopEventClaimFailure = false;
+
+/**
+ * Collision-safe marker directory for the complete hook/session identity.
+ * Hashing the full values avoids truncation collisions while keeping path
+ * components below filesystem limits.
+ */
+export function stopEventMarkerPath(hookName: string, input: HookInput): string {
+  const markerKey = (value: string): string =>
+    createHash("sha256").update(value, "utf8").digest("hex");
+  return join(
+    learnHome(),
+    "stop-events",
+    markerKey(hookName),
+    markerKey(input.sessionKey),
+  );
+}
+
+/**
+ * Retain only the newest bounded set for one hook/session directory. A
+ * lockfile serializes cleanup workers without participating in claims; claim
+ * creation remains atomic and never waits on cleanup.
+ */
+function cleanupStopEventMarkers(directory: string): void {
+  const lock = join(directory, ".cleanup.lock");
+  let lockFd: number | undefined;
+  try {
+    try {
+      lockFd = openSync(lock, "wx");
+    } catch (error) {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? error.code
+          : undefined;
+      if (code !== "EEXIST") throw error;
+      try {
+        if (Date.now() - statSync(lock).mtimeMs > STOP_EVENT_CLEANUP_LOCK_TTL_MS) {
+          unlinkSync(lock);
+          lockFd = openSync(lock, "wx");
+        } else {
+          return;
+        }
+      } catch {
+        return;
+      }
+    }
+    const files = readdirSync(directory)
+      .filter((name) => name.endsWith(".json"))
+      .map((name) => {
+        const path = join(directory, name);
+        try {
+          return { path, mtimeMs: statSync(path).mtimeMs };
+        } catch {
+          return null;
+        }
+      })
+      .filter((entry): entry is { path: string; mtimeMs: number } => entry !== null)
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+    for (const entry of files.slice(STOP_EVENT_RETENTION)) {
+      try {
+        unlinkSync(entry.path);
+      } catch {
+        // A concurrent process may have removed it; retention is best effort.
+      }
+    }
+  } catch {
+    // Cleanup must never turn a successful atomic claim into a failed claim.
+  } finally {
+    if (lockFd !== undefined) {
+      try {
+        closeSync(lockFd);
+      } catch {
+        // ignore
+      }
+      try {
+        unlinkSync(lock);
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+/** Bound the aggregate marker tree so abandoned sessions cannot grow it forever. */
+function cleanupGlobalStopEventMarkers(): void {
+  const root = join(learnHome(), "stop-events");
+  const lock = join(root, ".global-cleanup.lock");
+  let lockFd: number | undefined;
+  try {
+    if (!existsSync(root)) return;
+    try {
+      lockFd = openSync(lock, "wx");
+    } catch (error) {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? error.code
+          : undefined;
+      if (code !== "EEXIST") return;
+      try {
+        if (Date.now() - statSync(lock).mtimeMs > STOP_EVENT_CLEANUP_LOCK_TTL_MS) {
+          unlinkSync(lock);
+          lockFd = openSync(lock, "wx");
+        } else {
+          return;
+        }
+      } catch {
+        return;
+      }
+    }
+const markers: Array<{ path: string; mtimeMs: number }> = [];
+    // Layout is stop-events/<hookHash>/<sessionHash>/<turn>.json — walk both
+    // levels so abandoned sessions still count against the global bound.
+    for (const namespace of readdirSync(root)) {
+      if (namespace.startsWith(".")) continue;
+      const hookDirectory = join(root, namespace);
+      let sessionNames: string[];
+      try {
+        sessionNames = readdirSync(hookDirectory);
+      } catch {
+        continue;
+      }
+      for (const sessionName of sessionNames) {
+        if (sessionName.startsWith(".")) continue;
+        const sessionDirectory = join(hookDirectory, sessionName);
+        let markerNames: string[];
+        try {
+          // A flat .json at the hook level is accepted for older layouts.
+          if (sessionName.endsWith(".json")) {
+            markers.push({
+              path: sessionDirectory,
+              mtimeMs: statSync(sessionDirectory).mtimeMs,
+            });
+            continue;
+          }
+          markerNames = readdirSync(sessionDirectory);
+        } catch {
+          continue;
+        }
+        for (const markerName of markerNames) {
+          if (!markerName.endsWith(".json")) continue;
+          const path = join(sessionDirectory, markerName);
+          try {
+            markers.push({ path, mtimeMs: statSync(path).mtimeMs });
+          } catch {
+            // concurrent removal
+          }
+        }
+      }
+    }
+    markers.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    for (const marker of markers.slice(STOP_EVENT_GLOBAL_RETENTION)) {
+      try {
+        unlinkSync(marker.path);
+      } catch {
+        // best effort
+      }
+    }
+  } catch {
+    // Cleanup must never turn a successful atomic claim into a failed claim.
+  } finally {
+    if (lockFd !== undefined) {
+      try {
+        closeSync(lockFd);
+      } catch {
+        // ignore
+      }
+      try {
+        unlinkSync(lock);
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
 export function writeLearnPass(path: string, pass: LearnPass): void {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(pass, null, 2) + "\n", "utf8");
@@ -325,11 +552,6 @@ export function writeLearnPass(path: string, pass: LearnPass): void {
   );
   if (key) {
     writeFileSync(learnActivePath(key), path + "\n", "utf8");
-  }
-  // Keep legacy ACTIVE for MDScripts that have not migrated yet, but only
-  // when we have a real session key (never write unscoped ACTIVE).
-  if (key) {
-    writeFileSync(learnActivePath(), path + "\n", "utf8");
   }
 }
 
@@ -472,6 +694,126 @@ export function clearUserTurn(
   }
 }
 
+/** Whether this completed Stop has an armed learn pass that must run first. */
+export function learnPassRequiredForStop(input: HookInput): boolean {
+  if (
+    shouldSkipLearnHooks() ||
+    input.stopHookActive ||
+    input.status !== "completed" ||
+    !input.conversationId ||
+    !input.sessionKey
+  ) {
+    return false;
+  }
+  const pass = loadLearnPass(learnPassPath(input.root, input.sessionKey));
+  if (pass && pass.status === "satisfied") {
+    return false;
+  }
+  if (pass?.status === "in_flight" || pass?.followup_injected_at) {
+    const injectedAt = Date.parse(pass.followup_injected_at || "");
+    if (
+      Number.isFinite(injectedAt) &&
+      Date.now() - injectedAt < LEARN_IN_FLIGHT_TTL_MS
+    ) {
+      return false;
+    }
+  }
+  return hasUserTurn(input.conversationId, input.dialect);
+}
+/**
+ * Claim one Stop event for a hook and harness turn.
+ *
+ * Cursor's generation_id and Codex's turn_id identify the assistant turn that
+ * is ending. A Stop hook may be delivered more than once while that turn is
+ * waiting on internal work; an atomic per-turn marker prevents duplicate
+ * followups without suppressing a later turn (including an intentional goal
+ * continuation). Harnesses without a turn id retain their existing behavior
+ * and rely on stop_hook_active where available.
+ */
+export function claimStopEvent(hookName: string, input: HookInput): boolean {
+  stopEventClaimFailure = false;
+  if (!input.sessionKey || !input.turnId) return true;
+  const markerKey = (value: string): string =>
+    createHash("sha256").update(value, "utf8").digest("hex");
+  const markerDirectory = stopEventMarkerPath(hookName, input);
+  const marker = join(
+    markerDirectory,
+    `${markerKey(input.turnId)}.json`,
+  );
+
+  try {
+    mkdirSync(dirname(marker), { recursive: true });
+  } catch {
+    stopEventClaimFailure = true;
+    return false;
+  }
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let fd: number | undefined;
+    let created = false;
+    try {
+      // wx is the important part: concurrent Stop processes cannot both claim
+      // the same session/turn marker.
+      fd = openSync(marker, "wx");
+      created = true;
+      writeFileSync(
+        fd,
+        JSON.stringify({
+          dialect: input.dialect,
+          session_key: input.sessionKey,
+          turn_id: input.turnId,
+          claimed_at: new Date().toISOString(),
+        }) + "\n",
+        "utf8",
+      );
+      cleanupStopEventMarkers(markerDirectory);
+      cleanupGlobalStopEventMarkers();
+      return true;
+    } catch (error) {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? error.code
+          : undefined;
+      if (code === "EEXIST") {
+        // A process can die after claiming but before durable followup
+        // injection. Reclaim only an old marker; fresh markers remain deduped.
+        try {
+          if (
+            attempt === 0 &&
+            Date.now() - statSync(marker).mtimeMs > STOP_EVENT_CLAIM_TTL_MS
+          ) {
+            unlinkSync(marker);
+            continue;
+          }
+        } catch {
+          // An unavailable marker is fail-closed and must not silently allow
+          // the turn to end without its required followup.
+          stopEventClaimFailure = true;
+        }
+        return false;
+      }
+      // Fail closed: no marker filesystem error may authorize a followup.
+      stopEventClaimFailure = true;
+      if (created) {
+        try {
+          unlinkSync(marker);
+        } catch {
+          // Preserve the failed claim; stale-marker recovery handles crashes.
+        }
+      }
+      return false;
+    } finally {
+      if (fd !== undefined) {
+        try {
+          closeSync(fd);
+        } catch {
+          // ignore close errors after the claim has been made
+        }
+      }
+    }
+  }
+  return false;
+}
+
 export function resolveLearnMdscriptPath(): string {
   const here = dirname(fileURLToPath(import.meta.url));
   const sibling = join(here, "..", "workflows", "self-learn.mdscript.md");
@@ -492,10 +834,14 @@ export function resolveLearnMdscriptPath(): string {
 }
 
 /** Stop-hook followup: multi-line instruction that includes the exact mdscript-exec clause. */
-export function formatLearnFollowup(learnMdscript: string): string {
+export function formatLearnFollowup(
+  learnMdscript: string,
+  sessionKey?: string,
+): string {
   return [
     "Stop-hook required action before ending this turn:",
     `Run exactly: /mdscript-exec ${learnMdscript}#reflect-and-learn`,
+    ...(sessionKey ? [`Use learn state for session: ${sessionKey}`] : []),
     "Scan only direct user corrections from this turn. If none, stamp nothing-to-learn and stop.",
   ].join("\n");
 }

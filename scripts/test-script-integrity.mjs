@@ -70,16 +70,47 @@ if (!out.includes(expected) && !out.includes("learn-stop.ts")) {
   process.exit(1);
 }
 
-// Clean machine: default verify-only must pass when install is healthy.
-const clean = spawnSync(process.execPath, [install, "--verify-only"], {
-  encoding: "utf8",
-  cwd: pkgRoot,
-});
+// Build and verify a clean isolated copy. Never inspect or rewrite a user's
+// live ~/.agents receipt, hooks, or skill roots.
+const cleanHome = mkdtempSync(join(tmpdir(), "self-integrity-home-"));
+const cleanRoot = join(cleanHome, "skills");
+const cleanEnv = {
+  ...process.env,
+  HOME: cleanHome,
+  AGENTS_HOME: join(cleanHome, ".agents"),
+  SELF_LIVE_BRANCH: "0",
+  GABE_LIVE_BRANCH: "0",
+};
+const installClean = spawnSync(
+  process.execPath,
+  [
+    install,
+    "--copy",
+    "--target",
+    cleanRoot,
+    "--no-instructions",
+    "--no-mdscript",
+    "--no-adapters",
+  ],
+  { encoding: "utf8", cwd: pkgRoot, env: cleanEnv },
+);
+if (installClean.status !== 0) {
+  console.error("expected isolated copy install to pass");
+  console.error(`${installClean.stdout || ""}\n${installClean.stderr || ""}`);
+  rmSync(cleanHome, { recursive: true, force: true });
+  process.exit(1);
+}
+const clean = spawnSync(
+  process.execPath,
+  [install, "--verify-only", "--target", cleanRoot],
+  { encoding: "utf8", cwd: pkgRoot, env: cleanEnv },
+);
+rmSync(cleanHome, { recursive: true, force: true });
 if (clean.status !== 0) {
-  console.error("expected clean --verify-only to pass on this machine");
+  console.error("expected isolated --verify-only to pass on a clean copy");
   console.error(`${clean.stdout || ""}\n${clean.stderr || ""}`);
   process.exit(1);
 }
 
-console.log("ok: script integrity detects stale md5 and clean install verifies");
+console.log("ok: script integrity detects stale md5 and isolated clean install verifies");
 console.log(`    source learn-stop.ts md5=${expected}`);

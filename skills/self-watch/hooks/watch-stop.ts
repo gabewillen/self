@@ -6,9 +6,12 @@
  * main cross-session leak users see as "hooks going to the wrong chat".
  */
 import {
+  claimStopEvent,
   continueWorkingPayload,
   finishHook,
+  learnPassRequiredForStop,
   readHookInput,
+  stopEventClaimFailed,
 } from "../../self-common/hooks/self-lib.ts";
 import {
   formatPendingWatchFollowup,
@@ -38,14 +41,19 @@ if (input.status !== "completed") {
 }
 
 // Never chain on our own follow-ups.
-// Cursor maps loop_count > 0 → stopHookActive in readHookInput; Claude/Codex/Grok
-// set stop_hook_active. Without this, pending ticks re-inject every Stop until
-// Cursor's loop_limit (default 5).
+// Claude/Codex/Grok set stop_hook_active. Cursor does not expose that field,
+// so claim the generation_id once below; a repeated Stop for the same turn
+// exits, while a later turn remains eligible to drain the pending tick.
 if (input.stopHookActive) {
   finishHook();
 }
 
 if (!input.conversationId) {
+  finishHook();
+}
+// self-learn owns priority for a real user turn. Deferring before claiming
+// lets learn-stop win even when hooks are invoked in reverse order.
+if (learnPassRequiredForStop(input)) {
   finishHook();
 }
 
@@ -56,7 +64,27 @@ const pending = listPendingWatchesForSession(
 if (!pending.length) {
   finishHook();
 }
-
-finishHook(
-  continueWorkingPayload(input.dialect, formatPendingWatchFollowup(pending)),
-);
+if (!claimStopEvent("self-stop", input)) {
+  if (stopEventClaimFailed()) {
+    finishHook(
+      continueWorkingPayload(
+        input.dialect,
+        "Stop-hook marker storage is unavailable; do not end this turn until the pending watch can be recorded.",
+      ),
+    );
+  }
+  finishHook();
+}
+try {
+  finishHook(
+    continueWorkingPayload(input.dialect, formatPendingWatchFollowup(pending)),
+  );
+} catch {
+  // Keep claim until TTL recovery if finishHook itself fails mid-write.
+  finishHook(
+    continueWorkingPayload(
+      input.dialect,
+      "Stop-hook could not emit the pending watch followup; do not end this turn until the watch can be recorded.",
+    ),
+  );
+}

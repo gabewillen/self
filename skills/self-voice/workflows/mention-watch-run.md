@@ -10,7 +10,7 @@
   * set `{{automation_memory_path}}` to the memory file for the active agent Slack mention watcher automation record
 * if Slack tools fail before returning mention data
   * set `{{blocker}}` to the exact Slack connector error
-  * [Report Slack Blocker](../SKILL.md#report-slack-blocker)
+  * [Report Slack Blocker](../self-voice.mdscript.md#report-slack-blocker)
 * discover recent mentions with a small overlap from the last successful scan in `{{automation_memory_path}}`
 * for each candidate mention
   * read the parent thread, nearby channel context, replies, and reactions
@@ -34,7 +34,7 @@
   * [Own Assigned Mention Thread](#own-assigned-mention-thread)
 * if the issue belongs in a monorepo or subtree-shaped workspace
   * require the child thread to verify relevant subtrees against upstream before investigation
-* [Draft Agent Voice Response](../SKILL.md#draft-agent-voice-response)
+* [Draft Agent Voice Response](../self-voice.mdscript.md#draft-agent-voice-response)
 * post `{{slack_response}}` in the Slack thread or original conversation
 * if the same information is not already visible in the user's DM
   * send exactly one concise DM to the user with mention permalink, selected project, preliminary answer if any, created thread or worktree id, and that ChatGPT is checking the mention

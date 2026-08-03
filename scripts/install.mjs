@@ -685,10 +685,20 @@ function installSkillSymlink(src, dest) {
     // Replace previous managed install (dir or symlink)
     removePath(dest);
   }
-  // Relative symlink when possible for portability inside home
+  // Relative symlink when possible for portability inside home. The path used
+  // to create the link may contain an alias (macOS /var -> /private/var), so
+  // validate the candidate from the destination's canonical parent first.
   let linkTarget = absSrc;
   try {
-    linkTarget = relative(dirname(dest), absSrc) || absSrc;
+    const destParent = dirname(dest);
+    const relativeTarget = relative(destParent, absSrc) || absSrc;
+    const resolvedFromDestParent = resolve(
+      realpathSync(destParent),
+      relativeTarget,
+    );
+    if (resolvedFromDestParent === absSrc) {
+      linkTarget = relativeTarget;
+    }
   } catch {
     linkTarget = absSrc;
   }
@@ -750,9 +760,26 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/blind-reviewers/eng-xstate.mdscript.md",
     "workflows/blind-reviewers/eng-sml.mdscript.md",
     "workflows/blind-reviewers/eng-hsm.mdscript.md",
-    // HSM pack (folded into self-review; not a top-level skill)
-    "hsm/SKILL.md",
+// HSM pack (folded into self-review; not a top-level skill)
+    "hsm/hsm.mdscript.md",
+    "hsm/references/anti-patterns.md",
+    "hsm/references/bindings.md",
+    "hsm/references/check-patterns.md",
+    "hsm/references/hsm-core-rules.md",
+    "hsm/references/source-notes.md",
+    "hsm/workflows/audit-actor-boundary.mdscript.md",
+    "hsm/workflows/audit-control-flow.mdscript.md",
+    "hsm/workflows/audit-hierarchy.mdscript.md",
+    "hsm/workflows/audit-ownership.mdscript.md",
+    "hsm/workflows/audit-reachability.mdscript.md",
+    "hsm/workflows/audit-structure.mdscript.md",
+    "hsm/workflows/audit-tests.mdscript.md",
+    "hsm/workflows/audit-time-determinism.mdscript.md",
+    "hsm/workflows/emit-findings.mdscript.md",
+    "hsm/workflows/extract-model.mdscript.md",
+    "hsm/workflows/request-waiver.mdscript.md",
     "hsm/workflows/triage.mdscript.md",
+    "hsm/workflows/verify-findings.mdscript.md",
   ],
   "self-implement": [
     "SKILL.md",
@@ -1549,6 +1576,25 @@ function isGabePackHookId(id) {
   );
 }
 
+function scrubLegacyMetadata(metadata) {
+  if (!metadata || typeof metadata !== "object") return false;
+  let changed = false;
+  for (const namespace of ["self", "self-agents"]) {
+    const entries = metadata[namespace];
+    if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+    for (const key of Object.keys(entries)) {
+      if (key === "gabe" || key.startsWith("gabe-")) {
+        delete entries[key];
+        changed = true;
+      }
+    }
+  }
+  if (metadata["gabe-agents"]) {
+    delete metadata["gabe-agents"];
+    changed = true;
+  }
+  return changed;
+}
 /**
  * Strip pre-rename gabe pack hooks/metadata from a harness hook config.
  * Returns true when the file was modified.
@@ -1560,11 +1606,7 @@ function scrubHookConfigFile(configPath, { cursorFlat = false } = {}) {
   let changed = false;
 
   if (existing.metadata && typeof existing.metadata === "object") {
-    if (existing.metadata["gabe-agents"]) {
-      delete existing.metadata["gabe-agents"];
-      changed = true;
-    }
-    // Empty metadata object can stay; harmless.
+    changed = scrubLegacyMetadata(existing.metadata) || changed;
   }
 
   if (!existing.hooks || typeof existing.hooks !== "object") {
@@ -1854,7 +1896,7 @@ function writeJson(path, data) {
  * hooks will run. Enable features.hooks in ~/.codex/config.toml when missing.
  * Updates an existing hooks/codex_hooks key in [features] instead of duplicating.
  */
-function ensureCodexHooksFeature(home = os.homedir()) {
+function ensureCodexHooksFeature(home = homedir()) {
   const configPath = join(home, ".codex", "config.toml");
   let text = "";
   try {

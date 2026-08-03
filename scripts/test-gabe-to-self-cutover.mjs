@@ -7,6 +7,7 @@
  */
 import {
   existsSync,
+  mkdtempSync,
   mkdirSync,
   writeFileSync,
   readFileSync,
@@ -16,12 +17,20 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { homedir } from "node:os";
+import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
 const install = join(pkgRoot, "scripts", "install.mjs");
-const home = homedir();
+const home = mkdtempSync(join(tmpdir(), "self-cutover-home-"));
+const agentsHome = join(home, ".agents");
+process.on("exit", () => {
+  try {
+    rmSync(home, { recursive: true, force: true });
+  } catch {
+    // Best-effort cleanup on normal and error exits.
+  }
+});
 
 function plant() {
   // Marker files
@@ -69,6 +78,47 @@ function plant() {
     },
   };
   writeFileSync(hooksPath, JSON.stringify(hooks, null, 2) + "\n");
+  // Claude nested settings: legacy commands and metadata must be removed while
+  // unrelated metadata and current self hooks survive the cutover.
+  const claudeDir = join(home, ".claude");
+  const claudeSettingsPath = join(claudeDir, "settings.json");
+  mkdirSync(claudeDir, { recursive: true });
+  let claudeSettings = { hooks: {}, metadata: {} };
+  try {
+    claudeSettings = JSON.parse(readFileSync(claudeSettingsPath, "utf8"));
+  } catch {
+    // fresh
+  }
+  claudeSettings.hooks = claudeSettings.hooks || {};
+  claudeSettings.hooks.Stop = [
+    ...(Array.isArray(claudeSettings.hooks.Stop)
+      ? claudeSettings.hooks.Stop
+      : []),
+    {
+      hooks: [
+        {
+          type: "command",
+          command: "bun /tmp/skills/gabe-common/hooks/learn-stop.ts",
+        },
+      ],
+    },
+  ];
+  claudeSettings.metadata = claudeSettings.metadata || {};
+  claudeSettings.metadata.self = {
+    ...(claudeSettings.metadata.self || {}),
+    "gabe-common": { stale: true },
+    unrelated: { keep: true },
+  };
+  claudeSettings.metadata["self-agents"] = {
+    ...(claudeSettings.metadata["self-agents"] || {}),
+    "gabe-goal": { stale: true },
+    unrelated: { keep: true },
+  };
+  claudeSettings.metadata.unrelated_namespace = { keep: true };
+  writeFileSync(
+    claudeSettingsPath,
+    JSON.stringify(claudeSettings, null, 2) + "\n",
+  );
 
   // Grok legacy per-skill hook file
   const grokHooks = join(home, ".grok", "hooks");
@@ -124,6 +174,8 @@ const r = spawnSync(
     encoding: "utf8",
     env: {
       ...process.env,
+      HOME: home,
+      AGENTS_HOME: agentsHome,
       SELF_LIVE_BRANCH: "0",
       GABE_LIVE_BRANCH: "0",
     },
@@ -178,6 +230,31 @@ assert(
 assert(
   stopIds.includes("self-learn-stop"),
   "cursor still has self-learn-stop",
+);
+const claudeSettings = JSON.parse(
+  readFileSync(join(home, ".claude", "settings.json"), "utf8"),
+);
+const claudeStopHandlers = (claudeSettings.hooks?.Stop || []).flatMap((group) =>
+  Array.isArray(group?.hooks) ? group.hooks : [],
+);
+assert(
+  !claudeStopHandlers.some((entry) => /gabe-common|skills\/gabe/.test(entry.command || "")),
+  "claude Stop has no legacy gabe command",
+);
+assert(
+  claudeStopHandlers.some((entry) => /self-common\/hooks\/learn-stop\.ts/.test(entry.command || "")),
+  "claude Stop retains current self learn hook",
+);
+assert(
+  !claudeSettings.metadata?.self?.["gabe-common"] &&
+    !claudeSettings.metadata?.["self-agents"]?.["gabe-goal"],
+  "claude metadata.self and metadata.self-agents legacy entries removed",
+);
+assert(
+  claudeSettings.metadata?.self?.unrelated?.keep === true &&
+    claudeSettings.metadata?.["self-agents"]?.unrelated?.keep === true &&
+    claudeSettings.metadata?.unrelated_namespace?.keep === true,
+  "claude unrelated metadata preserved",
 );
 
 const agentsMd = readFileSync(join(home, ".agents", "AGENTS.md"), "utf8");

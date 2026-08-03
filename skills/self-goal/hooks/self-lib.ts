@@ -1933,19 +1933,21 @@ export interface HookInput {
   stopHookActive: boolean;
   /** grok only: "end_turn" for a real turn end, else a session-end observe fire. */
   reason?: string;
+  /** Per-generation identity used by common Stop marker claims. */
+  turnId?: string;
+  raw: Record<string, unknown>;
   /** Orchestrator model when the harness reports one. */
   model?: string;
 }
 
 function detectDialect(raw: Record<string, unknown>): HookDialect {
+  // Keep identical to self-common/hooks/self-lib.ts so learn/watch/goal share
+  // one session namespace and claim key space.
   if (
     process.env.GROK_HOOK_EVENT ||
     process.env.GROK_SESSION_ID ||
     process.env.GROK_HOOK_NAME
   ) {
-    return "grok";
-  }
-  if (raw.hookEventName !== undefined || raw.sessionId !== undefined) {
     return "grok";
   }
   if (
@@ -1955,7 +1957,31 @@ function detectDialect(raw: Record<string, unknown>): HookDialect {
   ) {
     return "cursor";
   }
-  if (raw.turn_id !== undefined) return "codex";
+  const hookEventRaw = raw.hook_event_name ?? raw.hookEventName;
+  const hookEvent = typeof hookEventRaw === "string" ? hookEventRaw : "";
+  if (
+    raw.transcript_path !== undefined ||
+    raw.claude_code_version !== undefined ||
+    raw.claudeCodeVersion !== undefined
+  ) {
+    return "claude";
+  }
+  if (
+    raw.turn_id !== undefined ||
+    raw.turnId !== undefined ||
+    (
+      (raw.permission_mode !== undefined || raw.permissionMode !== undefined) &&
+      (raw.session_id !== undefined || raw.sessionId !== undefined) &&
+      /^(Stop|SubagentStop|UserPromptSubmit|SessionStart|SessionEnd|PreToolUse|PostToolUse|PreCompact|PostCompact|PermissionRequest|SubagentStart)$/i.test(
+        hookEvent,
+      )
+    )
+  ) {
+    return "codex";
+  }
+  if (raw.hookEventName !== undefined || raw.sessionId !== undefined) {
+    return "grok";
+  }
   return "claude";
 }
 
@@ -2020,7 +2046,16 @@ export function readHookInput(): HookInput {
     loopCount,
     stopHookActive: Boolean(raw.stop_hook_active ?? raw.stopHookActive),
     reason: firstString(raw.reason) || undefined,
+    turnId:
+      firstString(
+        raw.generation_id,
+        raw.turn_id,
+        raw.turnId,
+        raw.last_assistant_message,
+        raw.lastAssistantMessage,
+      ) || undefined,
     model: firstString(raw.model) || undefined,
+    raw,
   };
 }
 
@@ -2057,7 +2092,10 @@ export function respond(payload: Record<string, unknown>): void {
 
 /** Stop hooks must exit immediately after respond — do not leave Bun waiting on open stdin. */
 export function finishHook(payload: Record<string, unknown> = {}): never {
-  respond(payload);
+  // Match common hooks: empty allow-stop is empty stdout (Codex completed/no-op).
+  if (payload && Object.keys(payload).length > 0) {
+    respond(payload);
+  }
   process.exit(0);
 }
 

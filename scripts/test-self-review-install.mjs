@@ -22,9 +22,26 @@ const required = [
   "workflows/select-language-framework-lanes.md",
   "workflows/triple-adversarial-blind-review.mdscript.md",
   "workflows/blind-reviewers/engineering-rules.mdscript.md",
-  "workflows/blind-reviewers/hsm.mdscript.md",
-  "hsm/SKILL.md",
+"workflows/blind-reviewers/hsm.mdscript.md",
+  "hsm/hsm.mdscript.md",
+  "hsm/references/anti-patterns.md",
+  "hsm/references/bindings.md",
+  "hsm/references/check-patterns.md",
+  "hsm/references/hsm-core-rules.md",
+  "hsm/references/source-notes.md",
+  "hsm/workflows/audit-actor-boundary.mdscript.md",
+  "hsm/workflows/audit-control-flow.mdscript.md",
+  "hsm/workflows/audit-hierarchy.mdscript.md",
+  "hsm/workflows/audit-ownership.mdscript.md",
+  "hsm/workflows/audit-reachability.mdscript.md",
+  "hsm/workflows/audit-structure.mdscript.md",
+  "hsm/workflows/audit-tests.mdscript.md",
+  "hsm/workflows/audit-time-determinism.mdscript.md",
+  "hsm/workflows/emit-findings.mdscript.md",
+  "hsm/workflows/extract-model.mdscript.md",
+  "hsm/workflows/request-waiver.mdscript.md",
   "hsm/workflows/triage.mdscript.md",
+  "hsm/workflows/verify-findings.mdscript.md",
   "references/lane-catalog.md",
   "references/engineering-rules/SOURCE.md",
 ];
@@ -80,6 +97,16 @@ const missing = required.filter((rel) => !existsSync(join(root, rel)));
 if (missing.length) {
   console.error(`[test-self-review-install] FAIL under ${root}`);
   for (const m of missing) console.error(`  missing: ${m}`);
+  process.exit(1);
+}
+const nestedSkillManifests = ["hsm/SKILL.md"].filter((rel) =>
+  existsSync(join(root, rel)),
+);
+if (nestedSkillManifests.length) {
+  console.error(
+    "[test-self-review-install] FAIL: internal HSM pack must not expose nested SKILL.md manifests",
+  );
+  for (const rel of nestedSkillManifests) console.error(`  forbidden: ${rel}`);
   process.exit(1);
 }
 

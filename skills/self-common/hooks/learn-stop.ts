@@ -1,20 +1,20 @@
 import {
+  claimStopEvent,
   clearUserTurn,
   continueWorkingPayload,
   finishHook,
   formatLearnFollowup,
   hasUserTurn,
+  learnPassRequiredForStop,
   loadLearnPass,
   readHookInput,
   resolveLearnMdscriptPath,
   shouldSkipLearnHooks,
+  stopEventClaimFailed,
+  releaseStopEventClaim,
   writeLearnPass,
   learnPassPath,
 } from "./self-lib.ts";
-import {
-  formatPendingWatchFollowup,
-  listPendingWatchesForSession,
-} from "../../self-watch/hooks/self-lib.ts";
 
 const input = readHookInput();
 
@@ -41,21 +41,6 @@ if (!input.conversationId || !input.sessionKey) {
   finishHook();
 }
 
-// Pending self-watch ticks for *this* session only (never steal another chat).
-const watchSkip =
-  process.env.SELF_WATCH_SKIP_HOOKS || process.env.GABE_WATCH_SKIP_HOOKS;
-if (watchSkip !== "1" && watchSkip !== "true") {
-  const pending = listPendingWatchesForSession(
-    input.conversationId,
-    input.dialect,
-  );
-  if (pending.length) {
-    const msg = formatPendingWatchFollowup(pending);
-    if (msg) {
-      finishHook(continueWorkingPayload(input.dialect, msg));
-    }
-  }
-}
 
 if (shouldSkipLearnHooks()) {
   finishHook();
@@ -82,21 +67,46 @@ if (pass && (pass.status === "in_flight" || pass.followup_injected_at)) {
 if (!hasUserTurn(input.conversationId, input.dialect)) {
   finishHook();
 }
-
-// Clear the arm *before* writing the inject stamp so a racing second Stop
-// cannot see USER_TURN and double-inject.
-clearUserTurn(input.conversationId, input.dialect);
-
-writeLearnPass(passPath, {
-  conversation_id: input.conversationId,
-  dialect: input.dialect,
-  session_key: input.sessionKey,
-  loop_count: loopCount,
-  status: "in_flight",
-  required_at: new Date().toISOString(),
-  followup_injected_at: new Date().toISOString(),
-});
+if (!learnPassRequiredForStop(input)) {
+  finishHook();
+}
+if (!claimStopEvent("self-stop", input)) {
+  if (stopEventClaimFailed()) {
+    finishHook(
+      continueWorkingPayload(
+        input.dialect,
+        "Stop-hook marker storage is unavailable; do not end this turn until the required learn pass can be recorded.",
+      ),
+    );
+  }
+  finishHook();
+}
+try {
+  // Write the durable in-flight stamp before clearing the arm. If this fails,
+  // release the claim and leave USER_TURN armed so the next Stop retries.
+  writeLearnPass(passPath, {
+    conversation_id: input.conversationId,
+    dialect: input.dialect,
+    session_key: input.sessionKey,
+    loop_count: loopCount,
+    status: "in_flight",
+    required_at: new Date().toISOString(),
+    followup_injected_at: new Date().toISOString(),
+  });
+  clearUserTurn(input.conversationId, input.dialect);
+} catch {
+  releaseStopEventClaim("self-stop", input);
+  finishHook(
+    continueWorkingPayload(
+      input.dialect,
+      "Stop-hook could not record the required learn pass; do not end this turn until learn state can be written.",
+    ),
+  );
+}
 
 finishHook(
-  continueWorkingPayload(input.dialect, formatLearnFollowup(learnMdscript)),
+  continueWorkingPayload(
+    input.dialect,
+    formatLearnFollowup(learnMdscript, input.sessionKey),
+  ),
 );

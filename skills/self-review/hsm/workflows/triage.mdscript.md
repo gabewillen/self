@@ -2,7 +2,12 @@
 
 ## Triage
 
-* resolve `{{repo_root}}` to an existing absolute path; if missing, ask the user for one and [Triage](#triage)
+* if `{{repo_root}}` is missing, set `{{return_resume_heading}}` to `triage`
+* if `{{repo_root}}` is missing, run [Prepare Prompt Return Script](../../../self-common/workflows/return-script.md#prepare-prompt-return-script)
+* if `{{repo_root}}` is missing, write `{{return_script}}` as executable MDScript with the exact header and a `## Resume` entrypoint
+* if `{{repo_root}}` is missing, prompt for the existing absolute repository path and end with `{{return_resume_command}}`
+* if `{{repo_root}}` is missing, stop while waiting for the answer
+* resolve `{{repo_root}}` to an existing absolute path
 * expand `{{review_scope}}` into concrete paths under `{{repo_root}}`
 * set `{{run_id}}` to a new timestamp id
 * run [Resolve Agent Home](../../../self-common/workflows/agent-home.md#resolve-agent-home)
@@ -15,7 +20,7 @@
 * search scope for state machine definitions by structure, not by library name: a definition that
   declares vertices plus transitions with triggers, guards, or targets
 * record for each: path, model name, and the builder or helper functions it composes
-* if nothing is found, set `{{machine_inventory}}` to empty and return to the caller
+* if nothing is found, set `{{machine_inventory}}` to an empty list and continue
 * write `{{out_dir}}/machines.json` and set `{{machine_inventory}}` from it
 
 ## Resolve dialect and overlays

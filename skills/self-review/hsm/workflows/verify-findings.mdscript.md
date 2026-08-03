@@ -7,9 +7,10 @@
 
 ## Refute
 
-* for each finding in `{{unverified}}`, run an independent subagent in parallel, tasked to **refute**
-  it, given only: rule id and rule text, location, evidence excerpt, and the graph or source it
-  points at — never the reasoning that produced the finding, and never another verifier's verdict
+* for each finding in `{{unverified}}`, run an independent terminal-lane refutation pass, given only:
+  rule id and rule text, location, evidence excerpt, and the graph or source it points at — never
+  the reasoning that produced the finding, and never another verifier's verdict; do not spawn nested
+  agents or require parallel workers
 * the verifier answers `refuted` or `stands`, with the reason, against these tests:
   * does the cited code or vertex exist as quoted, at that location, in the current tree?
   * does the rule as written actually cover this, or was it stretched to fit?
@@ -18,9 +19,9 @@
   * is it already blocked by `{{enforced_patterns}}`, making it unreachable in this tree?
   * is the consequence real, or is the finding true but inert?
 * **default to `refuted` when uncertain**
-* for the terminal pass, or any finding whose remediation is structural, use three blind verifiers
-  with distinct lenses — rule conformance, runtime consequence, false positive — and keep the
-  finding only when at least two return `stands`
+* for the terminal pass, or any finding whose remediation is structural, perform three independent
+  checks in this lane with distinct lenses — rule conformance, runtime consequence, false positive
+  — and keep the finding only when at least two return `stands`
 
 ## Record
 

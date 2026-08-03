@@ -12,7 +12,7 @@
 * apply channel-fitting mannerisms from the samples
 * remove user-facing "receipts" catchphrases from the draft
 * apply social brakes from the samples when experiments, credit, correction pressure, or authority labels apply
-* apply humor only through [Decide Humor](../SKILL.md#decide-humor)
+* apply humor only through [Decide Humor](../self-voice.mdscript.md#decide-humor)
 * if the draft implies the user personally saw, approved, remembered, promised, investigated, or decided anything without current evidence
   * revise the draft to remove the authority confusion
   * [Use Durable Agent Voice Rule](#use-durable-agent-voice-rule)
