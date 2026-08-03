@@ -8,7 +8,7 @@
     `{{dialect}}`, `{{graph_source}}`, and the gate that stopped
   * the blocking findings by rule id, severity, and location
   * the instruction to set `{{waived_rule_ids}}` from the user's answer, leave it empty if the user
-    declines, and resume at [Emit Findings](../SKILL.md#emit-findings)
+    declines, and resume at [Emit Findings](../hsm.mdscript.md#emit-findings)
 * ask the user which blocking rule ids, if any, they waive for this run, listing each with its
   location and consequence
 * end the question with `mdscript-exec {{project_home}}/returns/hsm-review-waiver-{{run_id}}.mdscript.md` as the

@@ -304,7 +304,7 @@ sml::event<sml::_>
 
 ```text
 skills/self-hsm-review/
-  SKILL.md                          # MDScript entry
+  hsm.mdscript.md                   # MDScript entry
   workflows/
     identify-scope.md
     load-rule-packs.md

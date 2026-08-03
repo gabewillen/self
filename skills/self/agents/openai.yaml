@@ -1,4 +1,4 @@
 interface:
-  display_name: "Agent Router"
+  display_name: "Self Router"
   short_description: "Routes split agent roles"
   default_prompt: "Use $self to route agent-shaped work with the best available model and effort level for each role and task. Any agent with no parent that is not a subagent is a root orchestrator. Subagents use $self-implement only. Keep control records as executable MDScript under ~/.agents/projects/project-name/, directly validate them, and treat MDScripts exactly like documentation for review. Parent processes compose self-review and fan out only per-lane blind reviewers."

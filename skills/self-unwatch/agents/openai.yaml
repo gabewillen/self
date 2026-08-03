@@ -1,4 +1,4 @@
 interface:
-  display_name: "Agent Unwatch"
+  display_name: "Self Unwatch"
   short_description: "Stop a persistent self-watch PR loop"
   default_prompt: "Use $self-unwatch to stop a persistent self-watch interval loop for a PR. Kill the while-true sentinel process, mark watch state inactive, and confirm no further ticks will fire."

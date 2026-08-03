@@ -23,6 +23,7 @@ const pkgRoot = resolve(__dirname, "..");
 const learnLib = join(pkgRoot, "skills/self-common/hooks/self-lib.ts");
 const learnTouch = join(pkgRoot, "skills/self-common/hooks/learn-session-touch.ts");
 const learnStop = join(pkgRoot, "skills/self-common/hooks/learn-stop.ts");
+const watchStop = join(pkgRoot, "skills/self-watch/hooks/watch-stop.ts");
 const bun = process.env.BUN_BIN || "bun";
 
 const home = mkdtempSync(join(tmpdir(), "self-hook-scope-"));
@@ -301,6 +302,93 @@ assert(
   typeof outA3.followup_message === "string" &&
     outA3.followup_message.includes("reflect-and-learn"),
   `new user turn may inject learn again (got ${JSON.stringify(outA3)})`,
+);
+// A watch tick is claimed once per Cursor generation. Repeated/intermediate
+// Stop events for the same generation must not inject the same resume command.
+const watchSpool = join(agentsHome, "projects/watch-demo/ticks.jsonl");
+const watchGoal = join(
+  agentsHome,
+  "projects/watch-demo/goals/self-watch-1.mdscript.md",
+);
+mkdirSync(dirname(watchSpool), { recursive: true });
+mkdirSync(dirname(watchGoal), { recursive: true });
+writeFileSync(
+  watchSpool,
+  JSON.stringify({ event: "tick", seq: 1, at: new Date().toISOString() }) + "\n",
+);
+writeFileSync(
+  watchGoal,
+  [
+    "---",
+    "watch_active: true",
+    'pr_number: "1"',
+    `tick_spool: ${watchSpool}`,
+    "last_processed_seq: 0",
+    "owner_conversation_id: cursor-watch",
+    "owner_dialect: cursor",
+    "---",
+    "",
+  ].join("\n"),
+);
+const watchStopPayload = {
+  conversation_id: "cursor-watch",
+  workspace_roots: [pkgRoot],
+  status: "completed",
+  loop_count: 0,
+  stop_hook_active: false,
+  generation_id: "watch-generation-0",
+};
+// self-common's learn Stop runs before self-watch and drains pending ticks.
+// The shared claim prevents self-watch from injecting a duplicate followup.
+const learnWatchStop = runHook(learnStop, watchStopPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const learnWatchOut = parseOut(learnWatchStop.stdout);
+assert(
+  typeof learnWatchOut.followup_message === "string" &&
+    learnWatchOut.followup_message.includes("#resume-watch"),
+  `learn stop drains pending watch tick (got ${JSON.stringify(learnWatchOut)})`,
+);
+const duplicateWatchStop = runHook(watchStop, watchStopPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const duplicateWatchOut = parseOut(duplicateWatchStop.stdout);
+assert(
+  !duplicateWatchOut.followup_message,
+  `watch stop must not duplicate learn followup (got ${JSON.stringify(duplicateWatchOut)})`,
+);
+
+const firstWatchPayload = {
+  ...watchStopPayload,
+  generation_id: "watch-generation-1",
+};
+const watchStop1 = runHook(watchStop, firstWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const watchOut1 = parseOut(watchStop1.stdout);
+assert(
+  typeof watchOut1.followup_message === "string" &&
+    watchOut1.followup_message.includes("#resume-watch"),
+  `first watch stop injects pending tick (got ${JSON.stringify(watchOut1)})`,
+);
+const watchStop2 = runHook(watchStop, firstWatchPayload, {
+  SELF_WATCH_SKIP_HOOKS: "0",
+});
+const watchOut2 = parseOut(watchStop2.stdout);
+assert(
+  !watchOut2.followup_message,
+  `repeated watch stop must not re-fire (got ${JSON.stringify(watchOut2)})`,
+);
+const watchStop3 = runHook(
+  watchStop,
+  { ...watchStopPayload, generation_id: "watch-generation-2" },
+  { SELF_WATCH_SKIP_HOOKS: "0" },
+);
+const watchOut3 = parseOut(watchStop3.stdout);
+assert(
+  typeof watchOut3.followup_message === "string" &&
+    watchOut3.followup_message.includes("#resume-watch"),
+  `later watch turn may drain pending tick (got ${JSON.stringify(watchOut3)})`,
 );
 
 rmSync(home, { recursive: true, force: true });

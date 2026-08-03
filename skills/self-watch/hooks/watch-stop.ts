@@ -6,6 +6,7 @@
  * main cross-session leak users see as "hooks going to the wrong chat".
  */
 import {
+  claimStopEvent,
   continueWorkingPayload,
   finishHook,
   readHookInput,
@@ -38,9 +39,9 @@ if (input.status !== "completed") {
 }
 
 // Never chain on our own follow-ups.
-// Cursor maps loop_count > 0 → stopHookActive in readHookInput; Claude/Codex/Grok
-// set stop_hook_active. Without this, pending ticks re-inject every Stop until
-// Cursor's loop_limit (default 5).
+// Claude/Codex/Grok set stop_hook_active. Cursor does not expose that field,
+// so claim the generation_id once below; a repeated Stop for the same turn
+// exits, while a later turn remains eligible to drain the pending tick.
 if (input.stopHookActive) {
   finishHook();
 }
@@ -54,6 +55,9 @@ const pending = listPendingWatchesForSession(
   input.dialect,
 );
 if (!pending.length) {
+  finishHook();
+}
+if (!claimStopEvent("self-stop", input)) {
   finishHook();
 }
 

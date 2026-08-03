@@ -23,7 +23,7 @@ const required = [
   "workflows/triple-adversarial-blind-review.mdscript.md",
   "workflows/blind-reviewers/engineering-rules.mdscript.md",
   "workflows/blind-reviewers/hsm.mdscript.md",
-  "hsm/SKILL.md",
+  "hsm/hsm.mdscript.md",
   "hsm/workflows/triage.mdscript.md",
   "references/lane-catalog.md",
   "references/engineering-rules/SOURCE.md",
@@ -80,6 +80,16 @@ const missing = required.filter((rel) => !existsSync(join(root, rel)));
 if (missing.length) {
   console.error(`[test-self-review-install] FAIL under ${root}`);
   for (const m of missing) console.error(`  missing: ${m}`);
+  process.exit(1);
+}
+const nestedSkillManifests = ["hsm/SKILL.md"].filter((rel) =>
+  existsSync(join(root, rel)),
+);
+if (nestedSkillManifests.length) {
+  console.error(
+    "[test-self-review-install] FAIL: internal HSM pack must not expose nested SKILL.md manifests",
+  );
+  for (const rel of nestedSkillManifests) console.error(`  forbidden: ${rel}`);
   process.exit(1);
 }
 

@@ -1,4 +1,5 @@
 import {
+  claimStopEvent,
   clearUserTurn,
   continueWorkingPayload,
   finishHook,
@@ -52,6 +53,9 @@ if (watchSkip !== "1" && watchSkip !== "true") {
   if (pending.length) {
     const msg = formatPendingWatchFollowup(pending);
     if (msg) {
+      if (!claimStopEvent("self-stop", input)) {
+        finishHook();
+      }
       finishHook(continueWorkingPayload(input.dialect, msg));
     }
   }
@@ -80,6 +84,9 @@ if (pass && (pass.status === "in_flight" || pass.followup_injected_at)) {
 // Only a real user-originated turn may start learn (session-touch sets USER_TURN).
 // Followup prompts must not re-arm USER_TURN (see learn-session-touch).
 if (!hasUserTurn(input.conversationId, input.dialect)) {
+  finishHook();
+}
+if (!claimStopEvent("self-stop", input)) {
   finishHook();
 }
 

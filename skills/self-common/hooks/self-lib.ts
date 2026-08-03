@@ -12,8 +12,10 @@
  * cannot steal USER_TURN, learn passes, or ACTIVE pointers from each other.
  */
 import {
+  closeSync,
   existsSync,
   mkdirSync,
+  openSync,
   readFileSync,
   realpathSync,
   unlinkSync,
@@ -469,6 +471,69 @@ export function clearUserTurn(
     if (existsSync(legacy)) unlinkSync(legacy);
   } catch {
     // ignore
+  }
+}
+
+/**
+ * Claim one Stop event for a hook and harness turn.
+ *
+ * Cursor's generation_id and Codex's turn_id identify the assistant turn that
+ * is ending. A Stop hook may be delivered more than once while that turn is
+ * waiting on internal work; an atomic per-turn marker prevents duplicate
+ * followups without suppressing a later turn (including an intentional goal
+ * continuation). Harnesses without a turn id retain their existing behavior
+ * and rely on stop_hook_active where available.
+ */
+export function claimStopEvent(hookName: string, input: HookInput): boolean {
+  if (!input.sessionKey || !input.turnId) return true;
+
+  const safePart = (value: string): string =>
+    value.replace(/[^a-zA-Z0-9._:-]+/g, "_").slice(0, 160) || "unknown";
+  const marker = join(
+    learnHome(),
+    "stop-events",
+    safePart(hookName),
+    safePart(input.sessionKey),
+    `${safePart(input.turnId)}.json`,
+  );
+
+  let fd: number | undefined;
+  try {
+    mkdirSync(dirname(marker), { recursive: true });
+    // wx is the important part: concurrent Stop processes cannot both claim
+    // the same session/turn marker.
+    fd = openSync(marker, "wx");
+    writeFileSync(
+      fd,
+      JSON.stringify({
+        dialect: input.dialect,
+        session_key: input.sessionKey,
+        turn_id: input.turnId,
+        claimed_at: new Date().toISOString(),
+      }) + "\n",
+      "utf8",
+    );
+    return true;
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "EEXIST"
+    ) {
+      return false;
+    }
+    // A marker filesystem failure should not prevent the hook from doing its
+    // existing work; the harness can still apply stop_hook_active protection.
+    return true;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        closeSync(fd);
+      } catch {
+        // ignore close errors after the claim has been made
+      }
+    }
   }
 }
 

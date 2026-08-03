@@ -14,10 +14,10 @@
 ## Attack surface (hsm)
 
 * set `{{hsm_pack}}` to the self-review internal HSM pack
-  * prefer `{{review_skill_root}}/hsm/SKILL.md` when `{{review_skill_root}}` is set
-  * otherwise the `hsm/SKILL.md` sibling two directories above this lane MDScript (`../../hsm/SKILL.md`)
-  * otherwise `~/.agents/skills/self-review/hsm/SKILL.md`
-  * otherwise `{{repo_root}}/skills/self-review/hsm/SKILL.md` when present
+  * prefer `{{review_skill_root}}/hsm/hsm.mdscript.md` when `{{review_skill_root}}` is set
+  * otherwise the `hsm/hsm.mdscript.md` sibling two directories above this lane MDScript (`../../hsm/hsm.mdscript.md`)
+  * otherwise `~/.agents/skills/self-review/hsm/hsm.mdscript.md`
+  * otherwise `{{repo_root}}/skills/self-review/hsm/hsm.mdscript.md` when present
 * if `{{hsm_pack}}` is missing
   * keep `signed_off: false`
   * set `remaining_gaps` to the exact missing `self-review/hsm` pack path

@@ -751,7 +751,7 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/blind-reviewers/eng-sml.mdscript.md",
     "workflows/blind-reviewers/eng-hsm.mdscript.md",
     // HSM pack (folded into self-review; not a top-level skill)
-    "hsm/SKILL.md",
+    "hsm/hsm.mdscript.md",
     "hsm/workflows/triage.mdscript.md",
   ],
   "self-implement": [
@@ -1854,7 +1854,7 @@ function writeJson(path, data) {
  * hooks will run. Enable features.hooks in ~/.codex/config.toml when missing.
  * Updates an existing hooks/codex_hooks key in [features] instead of duplicating.
  */
-function ensureCodexHooksFeature(home = os.homedir()) {
+function ensureCodexHooksFeature(home = homedir()) {
   const configPath = join(home, ".codex", "config.toml");
   let text = "";
   try {
