@@ -169,6 +169,19 @@ Long-running HSM activities MUST have an owner, cancellation path, and explicit 
 
 Short synchronous work SHOULD be modeled as actions rather than activities.
 
+# HSM-ACTIVITY-002 MUST Decompose Multi-Step Work Into States
+
+See:
+- [PAT-HSM-001](patterns.rules.md#pat-hsm-001-must-explicit-hierarchical-state-modeling)
+- [PAT-ASYNC-001](patterns.rules.md#pat-async-001-must-async-work-return-events)
+- [HSM-COMPLETION-001](#hsm-completion-001-must-carry-transient-results-in-events)
+
+An activity MUST perform one continuous unit of work for its owning state.
+
+Activities MUST NOT implement multi-step workflows, phase sequences, or mini state machines inside the activity body.
+
+When work has multiple sequential or alternative steps, the design MUST decompose those steps into states and drive progression with typed completion events (and error events), not internal activity sequencing.
+
 # HSM-DISPATCH-001 MUST Treat Async Dispatch As A Boundary
 
 See:

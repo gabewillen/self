@@ -26,6 +26,11 @@
   record `BH-08` — `P1`
 * for each activity that branches an outcome in code instead of completing via an event, record
   `CF-02` / `TM-02` — `P0`
+* for each activity that performs multiple sequential phases, handoffs, retries, or alternative next
+  steps inside one body, record `BH-09` / `BH-10` / `HSM-ACTIVITY-002` / `TM-04` — `P0`, and require
+  decomposition into states advanced by typed completion events
+* for each multi-step workflow hidden in an activity rather than exposed as a state sequence with
+  completion/error transitions, record `BH-10` / `PAT-ASYNC-002` — `P0`
 * attach a `binding_note` only after the finding exists, and only for an API confirmed in the pinned
   `{{dialect}}` version
 * append findings to `{{findings_log}}`

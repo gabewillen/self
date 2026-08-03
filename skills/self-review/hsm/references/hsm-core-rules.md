@@ -105,6 +105,8 @@ The machine is the only writer and the only reader of its own data.
 | BH-06 | **Permitted in entry/exit/effect:** mutate machine-owned data; emit structured logging/telemetry; dispatch **at most one** typed completion or error event. |
 | BH-07 | Reporting an **external** operation's outcome as a typed event is allowed. Selecting between branches that are derivable from machine state or event payload is **not** — that is CF-02. |
 | BH-08 | Progression events dispatched from behavior are declared with an explicit completion/error kind, not left implicit. |
+| BH-09 | An activity does **one continuous unit of work** for its state. **NEVER** implement multi-step workflows, phase sequences, or mini machines inside an activity. |
+| BH-10 | Multi-step work is **decomposed into states**. Progression between those steps is driven by typed **completion events** (and error events), not internal activity sequencing. |
 
 ---
 
@@ -161,6 +163,7 @@ Computed from the extracted graph, not from reading source.
 | TM-01 | P0 | Timeouts and periodic work are **machine-owned time events**, never sleeps or timers created inside behaviors. |
 | TM-02 | P0 | Async completion returns as an **event**; the activity may run the work but must not branch the outcome in code. |
 | TM-03 | P1 | No ambient clock, RNG, filesystem, network, or environment reads in guards, entry, exit, or effects. Inject them or carry them on the event. |
+| TM-04 | P0 | Multi-step async work is a **state sequence** advanced by **completion events**, not one activity that performs several phases. |
 
 ---
 

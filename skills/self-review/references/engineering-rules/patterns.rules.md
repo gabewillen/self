@@ -71,6 +71,18 @@ Asynchronous work started by a state machine or actor MUST report completion, ca
 
 Async work MUST have an owner and cancellation path.
 
+# PAT-ASYNC-002 MUST Decompose Multi-Step Async Work Into States
+
+See:
+- [PAT-HSM-001](#pat-hsm-001-must-explicit-hierarchical-state-modeling)
+- [PAT-ASYNC-001](#pat-async-001-must-async-work-return-events)
+
+Multi-step asynchronous or long-running work MUST be modeled as a state sequence.
+
+Activities MUST NOT hide sequential phases, retries, handoffs, or alternative next steps inside one body.
+
+Progression between those steps MUST be driven by typed completion events (and error events), not internal activity control flow.
+
 # PAT-SNAPSHOT-001 MUST Snapshot Observation
 
 See:
