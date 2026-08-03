@@ -43,6 +43,18 @@ States, transitions, guards, choices, and typed events MUST carry modes, sequenc
 
 Entry actions, exit actions, effects, and activities MUST NOT hide control flow, next-step selection, or multi-phase workflows.
 
+# PAT-HSM-003 MUST Lift Shared Workflow Behavior Into Parents
+
+See:
+- [PAT-HSM-001](#pat-hsm-001-must-explicit-hierarchical-state-modeling)
+- [PAT-HSM-002](#pat-hsm-002-must-model-behavior-explicitly-in-the-graph)
+
+Multi-step workflows MUST be nested under a hierarchical parent/composite state.
+
+Shared workflow handlers such as defer, cancel, abort, timeout, and common completion routing MUST live on that parent.
+
+Sibling step states MUST NOT copy the same defer or shared transition/handler a parent can own.
+
 # PAT-GUARD-001 MUST Pure Guards
 
 See:

@@ -152,10 +152,15 @@ Computed from the extracted graph, not from reading source.
 |----|------|
 | HI-01 | Duplicate transitions for the same event with the same response are lifted into a common ancestor. |
 | HI-02 | Prefer hierarchy over copy-pasted handlers on sibling leaves. |
-| HI-03 | Factor shared entry/exit/activity upward; keep only state-specific differences at leaves. |
+| HI-03 | Factor shared entry/exit/activity/**defer** upward; keep only state-specific differences at leaves. |
 | HI-04 | **NEVER** explode leaves with repeated transitions a parent can own. |
+| HI-05 | Multi-step workflows use a **hierarchical parent/composite** for the shared workflow scope. Shared cancel/abort/timeout/completion routing lives there, not on every step. |
+| HI-06 | **NEVER** duplicate the same `defer` (or equivalent deferred-event set) across sibling workflow states. Declare shared deferral once on the parent. |
 
 **Bad:** A/B/C each `-- cancel --> Idle` **Good:** composite `Active` owns `-- cancel --> Idle`
+
+**Bad:** every workflow step repeats `defer(UserInput)` / `hsm.defer(...)`
+**Good:** composite `WorkflowActive` owns the shared defer; steps only model step-specific behavior
 
 ---
 
