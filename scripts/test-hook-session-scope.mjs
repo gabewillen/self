@@ -533,8 +533,66 @@ const goalEmptyProbe = spawnSync(
   },
 );
 assert(
-  goalEmptyProbe.status === 0 && !goalEmptyProbe.stderr,
-  `goal empty payload import exits cleanly (got ${JSON.stringify({ status: goalEmptyProbe.status, stderr: goalEmptyProbe.stderr })})`,
+  goalEmptyProbe.status === 0 && !goalEmptyProbe.stderr && goalEmptyProbe.stdout === "",
+  `goal empty payload import exits cleanly with empty stdout (got ${JSON.stringify({ status: goalEmptyProbe.status, stdout: goalEmptyProbe.stdout, stderr: goalEmptyProbe.stderr })})`,
+);
+
+// CamelCase Codex payloads must share dialect/session namespace between goal and learn.
+const camelCodexConversation = "camel-codex-1";
+const camelPaths = startGoalRun(pkgRoot, camelCodexConversation, {
+  active: true,
+  goal: "camel codex ordering",
+  status: "active",
+  resume_heading: "pursue-goal",
+  conversation_id: camelCodexConversation,
+});
+assert(existsSync(camelPaths.goalMdscript), "camel codex goal tracker exists");
+const camelTouch = runHook(learnTouch, {
+  sessionId: camelCodexConversation,
+  turnId: "camel-turn",
+  hook_event_name: "UserPromptSubmit",
+  permission_mode: "default",
+  prompt: "camel codex user turn",
+});
+assert(camelTouch.status === 0, "camel codex user touch exits 0");
+const camelPayload = {
+  sessionId: camelCodexConversation,
+  turnId: "camel-stop",
+  hook_event_name: "Stop",
+  permission_mode: "default",
+  stop_hook_active: false,
+  status: "completed",
+  last_assistant_message: "done",
+};
+const camelGoalFirst = runHook(
+  join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts"),
+  camelPayload,
+  { SELF_GOAL_FORCE_HOOKS: "1" },
+);
+assert(
+  camelGoalFirst.status === 0 && !camelGoalFirst.stderr && !parseOut(camelGoalFirst.stdout).followup_message && !parseOut(camelGoalFirst.stdout).decision,
+  `camel codex goal-first defers to learn (got ${JSON.stringify(camelGoalFirst)})`,
+);
+const camelLearn = runHook(learnStop, camelPayload);
+const camelLearnOut = parseOut(camelLearn.stdout);
+assert(
+  camelLearn.status === 0 &&
+    typeof camelLearnOut.reason === "string" &&
+    camelLearnOut.reason.includes("reflect-and-learn"),
+  `camel codex learn injects required learn (got ${JSON.stringify(camelLearnOut)})`,
+);
+const camelGoalAfter = runHook(
+  join(pkgRoot, "skills/self-goal/hooks/goal-stop.ts"),
+  camelPayload,
+  { SELF_GOAL_FORCE_HOOKS: "1" },
+);
+assert(
+  camelGoalAfter.status === 0 &&
+    !camelGoalAfter.stderr &&
+    !parseOut(camelGoalAfter.stdout).followup_message &&
+    !parseOut(camelGoalAfter.stdout).decision &&
+    camelGoalAfter.stdout === "",
+  `camel codex goal-after cannot duplicate same generation (got ${JSON.stringify(camelGoalAfter)})`,
 );
 
 // Marker claims fail closed on unavailable paths, distinguish long ids that
