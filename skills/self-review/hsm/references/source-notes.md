@@ -306,21 +306,24 @@ sml::event<sml::_>
 skills/self-review/hsm/
   hsm.mdscript.md                   # HSM lane entry
   workflows/
-    identify-scope.md
-    load-rule-packs.md
-    inventory-machines.md
-    audit-structure.md
-    audit-control-flow.md
-    audit-concurrency.md
-    audit-data-boundaries.md
-    audit-time-determinism.md
-    audit-tests-and-deps.md
-    emit-findings.md
+    triage.mdscript.md
+    extract-model.mdscript.md
+    audit-ownership.mdscript.md
+    audit-structure.mdscript.md
+    audit-reachability.mdscript.md
+    audit-actor-boundary.mdscript.md
+    audit-control-flow.mdscript.md
+    audit-time-determinism.mdscript.md
+    audit-hierarchy.mdscript.md
+    audit-tests.mdscript.md
+    verify-findings.mdscript.md
+    emit-findings.mdscript.md
+    request-waiver.mdscript.md
   references/
-    hsm-core-rules.md               # distilled CORE + DSL
-    hsm-go-rules.md                 # HSM01–54 + grantt overlays
-    sml-cpp-rules.md                # SML invariants + emel layout
-    check-patterns.md               # rg/ast patterns
+    anti-patterns.md
+    bindings.md
+    hsm-core-rules.md
+    check-patterns.md
   references/source-notes.md        # this file
 ```
 
