@@ -1731,7 +1731,14 @@ function findNearMissDirectives(text) {
   const lines = text.split("\n");
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    if (/^(?: {4}|\t)/.test(line)) continue;
+    if (/^(?: {4}|\t)/.test(line)) {
+      // An indented managed marker is invisible to the rewriter, so it would
+      // sit beside the block we append. Report it rather than act on it.
+      if (line.includes(ROUTER_BLOCK_START)) {
+        hits.push({ line: i + 1, text: line.trim() });
+      }
+      continue;
+    }
     if (/^ {0,3}(?:```|~~~)/.test(line)) {
       inFence = !inFence;
       continue;

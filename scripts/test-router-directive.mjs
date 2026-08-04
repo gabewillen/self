@@ -152,6 +152,12 @@ const cases = [
     allowExtraDirectiveLine: true,
   },
   {
+    name: "an indented managed block is reported, not silently duplicated",
+    input: `# x\n\n    ${mod.ROUTER_BLOCK_START}\n    ${mod.ROUTER_DIRECTIVE}\n    ${mod.ROUTER_BLOCK_END}\n\n${block}`,
+    expectNearMiss: true,
+    allowExtraDirectiveLine: true,
+  },
+  {
     name: "a pre-seeded placeholder sentinel cannot capture the block",
     input: `# x\n\n\u0000self-agents-router\u0000\n\n${block}\n`,
     noSentinel: true,
