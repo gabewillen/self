@@ -45,6 +45,7 @@ import {
   readdirSync,
   readFileSync,
   readlinkSync,
+  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -157,9 +158,10 @@ function listSkillDirs(root) {
 
 /**
  * Non-skill packs: shared MDScripts/hooks (self-common) and routed MDScripts
- * (self-voice). Installed like skills but not discoverable as agent skills.
+ * (self-voice, self-troubleshoot). Installed like skills but not discoverable
+ * as agent skills.
  */
-const SHARED_PACKS = ["self-common", "self-voice"];
+const SHARED_PACKS = ["self-common", "self-voice", "self-troubleshoot"];
 
 function listSharedPackDirs(root) {
   if (!existsSync(root)) return [];
@@ -707,6 +709,20 @@ function installSkillCopy(src, dest) {
   chmodTreeExecutables(dest);
 }
 
+/**
+ * A directory we installed by copy carries a SKILL.md or the pack's own entry
+ * MDScript. Anything else under a claimed name predates us and is not ours.
+ */
+function isManagedSkillDir(dest) {
+  const name = basename(dest);
+  return (
+    existsSync(join(dest, "SKILL.md")) ||
+    existsSync(join(dest, `${name}.mdscript.md`)) ||
+    existsSync(join(dest, "workflows")) ||
+    existsSync(join(dest, "hooks"))
+  );
+}
+
 function installSkillSymlink(src, dest) {
   const absSrc = resolve(src);
   if (dryRun) {
@@ -715,8 +731,19 @@ function installSkillSymlink(src, dest) {
   }
   ensureDir(dirname(dest));
   if (existsSync(dest) || isSymlink(dest)) {
-    // Replace previous managed install (dir or symlink)
-    removePath(dest);
+    // A real directory we did not create is the user's, even when it sits under
+    // a name this pack now claims. Move it aside instead of deleting it.
+    if (!isSymlink(dest) && statSync(dest).isDirectory() && !isManagedSkillDir(dest)) {
+      const aside = `${dest}.pre-self`;
+      removePath(aside);
+      renameSync(dest, aside);
+      console.error(
+        `[self-agents] KEPT your existing ${dest} as ${aside} before linking this pack's version`,
+      );
+    } else {
+      // Replace previous managed install (dir or symlink)
+      removePath(dest);
+    }
   }
   // Relative symlink when possible for portability inside home. The path used
   // to create the link may contain an alias (macOS /var -> /private/var), so
@@ -744,6 +771,7 @@ function installSkillSymlink(src, dest) {
  * engineering or language lanes.
  */
 const REQUIRED_SKILL_ASSETS = {
+  self: ["SKILL.md", "references/boundaries.md"],
   "self-review": [
     "SKILL.md",
     "workflows/select-review-lanes.md",
@@ -751,6 +779,7 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/triple-adversarial-blind-review.mdscript.md",
     "workflows/neutral-review-packet.md",
     "workflows/blind-reviewers/rules.mdscript.md",
+    "workflows/blind-reviewers/mdscript.mdscript.md",
     "workflows/blind-reviewers/security.mdscript.md",
     "workflows/blind-reviewers/completeness.mdscript.md",
     "workflows/blind-reviewers/hsm.mdscript.md",
@@ -836,6 +865,8 @@ const REQUIRED_SKILL_ASSETS = {
   // Shared packs (not agent skills — no SKILL.md).
   "self-common": [
     "workflows/goal-mdscript.md",
+    "workflows/return-script.md",
+    "workflows/model-reasoning-contract.md",
     "workflows/file-task-comments.md",
     "workflows/update-living-skills.md",
     "workflows/load-operating-context.md",
@@ -851,6 +882,13 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/slack-style.md",
     "workflows/mention-watch-run.md",
     "references/slack-samples.md",
+  ],
+  "self-troubleshoot": [
+    "self-troubleshoot.mdscript.md",
+    "workflows/reproduce-red-test.md",
+    "workflows/choose-environment.md",
+    "workflows/root-cause-analysis.md",
+    "workflows/apply-fix-and-rerun.md",
   ],
 };
 
@@ -907,8 +945,15 @@ function reportBrokenSkillDirs(targetRoots, managedSkills) {
     }
     for (const name of entries) {
       const dest = join(root, name);
-      // Shared packs (self-common, self-voice) intentionally have no SKILL.md.
-      if (SHARED_PACKS.includes(name)) continue;
+      // Shared packs (SHARED_PACKS) intentionally have no SKILL.md, but a
+      // dangling link named after one is still broken — only the SKILL.md
+      // requirement is waived, not the check that the entry resolves.
+      if (SHARED_PACKS.includes(name)) {
+        if (isSymlink(dest) && !existsSync(dest)) {
+          broken.push(`${dest} (dangling symlink -> ${readlinkSync(dest)})`);
+        }
+        continue;
+      }
       // Check every symlinked entry (we are the ones that symlink) plus any
       // skill this run manages. A resolvable link to a body-less directory is
       // just as broken as a dangling one.
@@ -1427,18 +1472,37 @@ const ROUTER_DIRECTIVE =
   "- ALWAYS enter through the `self` router skill. Run it first on every request, before " +
   "planning or answering, and let it choose the role: any parentless main agent is a root " +
   "orchestrator (self-orchestrate); subagents are self-implement (or a single blind-lane " +
-  "MDScript); explicit routes cover self-watch, self-goal, self-automate, and self-learn; " +
+  "MDScript); explicit routes include self-watch, self-goal, self-automate, self-learn, " +
+  "self-troubleshoot (red repro, root cause, fix, rerun), self-voice, and self-unwatch; " +
   "HSM is a self-review lane.";
+const ROUTER_BLOCK_PLACEHOLDER = "\u0000self-agents-router\u0000";
 const ROUTER_BLOCK_START = "<!-- self-agents:router -->";
 const ROUTER_BLOCK_END = "<!-- /self-agents:router -->";
-const ROUTER_BLOCK_RE =
-  /<!-- self-agents:router -->[\s\S]*?<!-- \/self-agents:router -->\n?/;
-/** Pre-rename marker — strip so installs do not leave two router blocks. */
-const LEGACY_GABE_ROUTER_BLOCK_RE =
-  /<!-- gabe-agents:router -->[\s\S]*?<!-- \/gabe-agents:router -->\n?/g;
-/** Pre-marker directive, so the first upgrade adopts it instead of duplicating it. */
-const LEGACY_DIRECTIVE_RE =
-  /^.*ALWAYS use (?:the )?[`'"]?(?:gabe|self)[`'"]? router skill.*$\n?/im;
+/**
+ * Every directive line this pack has shipped, verbatim. Removal is exact-match
+ * only: a line the user edited is not on this list, so it is kept and reported
+ * rather than silently rewritten away.
+ */
+const SHIPPED_DIRECTIVES = [
+  "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane MDScript); explicit routes cover gabe-watch, gabe-goal, and gabe-automate; HSM is a gabe-review lane.",
+  "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane MDScript); explicit routes cover gabe-watch, gabe-goal, gabe-automate, and gabe-learn (MDScript only); HSM is a gabe-review lane.",
+  "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane MDScript); explicit routes cover gabe-watch, gabe-goal, gabe-hsm-review, and gabe-automate.",
+  "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before planning or answering, and let it choose the role: it routes to gabe-orchestrate, gabe-implement, gabe-review, gabe-watch, gabe-goal, gabe-hsm-review, and gabe-automate.",
+  "- ALWAYS enter through the `self` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (self-orchestrate); subagents are self-implement (or a single blind-lane MDScript); explicit routes cover self-watch, self-goal, self-automate, and self-learn (MDScript only); HSM is a self-review lane.",
+  "- ALWAYS enter through the `self` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (self-orchestrate); subagents are self-implement (or a single blind-lane MDScript); explicit routes cover self-watch, self-goal, self-automate, and self-learn; HSM is a self-review lane.",
+  "- ALWAYS use the `gabe` router skill for Gabe-shaped work: judgment, delegation, prioritization, review, implementation, coordination, MR/PR watching, and goal loops. It routes to gabe-orchestrate, gabe-implement, gabe-review, gabe-watch, and gabe-goal.",
+  "- NEVER decide for yourself that a request is too small, too conversational, or not \"Gabe-shaped\" to route. Routing is the router's call, not yours.",
+];
+const normalizeDirective = (line) =>
+  line.replace(/^\s*[-*]\s*/, "").replace(/\s+/g, " ").trim();
+const SHIPPED_DIRECTIVE_SET = new Set(SHIPPED_DIRECTIVES.map(normalizeDirective));
+const isShippedDirective = (line) =>
+  SHIPPED_DIRECTIVE_SET.has(normalizeDirective(line));
+const LEGACY_BLOCK_MARKERS = [
+  ["<!-- gabe-agents:router -->", "<!-- /gabe-agents:router -->"],
+  ["<!-- self:instructions -->", "<!-- /self:instructions -->"],
+  ["<!-- self:router -->", "<!-- /self:router -->"],
+];
 
 /**
  * Global instruction files, by agent home. ~/.agents/AGENTS.md is ours and is
@@ -1455,34 +1519,205 @@ const INSTRUCTION_TARGETS = [
   { dir: ".copilot", file: "copilot-instructions.md" },
 ];
 
+function rewriteInstructionBody(original, block) {
+  const removed = [];
+  const source = original.split(ROUTER_BLOCK_PLACEHOLDER).join("");
+  // Pass 1: collapse managed blocks (outside fenced examples) to one placeholder.
+  const pass1 = [];
+  let inFence = false;
+  let managedBlocks = 0;
+  {
+    const lines = source.split("\n");
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (/^(?: {4}|\t)/.test(line)) {
+        // Indented code block: quoted markup, and it cannot open or close a fence.
+        pass1.push(line);
+        i += 1;
+        continue;
+      }
+      if (/^ {0,3}(?:```|~~~)/.test(line)) {
+        inFence = !inFence;
+        pass1.push(line);
+        i += 1;
+        continue;
+      }
+      if (!inFence && isMarkerOnlyLine(line, ROUTER_BLOCK_START)) {
+        const close = lines.findIndex((l, j) => j >= i && isMarkerOnlyLine(l, ROUTER_BLOCK_END));
+        if (close < 0) {
+          // Unclosed managed marker: leave the file's own text alone.
+          pass1.push(line);
+          i += 1;
+          continue;
+        }
+        managedBlocks += 1;
+        if (managedBlocks === 1) pass1.push(ROUTER_BLOCK_PLACEHOLDER);
+        else removed.push("duplicate managed router block");
+        i = close + 1;
+        continue;
+      }
+      pass1.push(line);
+      i += 1;
+    }
+  }
+  // Pass 2: legacy marker spans and stale shipped directive lines.
+  const out = [];
+  inFence = false;
+  {
+    const lines = pass1;
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (/^(?: {4}|\t)/.test(line)) {
+        out.push(line);
+        i += 1;
+        continue;
+      }
+      if (/^ {0,3}(?:```|~~~)/.test(line)) {
+        inFence = !inFence;
+        out.push(line);
+        i += 1;
+        continue;
+      }
+      if (inFence) {
+        out.push(line);
+        i += 1;
+        continue;
+      }
+      const marker = LEGACY_BLOCK_MARKERS.find(([open]) => isMarkerOnlyLine(line, open));
+      if (marker) {
+        const close = lines.findIndex((l, j) => j >= i && isMarkerOnlyLine(l, marker[1]));
+        if (close < 0) {
+          out.push(line);
+          i += 1;
+          continue;
+        }
+        const span = lines.slice(i + 1, close);
+        const hadPlaceholder = span.some((l) => l.includes(ROUTER_BLOCK_PLACEHOLDER));
+        const kept = span.filter(
+          (l) => !isShippedDirective(l) && !l.includes(ROUTER_BLOCK_PLACEHOLDER),
+        );
+        // Only our own markers are ignorable; a comment the user wrote is theirs.
+        const isOurMarker = (l) =>
+          isMarkerOnlyLine(l, ROUTER_BLOCK_START) ||
+          isMarkerOnlyLine(l, ROUTER_BLOCK_END) ||
+          LEGACY_BLOCK_MARKERS.some(
+            ([open, close]) => isMarkerOnlyLine(l, open) || isMarkerOnlyLine(l, close),
+          );
+        const hasOwnText = kept.some((l) => l.trim() && !isOurMarker(l));
+        if (hasOwnText) {
+          // The user put something of their own inside our old markers: keep the
+          // span and only drop the directive lines we shipped into it.
+          out.push(marker[0], ...kept, marker[1]);
+          for (const l of span) if (isShippedDirective(l)) removed.push(l.trim());
+        } else {
+          removed.push(`legacy router block ${marker[0]}`);
+        }
+        // The managed block always lands outside the retired markers.
+        if (hadPlaceholder) out.push(ROUTER_BLOCK_PLACEHOLDER);
+        i = close + 1;
+        continue;
+      }
+      if (isShippedDirective(line)) {
+        removed.push(line.trim());
+        i += 1;
+        continue;
+      }
+      out.push(line);
+      i += 1;
+    }
+  }
+  const tidy = (text) =>
+    text.replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "").replace(/\n*$/, "\n");
+  const body = out.join("\n");
+  let next;
+  if (body.includes(ROUTER_BLOCK_PLACEHOLDER)) {
+    next = tidy(body.split(ROUTER_BLOCK_PLACEHOLDER).join(block));
+  } else if (!body.trim()) {
+    next = `# Global agent instructions\n\n${block}`;
+  } else {
+    next = `${tidy(body).replace(/\n*$/, "")}\n\n${block}`;
+  }
+  return { next, removed, hadManagedBlock: managedBlocks > 0 };
+}
+
+const countOccurrences = (text, needle) => text.split(needle).length - 1;
+
+/** A marker we own is alone on its line; anything else on it is the user's. */
+const isMarkerOnlyLine = (line, marker) =>
+  line.includes(marker) && line.trim() === marker;
+
 /**
- * Rewrite the managed block in place when its wording has changed, so an
- * install that reworded the directive actually reaches existing users. Matching
- * on "some self-router text is present" would pin everyone to whatever they
- * installed first.
+ * Count only markers this rewriter would act on: alone on their line, outside
+ * fenced and indented code. A quoted example in the user's file is not one.
  */
+function countStructuralMarkers(text, marker) {
+  let inFence = false;
+  let n = 0;
+  for (const line of text.split("\n")) {
+    if (/^(?: {4}|\t)/.test(line)) continue;
+    if (/^ {0,3}(?:```|~~~)/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    if (isMarkerOnlyLine(line, marker)) n += 1;
+  }
+  return n;
+}
+
+/**
+ * Lines the rewrite is allowed to move but never to lose: anything the user
+ * wrote. Markers, shipped directive lines, and blanks are ours to rearrange.
+ */
+function protectedLines(text) {
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(
+      (l) =>
+        l &&
+        l !== ROUTER_BLOCK_PLACEHOLDER &&
+        !isShippedDirective(l) &&
+        !l.includes(ROUTER_BLOCK_START) &&
+        !l.includes(ROUTER_BLOCK_END) &&
+        !LEGACY_BLOCK_MARKERS.some(([open, close]) => l.includes(open) || l.includes(close)),
+    );
+}
+
 function applyRouterDirective(existing, block) {
   const original = existing || "";
-  // Drop pre-rename gabe-agents router blocks so they never sit beside self-agents.
-  let body = original.replace(LEGACY_GABE_ROUTER_BLOCK_RE, "");
-  const strippedLegacy = body !== original;
-  if (ROUTER_BLOCK_RE.test(body)) {
-    const next = body.replace(ROUTER_BLOCK_RE, block);
-    if (next === body && !strippedLegacy) {
-      return { body, action: "present" };
-    }
-    return { body: next, action: "updated" };
+  const { next, removed, hadManagedBlock } = rewriteInstructionBody(original, block);
+  // Whole-file safety net: whatever the parser did, no user line may vanish.
+  const before = protectedLines(original);
+  const after = new Set(protectedLines(next));
+  const lost = before.filter((l) => !after.has(l));
+  if (lost.length) {
+    return {
+      body: original,
+      action: "refused",
+      removed,
+      reason: `rewrite would drop ${lost.length} user line(s), first: ${lost[0].slice(0, 80)}`,
+    };
   }
-  if (LEGACY_DIRECTIVE_RE.test(body)) {
-    return { body: body.replace(LEGACY_DIRECTIVE_RE, block), action: "updated" };
+  // Post-condition: exactly one managed block with the current directive in it.
+  // Anything else means this rewrite would damage the file — leave it untouched.
+  if (
+    countStructuralMarkers(next, ROUTER_BLOCK_START) !== 1 ||
+    countStructuralMarkers(next, ROUTER_BLOCK_END) !== 1 ||
+    !next.includes(ROUTER_DIRECTIVE)
+  ) {
+    return {
+      body: original,
+      action: "refused",
+      removed,
+      reason: "router directive rewrite failed its own check",
+    };
   }
-  if (!body) {
-    return { body: `# Global agent instructions\n\n${block}`, action: "created" };
-  }
-  return {
-    body: `${body.replace(/\n*$/, "")}\n\n${block}`,
-    action: "appended",
-  };
+  if (next === original) return { body: original, action: "present", removed };
+  if (!original.trim()) return { body: next, action: "created", removed };
+  return { body: next, action: hadManagedBlock ? "updated" : "appended", removed };
 }
 
 function ensureRouterDirective() {
@@ -1494,7 +1729,18 @@ function ensureRouterDirective() {
     if (!target.always && !existsSync(dir)) continue;
     const path = join(dir, target.file);
     const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
-    const { body, action } = applyRouterDirective(existing, block);
+    const { body, action, removed, reason } = applyRouterDirective(existing, block);
+    if (action === "refused") {
+      console.error(`[self-agents] SKIPPED ${path}: ${reason}`);
+      report.push({ path, action });
+      continue;
+    }
+    if (removed && removed.length) {
+      console.log(
+        `[self-agents] ${path}: replaced ${removed.length} stale router directive line(s)/block(s):`,
+      );
+      for (const r of removed) console.log(`    - ${r.slice(0, 120)}${r.length > 120 ? "…" : ""}`);
+    }
     if (action === "present") {
       report.push({ path, action });
       continue;
@@ -1782,7 +2028,9 @@ function runGabeToSelfCutover(skillRoots) {
     } catch {
       continue;
     }
-    let next = text.replace(LEGACY_GABE_ROUTER_BLOCK_RE, "");
+    // Legacy router blocks are handled by the line-based rewrite in
+    // ensureRouterDirective, which never deletes text the user put inside them.
+    let next = text;
     // Protect identity handles/repos, then rename skill ids.
     next = next.replace(/gabewillen/g, "\0GW\0");
     next = next.replace(/@gabe\.willen/g, "\0HANDLE\0");
@@ -2537,7 +2785,7 @@ if (!dryRun) {
   brokenSkills = reportBrokenSkillDirs(targets, skills) || [];
   // Hard-fail only when THIS pack's required nested assets are incomplete —
   // e.g. self-review without engineering-rules / eng-* lanes.
-  // Includes shared packs (self-common, self-voice) via REQUIRED_SKILL_ASSETS.
+  // Includes shared packs (SHARED_PACKS) via REQUIRED_SKILL_ASSETS.
   missingAssets = reportMissingSkillAssets(targets, installUnits) || [];
   const managedBroken = brokenSkills.filter((b) =>
     skills.some((s) => b.includes(`/${s}`) || b.includes(`/${s} `) || b.endsWith(`/${s}`)),
@@ -2594,13 +2842,24 @@ if (localState) {
   console.log("[self-agents] skipping the router directive (--no-instructions)");
 } else {
   instructionReport = ensureRouterDirective();
-  const changed = instructionReport.filter((r) => r.action !== "present");
+  const refused = instructionReport.filter((r) => r.action === "refused");
+  const changed = instructionReport.filter(
+    (r) => r.action !== "present" && r.action !== "refused",
+  );
+  if (refused.length) {
+    console.error(
+      `[self-agents] router directive LEFT UNCHANGED in ${refused.length} file(s) (rewrite failed its own check):`,
+    );
+    for (const r of refused) console.error(`    - ${r.path}`);
+    // Same posture as missing assets and stale hashes: a refusal is a red install.
+    process.exitCode = 1;
+  }
   if (changed.length) {
     console.log(
       `[self-agents] router directive ${dryRun ? "would be written to" : "written to"} ${changed.length} file(s):`,
     );
     for (const r of changed) console.log(`    - ${r.path} (${r.action})`);
-  } else {
+  } else if (!refused.length) {
     console.log(
       `[self-agents] router directive already present in ${instructionReport.length} instruction file(s)`,
     );

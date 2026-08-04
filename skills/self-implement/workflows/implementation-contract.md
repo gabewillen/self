@@ -4,6 +4,9 @@
 
 * state objective, done state, accepted inputs, promised outputs, blockers, proof artifacts, tests, review gate, watcher requirement, and remaining authority before editing
 
+* if the objective is a bug, regression, outage, flake, or other reported failure
+  * [Require A Reproduction Before Fixing](#require-a-reproduction-before-fixing)
+
 * set `{{claim_scope}}` and `{{proof_claim}}` to the exact claim before review
 
 * use a typed scope such as `source-health`, `ci-repair`, `audit-completion`, `blocker-note-completion`, `publication`, `live-proof`, `merge-readiness`, `issue-close-readiness`, `release-readiness`, or `deployment-readiness`
@@ -42,6 +45,18 @@
 
 * if the system already knows a fact through structured data, typed state, product contracts, telemetry, or events
   * use deterministic code or product state instead of asking a model to reconstruct it
+
+## Require A Reproduction Before Fixing
+
+* if `{{troubleshoot_pass_active}}` is `true` or `{{red_confirmed}}` is `true`
+  * set `{{proof_path}}` to the handed-down `{{repro_command}}` and treat `{{repro_test_path}}` as the reproduction this lane must not modify
+  * return to the caller
+* if the delegation carries a reproduction, meaning a failing command, test, or artifact check for this failure
+  * set `{{proof_path}}` to that reproduction and `{{red_confirmed}}` to `true`
+  * return to the caller
+* set `{{troubleshoot_pass_active}}` to `true`
+* run `/mdscript-exec {{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md#troubleshoot-reported-issue` to obtain a red reproduction before editing any fix
+* do not fix a failure this lane has not reproduced
 
 ## Resolve Local Resource Path
 

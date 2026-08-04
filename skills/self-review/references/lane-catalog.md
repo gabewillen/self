@@ -10,6 +10,14 @@ Lane selection lives in [select-review-lanes.md](../workflows/select-review-lane
 | `security` | `workflows/blind-reviewers/security.mdscript.md#security-blind-review` | Penetration and security attack surface |
 | `completeness` | `workflows/blind-reviewers/completeness.mdscript.md#completeness-blind-review` | Goal-literal completeness |
 
+## Content-selected lanes
+
+| Lane id | Entrypoint | Select when |
+| --- | --- | --- |
+| `mdscript` | `workflows/blind-reviewers/mdscript.mdscript.md#mdscript-blind-review` | Any `SKILL.md` body, `*.mdscript.md`, or linked MDScript workflow/check/template in scope — runs the `/mdscript-review` gates plus execution-path attacks |
+
+Lanes are selected from what is in scope, never by habit: `eng-*` lanes need executable source in scope (a manifest- or data-only code change takes `eng-core` alone), and MDScript heading-and-link control flow alone does not select the HSM lanes. Every selected lane must name the in-scope path or packet signal that selected it, and skipped candidates are recorded with the reason.
+
 ## Engineering-rules lanes (from [engineering-rules/](engineering-rules/))
 
 Each uses the shared reviewer [engineering-rules.mdscript.md](../workflows/blind-reviewers/engineering-rules.mdscript.md) via a thin lane entrypoint under `workflows/blind-reviewers/eng-*.mdscript.md`.

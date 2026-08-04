@@ -38,12 +38,14 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 |------|------|
 | `self-common/` | Shared MDScripts, templates, hook library — linked by other skills |
 | `self-voice/` | Routed MDScript for agent-voice drafts (`/self-voice`) |
+| `self-troubleshoot/` | Routed MDScript for red-repro → RCA → fix → rerun troubleshooting (`/self-troubleshoot`) |
 
-Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-unwatch`.
+Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-troubleshoot`, `/self-unwatch`.
 
 MDScript-only routes (not skills):
 
 - `/self-voice` → `self-voice/self-voice.mdscript.md`
+- `/self-troubleshoot` → `self-troubleshoot/self-troubleshoot.mdscript.md`
 
 Companion skills **`mdscript-exec`** and **`mdscript-write`** live in [gabewillen/mdscript](https://github.com/gabewillen/mdscript). Install pulls them beside this pack so every `<!-- mdscript: … -->` header resolves.
 
@@ -187,6 +189,7 @@ skills/
   self-learn/           # user-invoked living-skills reflection (/self-learn)
   self-common/          # shared MDScripts + hooks (NOT a skill)
   self-voice/           # routed voice MDScript (NOT a skill)
+  self-troubleshoot/    # routed troubleshooting MDScript (NOT a skill)
 scripts/
   install.mjs           # living install, hooks, cutover, integrity
   agent-home.mjs
