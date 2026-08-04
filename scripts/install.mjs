@@ -405,6 +405,13 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
   return withAutoStash(root, `live-branch ${branch}`, () => {
     const current = trySh("git", ["-C", root, "branch", "--show-current"]);
     const currentBranch = current.ok ? current.out.trim() : "";
+    // Remember where the tree stood. Switching to the live branch must never
+    // leave the checkout at content that no longer contains this commit —
+    // a stale live/* branch would silently relocate the tree to old files and
+    // report the newer skills as missing.
+    const startSha = trySh("git", ["-C", root, "rev-parse", "HEAD"]).ok
+      ? trySh("git", ["-C", root, "rev-parse", "HEAD"]).out.trim()
+      : "";
 
     const localExists = trySh("git", [
       "-C",
@@ -469,28 +476,54 @@ function ensureLiveWorkingBranch(liveRoot, opts = {}) {
     trySh("git", ["-C", root, "config", `branch.${branch}.merge`, `refs/heads/${base}`]);
     trySh("git", ["-C", root, "config", `branch.${branch}.remote`, "origin"]);
 
-    if (doPull || envSelfTruthy("PULL") || opts.sync) {
+    // Always sync with origin/<base>. Checking out a live/* branch without
+    // syncing is what leaves the tree on stale content: the branch may be many
+    // commits behind, and the install then reports current skills as missing.
+    // --pull only controls whether the sync is announced in full.
+    const verbose = doPull || envSelfTruthy("PULL") || opts.sync;
+    if (verbose) {
       console.log(
         `[self-agents] sync ${branch} with origin/${base} (merge --ff-only, then merge)`,
       );
-      let sync = trySh("git", [
+    }
+    let sync = trySh("git", ["-C", root, "merge", "--ff-only", `origin/${base}`]);
+    if (!sync.ok) {
+      sync = trySh("git", ["-C", root, "merge", "--no-edit", `origin/${base}`]);
+      if (!sync.ok) {
+        console.warn(
+          `[self-agents] merge origin/${base} into ${branch} failed (resolve manually): ${sync.err}`,
+        );
+      } else if (verbose) {
+        console.log(`[self-agents] merged origin/${base} into ${branch}`);
+      }
+    } else if (verbose) {
+      console.log(`[self-agents] fast-forwarded ${branch} to origin/${base}`);
+    }
+
+    // Fail closed: if the commit we started on is not reachable from the live
+    // branch, this switch would hide work that was present a moment ago. Go
+    // back and let the caller install from where they were.
+    if (startSha && currentBranch && currentBranch !== branch) {
+      const contained = trySh("git", [
         "-C",
         root,
-        "merge",
-        "--ff-only",
-        `origin/${base}`,
-      ]);
-      if (!sync.ok) {
-        sync = trySh("git", ["-C", root, "merge", "--no-edit", `origin/${base}`]);
-        if (!sync.ok) {
-          console.warn(
-            `[self-agents] merge origin/${base} into ${branch} failed (resolve manually): ${sync.err}`,
-          );
-        } else {
-          console.log(`[self-agents] merged origin/${base} into ${branch}`);
+        "merge-base",
+        "--is-ancestor",
+        startSha,
+        "HEAD",
+      ]).ok;
+      if (!contained) {
+        const back = trySh("git", ["-C", root, "checkout", currentBranch]);
+        console.warn(
+          `[self-agents] live branch ${branch} does not contain ${currentBranch} (${startSha.slice(0, 7)}); staying on ${currentBranch} so the install does not run against stale content`,
+        );
+        console.warn(
+          `[self-agents] merge ${currentBranch} into ${branch}, or set SELF_LIVE_BRANCH=0, then re-run`,
+        );
+        if (!back.ok) {
+          console.warn(`[self-agents] could not return to ${currentBranch}: ${back.err}`);
         }
-      } else {
-        console.log(`[self-agents] fast-forwarded ${branch} to origin/${base}`);
+        return { branch: currentBranch, base, action: "kept-current", root };
       }
     }
 
