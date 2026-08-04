@@ -44,3 +44,7 @@ re_entry: /mdscript-exec <this-file>#review-this-change
 
 * ask each falsification question as one bullet
 * aim each at a way the claim could be wrong, not at confirming it
+
+## Resume This Review
+
+* run `/mdscript-exec <this-file>#review-this-change` to enter this round's review

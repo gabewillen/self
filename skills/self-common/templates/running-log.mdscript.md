@@ -32,3 +32,7 @@ re_entry: /mdscript-exec <this-file>#next-steps
 
 * record each unknown, discarded hypothesis, or unanswered owner question as one bullet
 * name the evidence that would settle it
+
+## Resume This Work
+
+* run `/mdscript-exec <this-file>#next-steps` to continue from the first remaining step

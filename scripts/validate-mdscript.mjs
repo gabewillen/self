@@ -17,6 +17,8 @@ const roots = args.filter((a) => !a.startsWith("--"));
 const searchRoots = roots.length ? roots : ["skills"];
 
 const HEADER = "mdscript: use the mdscript-exec";
+// Named so call sites do not pass a bare severity string (LOCAL-ARG-001).
+const ERROR = "error";
 const LINE_TARGET = 200;
 const LINE_CEILING = 500;
 // Illustrative anchors in the authoring docs, not real targets.
@@ -114,7 +116,7 @@ for (const [abs, doc] of parsed.entries()) {
       add(
         abs,
         fmLine,
-        "error",
+        ERROR,
         "frontmatter-order",
         "YAML front matter must start on line 1; readers parse it before anything else",
       );

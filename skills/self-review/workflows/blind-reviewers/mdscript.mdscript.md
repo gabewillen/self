@@ -11,7 +11,10 @@
 * if `{{review_skill_root}}` is empty
   * set `{{review_skill_root}}` to the absolute directory of the self-review skill that owns this lane file
 * if the caller supplied `{{signoff_path}}`
-  * confirm it ends in `.mdscript.md` and resolves inside `{{review_signoff_dir}}`
+  * set `{{signoff_boundary}}` to `{{review_signoff_dir}}` when set, otherwise `{{run_dir}}` when set, otherwise `{{artifact_dir}}`
+  * if `{{signoff_boundary}}` is empty
+    * set `{{blocker}}` to `no sign-off directory to contain the caller-supplied path` and stop
+  * confirm it ends in `.mdscript.md` and resolves inside `{{signoff_boundary}}`
   * if it does not, set `{{blocker}}` to the out-of-scope sign-off path and stop
   * create it now, failing when it already exists, so this lane cannot overwrite another lane's or another round's sign-off
   * write only that path and do not recompute it

@@ -29,6 +29,8 @@ export interface GoalState {
   live_proof?: "required" | "optional";
   /** End-to-end user/runtime path required when live proof is on. */
   primary_user_action?: string;
+  /** Review round this run is currently on; sign-offs must state the same one. */
+  review_round?: number | string;
   /** Durable MDScript tracking file for this run (relative or absolute). */
   goal_mdscript?: string;
   /** Heading slug the stop hook / resume should enter next. */
@@ -64,6 +66,10 @@ export interface GoalSignoff {
   conversation_id: string;
   signed_off: boolean;
   reviewer_id?: GoalReviewerId;
+  /** The lane this sign-off speaks for; `reviewer_id` is the legacy spelling. */
+  reviewer_lane?: string;
+  /** The round this sign-off was written for; a stale round must not count. */
+  review_round?: number | string;
   verifier_summary?: string;
   signed_off_at?: string;
   evidence?: string[];
@@ -1549,27 +1555,29 @@ export function signoffRejectionReason(
  */
 export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
   const runDirectoryPath = dirname(paths.signoffReviewerRulesMdscript);
+  // Retire EVERY sign-off still live in the run directory, not just the one
+  // discovery would return: leaving siblings behind lets the next discovery
+  // pick a survivor and re-complete the gate without a fresh review.
+  const liveSignoffs: string[] = [];
+  if (existsSync(runDirectoryPath)) {
+    try {
+      for (const name of readdirSync(runDirectoryPath)) {
+        if (!name.endsWith(".mdscript.md")) continue;
+        if (name.includes(".superseded")) continue;
+        const isMinted = name.endsWith(SIGNOFF_SUFFIX);
+        const isLegacy = name.startsWith("signoff-reviewer-");
+        if (isMinted || isLegacy) liveSignoffs.push(join(runDirectoryPath, name));
+      }
+    } catch {
+      // fall back to the known paths below
+    }
+  }
   for (const file of [
-    findLaneSignoffPath({
-      runDirectoryPath,
-      laneId: "rules",
-      fallbackPath: paths.signoffReviewerRulesMdscript,
-    }),
-    findLaneSignoffPath({
-      runDirectoryPath,
-      laneId: "security",
-      fallbackPath: paths.signoffReviewerSecurityMdscript,
-    }),
-    findLaneSignoffPath({
-      runDirectoryPath,
-      laneId: "completeness",
-      fallbackPath: paths.signoffReviewerCompletenessMdscript,
-    }),
-    findLaneSignoffPath({
-      runDirectoryPath,
-      laneId: "hsm",
-      fallbackPath: paths.signoffReviewerHsmMdscript,
-    }),
+    ...liveSignoffs,
+    paths.signoffReviewerRulesMdscript,
+    paths.signoffReviewerSecurityMdscript,
+    paths.signoffReviewerCompletenessMdscript,
+    paths.signoffReviewerHsmMdscript,
     paths.reviewVerdictMdscript,
   ]) {
     if (!existsSync(file)) continue;
@@ -1695,24 +1703,17 @@ export function selfReviewRejectionReason(
 
 
 /**
- * Find this run's sign-off for a lane. Rounds mint lexicographic names, so the
- * newest matching file is the current one; the fixed legacy name is still
- * accepted so a run started before minting can finish. `.superseded` copies are
- * retained evidence and never count.
- */
-/**
- * Find this run's sign-off for a lane. Rounds mint lexicographic names, so the
- * newest MINTED name wins; the legacy fixed name is only a fallback, never a
- * winner, because letters sort above digits and it would shadow every round.
- * The lane segment is matched exactly, so `eng-hsm` never answers for `hsm`,
- * and `.superseded` copies are retained evidence that never count.
- */
-/**
- * Find this run's sign-off for a lane. The filename orders candidates — newest
- * minted first, the legacy fixed name only as a fallback, `.superseded` copies
- * never — but the lane is confirmed from the record's own `reviewer_lane`.
- * Names cannot be trusted: a lane id may contain a hyphen (`eng-hsm` ends with
- * `hsm`), and anyone who can write the directory can choose a filename.
+ * Find this run's sign-off for a lane.
+ *
+ * The lane is confirmed from the record's own `reviewer_lane`, because a lane
+ * id may contain a hyphen (`eng-hsm` ends with `hsm`) and a filename proves
+ * nothing. Records are ordered by the round they state, then by filename, so a
+ * high-sorting name cannot outrank a genuine later round. `.superseded` copies
+ * are retained evidence and never count.
+ *
+ * This authenticates NOTHING about authorship: `reviewer_lane` is a claim, and
+ * anyone who can write the run directory can make it. The run directory is the
+ * trust boundary. Prefer an explicitly supplied path when the composer has one.
  */
 export function findLaneSignoffPath({
   runDirectoryPath,
@@ -1736,15 +1737,19 @@ export function findLaneSignoffPath({
     const claimed = record.reviewer_lane ?? record.reviewer_id;
     return typeof claimed === "string" && claimed === laneId;
   };
+  const roundOf = (candidatePath: string): number => {
+    const record = loadMdscriptRecord<GoalSignoff>(candidatePath);
+    const stated = Number(record?.review_round);
+    return Number.isFinite(stated) ? stated : -1;
+  };
   const minted = names
     .filter((name) => name.endsWith(SIGNOFF_SUFFIX))
     .filter((name) => !name.includes(".superseded"))
-    .sort()
-    .reverse();
-  for (const name of minted) {
-    const candidate = join(runDirectoryPath, name);
-    if (claimsLane(candidate)) return candidate;
-  }
+    .map((name) => join(runDirectoryPath, name))
+    .filter((candidatePath) => claimsLane(candidatePath))
+    .sort((left, right) => roundOf(left) - roundOf(right) || left.localeCompare(right));
+  const newest = minted[minted.length - 1];
+  if (newest) return newest;
   const legacyPath = join(runDirectoryPath, `signoff-reviewer-${laneId}.mdscript.md`);
   if (existsSync(legacyPath) && claimsLane(legacyPath)) return legacyPath;
   return fallbackPath;
@@ -1755,6 +1760,7 @@ export function validateTripleBlindSignoffs(
   paths: GoalSessionPaths,
   goal: string,
   conversationId: string,
+  currentReviewRound?: number | string,
 ): GoalCompletionStatus {
   const runDirectoryPath = dirname(paths.signoffReviewerRulesMdscript);
   const lanes: Array<{ id: GoalReviewerId; path: string }> = [
@@ -1789,7 +1795,7 @@ export function validateTripleBlindSignoffs(
 
   for (const lane of lanes) {
     const signoff = loadMdscriptRecord<GoalSignoff>(lane.path);
-    if (!signoff || !isValidSignoff(signoff, goal, conversationId, lane.id)) {
+    if (!signoff || !isValidSignoff(signoff, goal, conversationId, lane.id, root)) {
       reasons.push(
         signoffRejectionReason(
           signoff,
@@ -1819,6 +1825,19 @@ export function validateTripleBlindSignoffs(
         `Blind lane sign-offs span more than one review round (${[...rounds].sort().join(", ")}) — re-run the lanes that are behind.`,
       ],
     };
+  }
+  // Consistency among lanes is not enough: a whole stale set agrees with
+  // itself. When the run states its round, every lane must match it.
+  if (currentReviewRound !== undefined && currentReviewRound !== null) {
+    const expected = String(currentReviewRound);
+    if (!rounds.has(expected) || rounds.size !== 1) {
+      return {
+        complete: false,
+        reasons: [
+          `Blind lane sign-offs state round ${[...rounds].sort().join(", ")}, but this run is on round ${expected} — re-run the lanes.`,
+        ],
+      };
+    }
   }
   if (rounds.has("unstated")) {
     return {
@@ -1872,7 +1891,7 @@ export function evaluateGoalCompletion(
     reasons.push(...artifactsStatus.reasons);
   }
 
-  const triple = validateTripleBlindSignoffs(root, paths, goal, conversationId);
+  const triple = validateTripleBlindSignoffs(root, paths, goal, conversationId, state.review_round);
   if (!triple.complete) {
     reasons.push(...triple.reasons);
   }

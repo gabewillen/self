@@ -24,8 +24,8 @@ process.on("exit", () => {
 });
 
 let failed = 0;
-function check(name, ok, detail) {
-  if (ok) {
+function check({ name, passed, detail }) {
+  if (passed) {
     console.log(`ok   ${name}${detail ? ` (${detail})` : ""}`);
     return;
   }
@@ -33,6 +33,8 @@ function check(name, ok, detail) {
   console.error(`not ok   ${name}${detail ? ` (${detail})` : ""}`);
 }
 
+const ROUND_3 = 3;
+const ROUND_4 = 4;
 const GOAL = "ship the running log";
 const CONVERSATION = "conv-1";
 
@@ -78,21 +80,25 @@ function signoffText({ lane, round = 4, summary }) {
 const recordPath = join(scratch, "record.mdscript.md");
 writeFileSync(recordPath, signoffText({ lane: "rules", summary: "rules lane looked hard at the rules" }));
 const loaded = lib.loadMdscriptRecord(recordPath);
-check("a well-formed sign-off loads off disk", loaded !== null);
-check("loaded record carries its round", loaded?.review_round === 4, `round=${loaded?.review_round}`);
+check({ name: "a well-formed sign-off loads off disk", passed: loaded !== null });
+check({
+  name: "loaded record carries its round",
+  passed: loaded?.review_round === 4,
+  detail: `round=${loaded?.review_round}`,
+});
 
 // Discovery must prefer the newest minted name, never the legacy name, and must
 // match the lane segment exactly.
 const runDir = join(scratch, "run");
 mkdirSync(runDir, { recursive: true });
-const minted = (stamp, round, lane) => `${stamp}-00${round}-subject-main-${lane}-signoff.mdscript.md`;
+const minted = ({ stamp, round, lane }) => `${stamp}-00${round}-subject-main-${lane}-signoff.mdscript.md`;
 // name -> the lane the file's CONTENT claims. Discovery must believe content.
 const runFixtures = {
   "signoff-reviewer-rules.mdscript.md": "rules",
-  [minted("20260804T100000Z", 3, "rules")]: "rules",
-  [minted("20260804T110000Z", 4, "rules")]: "rules",
-  [minted("20260804T120000Z", 4, "eng-hsm")]: "eng-hsm",
-  [minted("20260804T130000Z", 4, "rules").replace(".mdscript.md", ".superseded.mdscript.md")]:
+  [minted({ stamp: "20260804T100000Z", round: ROUND_3, lane: "rules" })]: "rules",
+  [minted({ stamp: "20260804T110000Z", round: ROUND_4, lane: "rules" })]: "rules",
+  [minted({ stamp: "20260804T120000Z", round: ROUND_4, lane: "eng-hsm" })]: "eng-hsm",
+  [minted({ stamp: "20260804T130000Z", round: ROUND_4, lane: "rules" }).replace(".mdscript.md", ".superseded.mdscript.md")]:
     "rules",
   // Named as this lane's newest, but its record says otherwise.
   "zzz-named-rules-but-claims-security-rules-signoff.mdscript.md": "security",
@@ -105,21 +111,21 @@ const found = lib.findLaneSignoffPath({
   laneId: "rules",
   fallbackPath: join(runDir, "fallback.mdscript.md"),
 });
-check(
-  "a file whose record claims another lane never answers for this one",
-  found.endsWith(minted("20260804T110000Z", 4, "rules")),
-  found.split("/").pop(),
-);
+check({
+  name: "a file whose record claims another lane never answers for this one",
+  passed: found.endsWith(minted({ stamp: "20260804T110000Z", round: ROUND_4, lane: "rules" })),
+  detail: found.split("/").pop(),
+});
 const hsm = lib.findLaneSignoffPath({
   runDirectoryPath: runDir,
   laneId: "hsm",
   fallbackPath: join(runDir, "hsm-fallback.mdscript.md"),
 });
-check(
-  "an eng-hsm sign-off never answers for the hsm lane",
-  hsm.endsWith("hsm-fallback.mdscript.md"),
-  hsm.split("/").pop(),
-);
+check({
+  name: "an eng-hsm sign-off never answers for the hsm lane",
+  passed: hsm.endsWith("hsm-fallback.mdscript.md"),
+  detail: hsm.split("/").pop(),
+});
 
 // The gate itself: three valid same-round sign-offs complete; a mixed round or
 // an unstated round does not.
@@ -133,7 +139,7 @@ function paths(dir) {
   };
 }
 
-function writeLanes(dir, rounds) {
+function writeLanes({ dir, rounds }) {
   mkdirSync(dir, { recursive: true });
   for (const [lane, round] of Object.entries(rounds)) {
     writeFileSync(
@@ -144,18 +150,22 @@ function writeLanes(dir, rounds) {
 }
 
 const okDir = join(scratch, "ok");
-writeLanes(okDir, { rules: 4, security: 4, completeness: 4 });
+writeLanes({ dir: okDir, rounds: { rules: 4, security: 4, completeness: 4 } });
 const okResult = lib.validateTripleBlindSignoffs(scratch, paths(okDir), GOAL, CONVERSATION);
-check("three valid same-round sign-offs complete the gate", okResult.complete === true, okResult.reasons?.[0]);
+check({
+  name: "three valid same-round sign-offs complete the gate",
+  passed: okResult.complete === true,
+  detail: okResult.reasons?.[0],
+});
 
 const mixedDir = join(scratch, "mixed");
-writeLanes(mixedDir, { rules: 4, security: 3, completeness: 4 });
+writeLanes({ dir: mixedDir, rounds: { rules: 4, security: 3, completeness: 4 } });
 const mixedResult = lib.validateTripleBlindSignoffs(scratch, paths(mixedDir), GOAL, CONVERSATION);
-check(
-  "sign-offs spanning two rounds do not complete the gate",
-  mixedResult.complete === false,
-  mixedResult.reasons?.[0]?.slice(0, 60),
-);
+check({
+  name: "sign-offs spanning two rounds do not complete the gate",
+  passed: mixedResult.complete === false,
+  detail: mixedResult.reasons?.[0]?.slice(0, 60),
+});
 
 const identicalDir = join(scratch, "identical");
 mkdirSync(identicalDir, { recursive: true });
@@ -171,7 +181,49 @@ const identicalResult = lib.validateTripleBlindSignoffs(
   GOAL,
   CONVERSATION,
 );
-check("identical lane summaries do not complete the gate", identicalResult.complete === false);
+check({ name: "identical lane summaries do not complete the gate", passed: identicalResult.complete === false });
+
+// The security lane proved a round-over-round directory re-completes the gate
+// straight after invalidation, with no attacker: invalidation retired only the
+// path discovery returned and left every sibling live.
+const replayDir = join(scratch, "replay");
+writeLanes({ dir: replayDir, rounds: { rules: ROUND_4, security: ROUND_4, completeness: ROUND_4 } });
+for (const lane of ["rules", "security", "completeness"]) {
+  writeFileSync(
+    join(replayDir, minted({ stamp: "20260804T090000Z", round: ROUND_4, lane })),
+    signoffText({ lane, round: ROUND_4, summary: `${lane} lane attacked this change from the ${lane} angle and recorded older minted evidence` }),
+  );
+}
+const replayPaths = paths(replayDir);
+const beforeInvalidate = lib.validateTripleBlindSignoffs(scratch, replayPaths, GOAL, CONVERSATION);
+check({
+  name: "the gate completes before invalidation",
+  passed: beforeInvalidate.complete === true,
+  detail: beforeInvalidate.reasons?.[0]?.slice(0, 90),
+});
+lib.invalidateReviewerSignoffs(replayPaths);
+const afterInvalidate = lib.validateTripleBlindSignoffs(scratch, replayPaths, GOAL, CONVERSATION);
+check({
+  name: "no stale sign-off survives invalidation to re-complete the gate",
+  passed: afterInvalidate.complete === false,
+  detail: afterInvalidate.reasons?.[0]?.slice(0, 48),
+});
+
+// A whole stale set agrees with itself, so lane consistency alone is not enough.
+const staleDir = join(scratch, "stale");
+writeLanes({ dir: staleDir, rounds: { rules: ROUND_3, security: ROUND_3, completeness: ROUND_3 } });
+const staleResult = lib.validateTripleBlindSignoffs(
+  scratch,
+  paths(staleDir),
+  GOAL,
+  CONVERSATION,
+  ROUND_4,
+);
+check({
+  name: "a consistent stale round does not satisfy the run's current round",
+  passed: staleResult.complete === false,
+  detail: staleResult.reasons?.[0]?.slice(0, 48),
+});
 
 if (failed) {
   console.error(`\n[test-goal-signoff-gate] BROKEN: ${failed} check(s) failed`);

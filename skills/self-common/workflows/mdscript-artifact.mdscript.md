@@ -97,6 +97,7 @@
 * add the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->` after the front matter
 * add `## Done So Far` holding `{{done_so_far}}` as the append-only record of completed steps with their evidence
 * add `## Next Steps` holding `{{next_steps}}` as the executable states that remain
+* add a final `## Resume This Work` state whose bullet is the exact `/mdscript-exec {{mdscript_artifact}}#<heading>` command from `{{artifact_re_entry}}`
 * write every heading as a `##` state, never `#`, so another agent can enter at any of them
 * write every step as a `*` bullet: no numbered lists, no prose paragraphs, because order comes from bullet sequence and heading links
 * name the file `<name>.mdscript.md` so the next reader sees which grammar applies
@@ -118,6 +119,9 @@
 * set `{{unsafe_text}}` to `{{next_steps}}`
 * run [Sanitize Text](#sanitize-text)
 * set `{{next_steps}}` to `{{safe_text}}`
+* set `{{unsafe_text}}` to `{{artifact_re_entry}}`
+* run [Sanitize Text](#sanitize-text)
+* set `{{artifact_re_entry}}` to `{{safe_text}}`
 * append `{{log_entry}}` under `## Done So Far` without rewriting entries already there
 * replace `## Next Steps` with `{{next_steps}}`
 * update the front matter `status` and `re_entry` to the current position
@@ -130,7 +134,7 @@
 * if `{{verify_attempts}}` is greater than `3`
   * set `{{blocker}}` to `running log at {{mdscript_artifact}} failed verification three times`
   * stop and report `{{blocker}}` to the caller
-* read `{{mdscript_artifact}}` back and confirm it begins with YAML front matter, then carries the execution header, `## Done So Far`, and `## Next Steps`
+* read `{{mdscript_artifact}}` back and confirm it begins with YAML front matter, then carries the execution header, `## Done So Far`, `## Next Steps`, and a final state holding the `/mdscript-exec` re-entry
 * confirm every in-file heading link in it resolves to one of its own `##` headings
 * confirm every relative link it names exists
 * measure it with `wc -l` and confirm it is under 200 lines

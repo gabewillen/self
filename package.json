@@ -40,7 +40,7 @@
     "install-skills:pull": "node ./scripts/install.mjs --live --pull",
     "install-skills:no-adapters": "node ./scripts/install.mjs --live --no-adapters",
     "pack:check": "npm pack --dry-run",
-    "test": "node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs && node scripts/test-self-review-install.mjs && node scripts/test-self-implement-install.mjs && node scripts/test-gabe-to-self-cutover.mjs && node scripts/test-hook-session-scope.mjs && node scripts/test-script-integrity.mjs && node scripts/test-install-symlink.mjs && node scripts/test-live-branch-safety.mjs && node scripts/test-router-directive.mjs && node scripts/test-goal-signoff-gate.mjs",
+    "test": "node scripts/typecheck-hooks.mjs && node scripts/validate-mdscript.mjs && node scripts/test-agent-home.mjs && node scripts/test-self-review-install.mjs && node scripts/test-self-implement-install.mjs && node scripts/test-gabe-to-self-cutover.mjs && node scripts/test-hook-session-scope.mjs && node scripts/test-script-integrity.mjs && node scripts/test-install-symlink.mjs && node scripts/test-live-branch-safety.mjs && node scripts/test-router-directive.mjs && node scripts/test-goal-signoff-gate.mjs",
     "validate": "node scripts/validate-mdscript.mjs",
     "test:install-review": "node scripts/test-self-review-install.mjs",
     "test:install-implement": "node scripts/test-self-implement-install.mjs",
@@ -143,5 +143,9 @@
     "skills/self-unwatch/SKILL.md",
     "skills/self-watch/SKILL.md",
     "skills/self/SKILL.md"
-  ]
+  ],
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2"
+  }
 }
