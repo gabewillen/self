@@ -68,7 +68,7 @@
   * never sign off n/a from an unsearched scope or the author's claim alone
 * otherwise allow `signed_off: true` only when every serious rules attack fails, `p_findings` is `[]`, and `remaining_gaps` is `[]`
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`
-* write only `{{signoff_path}}` as executable MDScript: the exact execution header, YAML front matter, then the states below
+* write only `{{signoff_path}}` as executable MDScript: YAML front matter first, then the exact execution header, then the states below
 * set front matter to `reviewer_id`, `reviewer_lane`, `rules_file`, `lane_applicable`, `review_round` from the packet, `goal` and `conversation_id` from the packet when present, `signed_off`, `verifier_summary` (≥40 chars covering attacks + rules reviewed), `evidence` (≥2), `commands_run`, `attack_attempts` (≥2), `p_findings`, `rules_reviewed`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
 * write a `## Signoff` state that names the lane verdict, the rules file, and one bullet per `p_findings` entry with rule id, location, and remediation
 * write a `## Resume From Signoff` state that continues at `/mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs` (or the path resolved from this skill's install directory) when `signed_off` is `true`

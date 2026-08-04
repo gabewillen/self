@@ -105,6 +105,21 @@ for (const [abs, doc] of parsed.entries()) {
   }
   if (!isMdscript) continue;
 
+  // A record's readers parse front matter off the first line. A file that
+  // carries front matter after the execution header parses as absent, which is
+  // how a whole review gate went inert without any error.
+  if (text.includes("\n---\n") && lines[0]?.trim() !== "---") {
+    const fmLine = lines.findIndex((l) => l.trim() === "---") + 1;
+    if (fmLine > 1)
+      add(
+        abs,
+        fmLine,
+        "error",
+        "frontmatter-order",
+        "YAML front matter must start on line 1; readers parse it before anything else",
+      );
+  }
+
   // The name carries the grammar: an MDScript that does not say so in its
   // filename gets read and edited as a document, which is how invalid MDScript
   // gets written. SKILL.md is the one name the harness fixes for us.

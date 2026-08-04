@@ -77,17 +77,24 @@
 ## Write MDScript Artifact
 
 * if `{{mdscript_artifact}}` is empty
-  * [Mint MDScript Artifact Path](#mint-mdscript-artifact-path)
+  * run [Mint MDScript Artifact Path](#mint-mdscript-artifact-path)
 * set `{{unsafe_text}}` to `{{next_steps}}`
 * run [Sanitize Text](#sanitize-text)
 * set `{{next_steps}}` to `{{safe_text}}`
 * set `{{unsafe_text}}` to `{{done_so_far}}`
 * run [Sanitize Text](#sanitize-text)
 * set `{{done_so_far}}` to `{{safe_text}}`
+* set `{{unsafe_text}}` to `{{artifact_subject}}`
+* run [Sanitize Text](#sanitize-text)
+* set `{{artifact_subject}}` to `{{safe_text}}`
+* set `{{unsafe_text}}` to `{{artifact_re_entry}}`
+* run [Sanitize Text](#sanitize-text)
+* set `{{artifact_re_entry}}` to `{{safe_text}}`
 * compose the content only after both are sanitized, so no unsanitized value is ever embedded
-* start the content with the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->`
-* add YAML front matter with `artifact_kind`, `artifact_stamp`, `subject`, `owner_role`, `task_id`, `status` from `{{artifact_status}}`, and `re_entry` from `{{artifact_re_entry}}`
+* start the content with YAML front matter, because a record that does not begin with `---` cannot be parsed by the readers of this artifact
+* add to that front matter `artifact_kind`, `artifact_stamp`, `subject`, `owner_role`, `task_id`, `status` from `{{artifact_status}}`, and `re_entry` from `{{artifact_re_entry}}`
 * start from [running-log template](../templates/running-log.mdscript.md) so the file begins valid instead of as a blank page
+* add the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->` after the front matter
 * add `## Done So Far` holding `{{done_so_far}}` as the append-only record of completed steps with their evidence
 * add `## Next Steps` holding `{{next_steps}}` as the executable states that remain
 * write every heading as a `##` state, never `#`, so another agent can enter at any of them
@@ -123,7 +130,7 @@
 * if `{{verify_attempts}}` is greater than `3`
   * set `{{blocker}}` to `running log at {{mdscript_artifact}} failed verification three times`
   * stop and report `{{blocker}}` to the caller
-* read `{{mdscript_artifact}}` back and confirm the execution header, front matter, `## Done So Far`, and `## Next Steps` are present
+* read `{{mdscript_artifact}}` back and confirm it begins with YAML front matter, then carries the execution header, `## Done So Far`, and `## Next Steps`
 * confirm every in-file heading link in it resolves to one of its own `##` headings
 * confirm every relative link it names exists
 * measure it with `wc -l` and confirm it is under 200 lines
@@ -140,6 +147,7 @@
 * if any other check fails
   * [Repair MDScript Artifact](#repair-mdscript-artifact)
 * set `{{verify_attempts}}` to empty
+* set `{{purge_attempts}}` to empty
 * record `{{mdscript_artifact}}` in the file task as the durable record for `{{artifact_kind}}`
 * return `{{mdscript_artifact}}` to the caller
 

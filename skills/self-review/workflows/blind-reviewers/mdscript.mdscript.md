@@ -62,7 +62,7 @@
 
 * allow `signed_off: true` only when every serious attack fails, `p_findings` is `[]`, and `remaining_gaps` is `[]`
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`
-* write only `{{signoff_path}}` as executable MDScript: the exact execution header, YAML front matter, then the states below
+* write only `{{signoff_path}}` as executable MDScript: YAML front matter first, then the exact execution header, then the states below
 * set front matter to `reviewer_id: "mdscript"`, `reviewer_lane: "mdscript"`, `review_round` from the packet, `goal` and `conversation_id` from the packet when present, `signed_off`, `lane_applicable`, `verifier_summary`, `evidence`, `commands_run`, `attack_attempts`, `p_findings`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
 * write a `## Signoff` state that names the lane verdict and one bullet per `p_findings` entry with its location and remediation
 * write a `## Resume From Signoff` state that continues at `/mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs` when `signed_off` is `true`
