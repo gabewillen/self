@@ -4,8 +4,19 @@
 
 * if `{{impl_pack}}` is empty
   * stop and report that the pack entrypoint must set `{{impl_pack}}`
+* if `{{implement_skill_root}}` is empty
+  * set `{{implement_skill_root}}` to the absolute parent of this file's `workflows/engineering-rules` directory
+* if `{{skills_root}}` is empty
+  * set `{{skills_root}}` to the parent of `{{implement_skill_root}}`
+* if `{{review_skill_root}}` is empty and `{{skills_root}}/self-review` exists
+  * set `{{review_skill_root}}` to `{{skills_root}}/self-review`
+* if `{{review_skill_root}}` is empty and `~/.agents/skills/self-review` exists
+  * set `{{review_skill_root}}` to `~/.agents/skills/self-review`
+* set `{{rules_file}}` to `{{review_skill_root}}/references/engineering-rules/{{rules_basename}}` when `{{rules_file}}` is empty and `{{rules_basename}}` is set and `{{review_skill_root}}` is set
+* if `{{rules_file}}` is empty or missing and `{{rules_basename}}` is set
+  * resolve `{{rules_file}}` from this file's directory as `../../../self-review/references/engineering-rules/{{rules_basename}}`
 * if `{{rules_file}}` is empty
-  * stop and report that the pack entrypoint must set `{{rules_file}}`
+  * stop and report that the pack entrypoint must set `{{rules_basename}}` or `{{rules_file}}`
 * if `{{impl_rules_phase}}` is empty
   * set `{{impl_rules_phase}}` to `hold`
 * if `{{rules_file}}` does not exist

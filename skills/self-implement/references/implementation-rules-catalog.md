@@ -45,7 +45,7 @@ Deep UML HSM semantic audit stays on the `self-review` `hsm` blind lane (`self-r
 
 ## Shared apply workflow
 
-Every thin `impl-*` entrypoint sets `{{impl_pack}}` and `{{rules_file}}`, then runs [apply-engineering-rules.mdscript.md](../workflows/engineering-rules/apply-engineering-rules.mdscript.md).
+Every thin `impl-*` entrypoint sets `{{impl_pack}}` and `{{rules_basename}}`, then runs [apply-engineering-rules.mdscript.md](../workflows/engineering-rules/apply-engineering-rules.mdscript.md), which resolves `{{rules_file}}` from `{{review_skill_root}}` or the relative fallback. A caller may set `{{rules_file}}` directly instead.
 
 ## Caller override
 

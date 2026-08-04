@@ -99,3 +99,47 @@ query($owner:String!,$repo:String!,$number:Int!,$cursor:String){
   * leave `{{merge_ready}}` false and return
 * set `{{merge_ready}}` to `true`
 * return to the caller
+
+## Watch Tick
+
+* set `{{blocker}}` to empty at the start of every tick so a blocker restored from front matter cannot satisfy a later `set {{blocker}}` guard
+* touch `{{agent_heartbeat}}` at the start of every tick so the ticker's idle guard stays satisfied
+* increment `{{tick_count}}` and set it in `{{watch_mdscript}}` front matter with `last_head_sha`, `last_tick_at`, `last_seen_at`, and `last_processed_seq`
+* run [Refresh PR State](#refresh-pr-state), which re-reads checks, review threads, and conversation comments from GitHub on every tick
+* if [Refresh PR State](#refresh-pr-state) set `{{blocker}}`
+  * [Report Blocker](#report-blocker)
+* if `{{pr_state}}` is `MERGED` or `CLOSED`
+  * set `{{stop_reason}}` to PR `{{pr_state}}`
+  * run [Stop Watch Loop](../../self-unwatch/SKILL.md#stop-watch-loop)
+  * report that the PR ended and the watch stopped
+  * stop
+* run [Sync Branch](sync-branch.md#sync-branch)
+* if sync sets `{{blocker}}`
+  * [Report Blocker](#report-blocker)
+* run [Repair CI](repair-ci.md#repair-ci)
+* if CI repair sets a hard `{{blocker}}` that needs human authority
+  * [Report Blocker](#report-blocker)
+* run [Triage Review Comments](triage-review-comments.md#triage-review-comments)
+* if triage left actionable items in `{{pending_fixes}}`
+  * run [Dispatch Fixes](fix-with-subagent.md#dispatch-fixes)
+* run [Evaluate Merge Ready](#evaluate-merge-ready)
+* if `{{merge_ready}}` is `true`
+  * report merge-ready status for `{{pr_url}}` — keep watching until `/self-unwatch`
+* report the tick as work already done: fixes applied, commits pushed, threads resolved, checks requeued, and what remains outside the grant
+* do not end a tick with a proposal, a permission request, or work deferred to the next tick when the action was inside `{{watch_grant}}`
+* if the tick surfaced an ambiguous call
+  * resolve it through the `self` skill and act
+  * do not park it as a question
+* append one ledger line under `~/.agents/projects/{{project_name}}/lane-ledger.jsonl` with tick, head SHA, CI summary, unresolved thread count, `ticker_pid`, wake path, and that the detached ticker remains armed
+* never kill, reap, or clean up the ticker, its process group, its spool, or its pid file from a tick, a resume, a subagent, a thread-cleanup pass, or an end-of-turn tidy; only `/self-unwatch`, a terminal PR state, or owner-process death may stop it
+* end the turn without re-arming, without `sleep`, and without a one-shot wake — the detached ticker owns the next tick
+
+## Report Blocker
+
+* before reporting any blocker, confirm the item is truly in `{{grant_excludes}}` or genuinely undecidable; if the `self` skill and current evidence can decide it, act instead of reporting
+* set front-matter `blocker` on `{{watch_mdscript}}` to the exact human decision needed
+* write a parent-visible note naming `{{blocker}}`, `{{pr_url}}`, current head, `ticker_pid`, and `{{watch_mdscript}}`
+* keep front-matter `watch_active: true` and leave the persistent loop running unless the user runs `/self-unwatch`
+* keep repairing everything else inside the grant while the blocker waits — one blocked item never pauses the whole watch
+* ask the user only the specific decision that is blocked
+* end the turn without killing the loop and without re-arming
