@@ -72,7 +72,7 @@
   * set `{{artifact_ordinal}}` to `{{review_round}}`
   * set `{{artifact_reserve_only}}` to `true`
   * run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.mdscript.md#mint-mdscript-artifact-path)
-  * set that lane's `{{signoff_path}}` to `{{mdscript_artifact}}`, which stays absent until that lane writes it
+  * set `{{lane_signoff_paths}}.<lane>` to `{{mdscript_artifact}}`, keyed per lane so the loop does not leave one path for all of them, and it stays absent until that lane writes it
 * if subagent tooling is unavailable
   * run [Run File Task Reviewer Fallback](review-fallback-file-task.mdscript.md#run-file-task-reviewer-fallback)
   * [Collect Review Round Results](#collect-review-round-results)
@@ -88,7 +88,7 @@
     * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
   * spawn one readonly subagent that runs only `mdscript-exec {{lane_entry}}`
   * do not give that subagent the full `self-review` skill as its role or ask it to spawn further subagents
-* give each lane subagent only: neutral packet path, authorized paths, `{{proof_scope}}` or `{{claim_scope}}`, `{{blocking_severities}}`, `{{conversation_id}}`, `{{review_signoff_dir}}`, `{{review_skill_root}}`, its minted `{{signoff_path}}` for this round, `{{review_round}}`, and its own lane entrypoint
+* give each lane subagent only: neutral packet path, authorized paths, `{{proof_scope}}` or `{{claim_scope}}`, `{{blocking_severities}}`, `{{conversation_id}}`, `{{review_signoff_dir}}`, `{{review_skill_root}}`, its own `{{lane_signoff_paths}}.<lane>` as `{{signoff_path}}` for this round, `{{review_round}}`, and its own lane entrypoint
 * forbid each lane subagent from reading other lanes' sign-offs or prompts before writing its own
 * set each lane subagent model to the selected reviewer model and effort
 * do not reuse a lane reviewer identity or context from an earlier round
@@ -102,7 +102,7 @@
 
 ## Collect Review Round Results
 
-* read the `{{signoff_path}}` this round minted for each lane in `{{blind_lanes}}`, and reject any sign-off whose `review_round` is not this round
+* read `{{lane_signoff_paths}}.<lane>` for each lane in `{{blind_lanes}}`, and reject any sign-off whose `review_round` is not this round
 * run [Aggregate Triple Signoffs](../../self-review/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs) in **this** process (not a nested review subagent)
 * set `{{blocking_findings}}` and `{{residual_findings}}` from the aggregate against `{{blocking_severities}}`
 * set `{{grade}}` and `{{proof_decision}}` from the aggregate

@@ -23,7 +23,7 @@
   * set `{{artifact_ordinal}}` to `{{review_round}}`
   * set `{{artifact_reserve_only}}` to `true`
   * run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.mdscript.md#mint-mdscript-artifact-path)
-  * set that lane's sign-off path to `{{mdscript_artifact}}`, which stays absent until that lane writes it
+  * set `{{lane_signoff_paths}}.<lane>` to `{{mdscript_artifact}}`, keyed per lane so the loop does not leave one path for all of them, and it stays absent until that lane writes it
 * set `{{artifact_kind}}` to `review-packet`
 * set `{{artifact_ordinal}}` to `{{review_round}}`
 * set `{{artifact_reserve_only}}` to empty
@@ -32,9 +32,11 @@
 * if the caller already wrote this round's packet
   * set `{{review_packet}}` to that packet path
 * if the caller did not write this round's packet
+  * set `{{artifact_kind}}` to `review-packet`
+  * set `{{next_steps}}` to this round's scope, authorized paths, and open questions, from [review-packet template](../../self-common/templates/review-packet.mdscript.md)
   * run [Start MDScript Running Log](../../self-common/workflows/mdscript-artifact.mdscript.md#start-mdscript-running-log)
   * set `{{review_packet}}` to `{{mdscript_artifact}}`, so a lost context resumes the round from disk
-* write the neutral review packet at `{{review_packet}}` from [review-packet template](../../self-common/templates/review-packet.mdscript.md), with the round's scope, authorized paths, and open questions
+* confirm `{{review_packet}}` holds this round's scope, authorized paths, and open questions, so the packet that was verified is the packet the lanes read
 * never delete or overwrite an earlier round's sign-off or packet; each round mints its own lexicographic name so the history stays readable in order
 * run [Log Progress](../../self-common/workflows/mdscript-artifact.mdscript.md#log-progress) with the selected lanes and the spawn as the next step
 * [Spawn Selected Lanes](#spawn-selected-lanes)
@@ -50,7 +52,7 @@
   * spawn one readonly subagent that runs only `mdscript-exec {{lane_entry}}`
   * do not assign `/self-review`, `self-review/SKILL.md`, or this composition workflow as the subagent's role
   * do not ask a lane subagent to spawn further subagents (many harnesses forbid nested fanout)
-* give each subagent only: neutral packet path, authorized paths, `{{proof_scope}}`, `{{goal_text}}` or `{{intended_done_state}}`, `{{conversation_id}}`, `{{review_signoff_dir}}`, `{{review_skill_root}}`, its minted `{{signoff_path}}` for this round, `{{review_round}}`, and its own MDScript entrypoint
+* give each subagent only: neutral packet path, authorized paths, `{{proof_scope}}`, `{{goal_text}}` or `{{intended_done_state}}`, `{{conversation_id}}`, `{{review_signoff_dir}}`, `{{review_skill_root}}`, its own `{{lane_signoff_paths}}.<lane>` as `{{signoff_path}}` for this round, `{{review_round}}`, and its own MDScript entrypoint
 * for engineering-rules lanes, also pass `{{reviewer_lane}}` and either `{{rules_pack}}` or `{{rules_file}}` only when the thin entrypoint does not set them itself
 * forbid each subagent from reading the other lanes' sign-offs or each other's prompts before writing its own file
 * set each subagent model to a task-appropriate reviewer model
@@ -61,6 +63,8 @@
 
 ## Restore Artifact Dir
 
+* if `{{prior_artifact_dir}}` is empty
+  * return to the caller, because this state was entered without a rebinding to undo
 * set `{{artifact_dir}}` back to `{{prior_artifact_dir}}`, so the author's repair log never mints among the blind sign-offs
 * return to the caller
 
@@ -70,7 +74,7 @@
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
   * set `{{proof_decision}}` to `Not accepted: no blind lanes were selected, so nothing was reviewed`
   * return incomplete to the caller
-* read only the sign-off files this round minted, at each lane's `{{signoff_path}}`
+* read only the sign-off files this round minted, at each lane's `{{lane_signoff_paths}}.<lane>`
 * if no sign-off file was read at all
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
   * set `{{proof_decision}}` to `Not accepted: zero lane sign-offs were read`

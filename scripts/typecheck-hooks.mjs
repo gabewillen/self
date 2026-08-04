@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
- * Typecheck the hook layer with a real compiler.
+ * Typecheck the hook layer with tsc --noEmit.
  *
- * The first version of this script shelled out to `bun build`, which transpiles
- * and discards types: it reported "clean" on constructed type errors and on the
- * exact defect it was written to catch (a Buffer passed to a string parser).
- * A guard that cannot fail is worse than no guard, so this runs tsc --noEmit.
+ * A transpiler is not a typechecker: it discards types and reports clean on a
+ * Buffer passed to a string parameter. Only a real compiler makes this gate
+ * able to fail, which is the only thing that makes it a gate.
  */
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";

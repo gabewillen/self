@@ -19,6 +19,7 @@ const searchRoots = roots.length ? roots : ["skills"];
 const HEADER = "mdscript: use the mdscript-exec";
 // Named so call sites do not pass a bare severity string (LOCAL-ARG-001).
 const ERROR = "error";
+const WARN = "warn";
 const LINE_TARGET = 200;
 const LINE_CEILING = 500;
 // Illustrative anchors in the authoring docs, not real targets.
@@ -91,7 +92,7 @@ const INHERITED = new Set([
 ]);
 
 const findings = [];
-const add = (file, line, level, rule, message) =>
+const add = ({ file, line, level, rule, message }) =>
   findings.push({ file: relative(process.cwd(), file), line, level, rule, message });
 
 for (const [abs, doc] of parsed.entries()) {
@@ -99,11 +100,11 @@ for (const [abs, doc] of parsed.entries()) {
 
   if (abs.endsWith("SKILL.md")) {
     if (!/^---\n[\s\S]*?\nname:|^---\nname:/m.test(text))
-      add(abs, 1, "error", "frontmatter", "SKILL.md has no YAML frontmatter with name");
+      add({ file: abs, line: 1, level: ERROR, rule: "frontmatter", message: "SKILL.md has no YAML frontmatter with name" });
     if (!/\ndescription:/.test(text.split("---")[1] || ""))
-      add(abs, 1, "error", "frontmatter", "SKILL.md frontmatter has no description");
+      add({ file: abs, line: 1, level: ERROR, rule: "frontmatter", message: "SKILL.md frontmatter has no description" });
     if (!isMdscript)
-      add(abs, 1, "error", "header", "SKILL.md has no MDScript execution header");
+      add({ file: abs, line: 1, level: ERROR, rule: "header", message: "SKILL.md has no MDScript execution header" });
   }
   if (!isMdscript) continue;
 
@@ -113,47 +114,29 @@ for (const [abs, doc] of parsed.entries()) {
   if (text.includes("\n---\n") && lines[0]?.trim() !== "---") {
     const fmLine = lines.findIndex((l) => l.trim() === "---") + 1;
     if (fmLine > 1)
-      add(
-        abs,
-        fmLine,
-        ERROR,
-        "frontmatter-order",
-        "YAML front matter must start on line 1; readers parse it before anything else",
-      );
+      add({ file: abs, line: fmLine, level: ERROR, rule: "frontmatter-order", message: "YAML front matter must start on line 1; readers parse it before anything else" });
   }
 
   // The name carries the grammar: an MDScript that does not say so in its
   // filename gets read and edited as a document, which is how invalid MDScript
   // gets written. SKILL.md is the one name the harness fixes for us.
   if (!abs.endsWith(".mdscript.md") && !abs.endsWith("SKILL.md"))
-    add(
-      abs,
-      1,
-      "error",
-      "naming",
-      "carries the MDScript execution header but is not named <name>.mdscript.md",
-    );
+    add({ file: abs, line: 1, level: ERROR, rule: "naming", message: "carries the MDScript execution header but is not named <name>.mdscript.md" });
 
   if (lines.length > LINE_CEILING)
-    add(abs, lines.length, "error", "size", `${lines.length} lines exceeds the ${LINE_CEILING}-line ceiling`);
+    add({ file: abs, line: lines.length, level: ERROR, rule: "size", message: `${lines.length} lines exceeds the ${LINE_CEILING}-line ceiling` });
   else if (lines.length > LINE_TARGET)
-    add(abs, lines.length, "warn", "size", `${lines.length} lines exceeds the ${LINE_TARGET}-line target; extract states into linked sub-scripts`);
+    add({ file: abs, line: lines.length, level: WARN, rule: "size", message: `${lines.length} lines exceeds the ${LINE_TARGET}-line target; extract states into linked sub-scripts` });
 
   for (const { line, text: l } of body) {
     if (/^### /.test(l))
-      add(abs, line, "error", "structure", "`###` is not a state; use `##` or fold into the parent state");
+      add({ file: abs, line: line, level: ERROR, rule: "structure", message: "`###` is not a state; use `##` or fold into the parent state" });
     if (l && !/^\s/.test(l) && !/^(#|<!--|\||\*|-|>)/.test(l) && !/^\d+[.)]\s/.test(l))
-      add(abs, line, "error", "narration", "prose outside a bullet; a state body is executable steps");
+      add({ file: abs, line: line, level: ERROR, rule: "narration", message: "prose outside a bullet; a state body is executable steps" });
     if (/^\s*\d+[.)]\s/.test(l))
-      add(
-        abs,
-        line,
-        "error",
-        "ordered-list",
-        "numbered list in a state body; sequence is expressed by bullet order and heading links",
-      );
+      add({ file: abs, line: line, level: ERROR, rule: "ordered-list", message: "numbered list in a state body; sequence is expressed by bullet order and heading links" });
     if (/^\s*\* /.test(l) && RATIONALE.test(l))
-      add(abs, line, "warn", "rationale", "bullet explains why rather than naming an action; move it to a reference file");
+      add({ file: abs, line: line, level: WARN, rule: "rationale", message: "bullet explains why rather than naming an action; move it to a reference file" });
   }
 
   // Links and anchors, including /mdscript-exec re-entry commands.
@@ -165,13 +148,13 @@ for (const [abs, doc] of parsed.entries()) {
     const target = path ? resolve(dir, path) : abs;
     const line = text.slice(0, m.index).split("\n").length;
     if (!existsSync(target)) {
-      add(abs, line, "error", "link", `link target does not exist: ${link}`);
+      add({ file: abs, line: line, level: ERROR, rule: "link", message: `link target does not exist: ${link}` });
       continue;
     }
     if (!anchor) continue;
     const doc2 = parsed.get(target) || parse(target);
     if (!doc2.states.some((s) => anchorOf(s.name) === anchor))
-      add(abs, line, "error", "anchor", `no \`## \` state matches #${anchor} in ${path || "this file"}`);
+      add({ file: abs, line: line, level: ERROR, rule: "anchor", message: `no \`## \` state matches #${anchor} in ${path || "this file"}` });
   }
 
   for (const m of text.matchAll(/mdscript-exec\s+([^\s`'"]+)#([a-z0-9-]+)/g)) {
@@ -182,7 +165,7 @@ for (const [abs, doc] of parsed.entries()) {
     const line = text.slice(0, m.index).split("\n").length;
     const doc2 = parsed.get(resolve(target)) || parse(target);
     if (!doc2.states.some((s) => anchorOf(s.name) === anchor))
-      add(abs, line, "error", "reentry", `re-entry #${anchor} matches no \`## \` state in ${path}`);
+      add({ file: abs, line: line, level: ERROR, rule: "reentry", message: `re-entry #${anchor} matches no \`## \` state in ${path}` });
   }
 
   // Only flag a variable used inside a path or command: an unset {{var}} there
@@ -195,14 +178,14 @@ for (const [abs, doc] of parsed.entries()) {
       const name = v[1];
       if (setVars.has(name) || INHERITED.has(name)) continue;
       const line = text.slice(0, m.index).split("\n").length;
-      add(abs, line, "error", "variable", `{{${name}}} builds a path or command but no state sets it`);
+      add({ file: abs, line: line, level: ERROR, rule: "variable", message: `{{${name}}} builds a path or command but no state sets it` });
     }
   }
 
   const seen = new Set();
   for (const s of states) {
     const a = anchorOf(s.name);
-    if (seen.has(a)) add(abs, s.line, "error", "duplicate-state", `duplicate state anchor #${a}`);
+    if (seen.has(a)) add({ file: abs, line: s.line, level: ERROR, rule: "duplicate-state", message: `duplicate state anchor #${a}` });
     seen.add(a);
   }
 }

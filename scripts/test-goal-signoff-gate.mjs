@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * Execute the goal completion gate. Three review rounds found defects here that
- * `npm test` could not see, because nothing imported this module: a Buffer
- * handed to a string parser made every sign-off read as absent, validators were
- * called with one of their required arguments, and sign-off discovery accepted
- * a forged or stale file. These tests run the shipped functions.
+ * Execute the goal completion gate against the shipped functions.
+ *
+ * The gate decides whether a goal run may close, so every check here asserts a
+ * refusal it must make: an unparseable record, a sign-off from another lane or
+ * another round, a stale set that agrees with itself, and evidence that
+ * survived invalidation. Each assertion fails when its behaviour is reverted.
  */
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -127,6 +128,29 @@ check({
   detail: hsm.split("/").pop(),
 });
 
+// Ordering is by the round each record states, so a high-sorting filename
+// cannot make an older round win.
+const orderDir = join(scratch, "order");
+mkdirSync(orderDir, { recursive: true });
+writeFileSync(
+  join(orderDir, "zzzz-high-sorting-name-rules-signoff.mdscript.md"),
+  signoffText({ lane: "rules", round: ROUND_3, summary: "rules lane wrote this in the older round three" }),
+);
+writeFileSync(
+  join(orderDir, "aaaa-low-sorting-name-rules-signoff.mdscript.md"),
+  signoffText({ lane: "rules", round: ROUND_4, summary: "rules lane wrote this in the newer round four" }),
+);
+const ordered = lib.findLaneSignoffPath({
+  runDirectoryPath: orderDir,
+  laneId: "rules",
+  fallbackPath: join(orderDir, "none.mdscript.md"),
+});
+check({
+  name: "the newest stated round wins over a higher-sorting filename",
+  passed: ordered.endsWith("aaaa-low-sorting-name-rules-signoff.mdscript.md"),
+  detail: ordered.split("/").pop(),
+});
+
 // The gate itself: three valid same-round sign-offs complete; a mixed round or
 // an unstated round does not.
 function paths(dir) {
@@ -151,7 +175,12 @@ function writeLanes({ dir, rounds }) {
 
 const okDir = join(scratch, "ok");
 writeLanes({ dir: okDir, rounds: { rules: 4, security: 4, completeness: 4 } });
-const okResult = lib.validateTripleBlindSignoffs(scratch, paths(okDir), GOAL, CONVERSATION);
+const okResult = lib.validateTripleBlindSignoffs({
+  root: scratch,
+  paths: paths(okDir),
+  goal: GOAL,
+  conversationId: CONVERSATION,
+});
 check({
   name: "three valid same-round sign-offs complete the gate",
   passed: okResult.complete === true,
@@ -160,7 +189,12 @@ check({
 
 const mixedDir = join(scratch, "mixed");
 writeLanes({ dir: mixedDir, rounds: { rules: 4, security: 3, completeness: 4 } });
-const mixedResult = lib.validateTripleBlindSignoffs(scratch, paths(mixedDir), GOAL, CONVERSATION);
+const mixedResult = lib.validateTripleBlindSignoffs({
+  root: scratch,
+  paths: paths(mixedDir),
+  goal: GOAL,
+  conversationId: CONVERSATION,
+});
 check({
   name: "sign-offs spanning two rounds do not complete the gate",
   passed: mixedResult.complete === false,
@@ -175,17 +209,17 @@ for (const lane of ["rules", "security", "completeness"]) {
     signoffText({ lane, round: 4, summary: "the very same summary text from every lane here" }),
   );
 }
-const identicalResult = lib.validateTripleBlindSignoffs(
-  scratch,
-  paths(identicalDir),
-  GOAL,
-  CONVERSATION,
-);
+const identicalResult = lib.validateTripleBlindSignoffs({
+  root: scratch,
+  paths: paths(identicalDir),
+  goal: GOAL,
+  conversationId: CONVERSATION,
+});
 check({ name: "identical lane summaries do not complete the gate", passed: identicalResult.complete === false });
 
-// The security lane proved a round-over-round directory re-completes the gate
-// straight after invalidation, with no attacker: invalidation retired only the
-// path discovery returned and left every sibling live.
+// Invalidation must retire every live sign-off, not just the one discovery
+// returns: a surviving sibling lets the next discovery re-complete the gate
+// with no fresh review.
 const replayDir = join(scratch, "replay");
 writeLanes({ dir: replayDir, rounds: { rules: ROUND_4, security: ROUND_4, completeness: ROUND_4 } });
 for (const lane of ["rules", "security", "completeness"]) {
@@ -195,14 +229,24 @@ for (const lane of ["rules", "security", "completeness"]) {
   );
 }
 const replayPaths = paths(replayDir);
-const beforeInvalidate = lib.validateTripleBlindSignoffs(scratch, replayPaths, GOAL, CONVERSATION);
+const beforeInvalidate = lib.validateTripleBlindSignoffs({
+  root: scratch,
+  paths: replayPaths,
+  goal: GOAL,
+  conversationId: CONVERSATION,
+});
 check({
   name: "the gate completes before invalidation",
   passed: beforeInvalidate.complete === true,
   detail: beforeInvalidate.reasons?.[0]?.slice(0, 90),
 });
 lib.invalidateReviewerSignoffs(replayPaths);
-const afterInvalidate = lib.validateTripleBlindSignoffs(scratch, replayPaths, GOAL, CONVERSATION);
+const afterInvalidate = lib.validateTripleBlindSignoffs({
+  root: scratch,
+  paths: replayPaths,
+  goal: GOAL,
+  conversationId: CONVERSATION,
+});
 check({
   name: "no stale sign-off survives invalidation to re-complete the gate",
   passed: afterInvalidate.complete === false,
@@ -212,17 +256,97 @@ check({
 // A whole stale set agrees with itself, so lane consistency alone is not enough.
 const staleDir = join(scratch, "stale");
 writeLanes({ dir: staleDir, rounds: { rules: ROUND_3, security: ROUND_3, completeness: ROUND_3 } });
-const staleResult = lib.validateTripleBlindSignoffs(
-  scratch,
-  paths(staleDir),
-  GOAL,
-  CONVERSATION,
-  ROUND_4,
-);
+const staleResult = lib.validateTripleBlindSignoffs({
+  root: scratch,
+  paths: paths(staleDir),
+  goal: GOAL,
+  conversationId: CONVERSATION,
+  currentReviewRound: ROUND_4,
+});
 check({
   name: "a consistent stale round does not satisfy the run's current round",
   passed: staleResult.complete === false,
   detail: staleResult.reasons?.[0]?.slice(0, 48),
+});
+
+// The citation gate needs a root that actually holds AGENTS.md to bind.
+const rootDir = join(scratch, "withagents");
+mkdirSync(rootDir, { recursive: true });
+writeFileSync(join(rootDir, "AGENTS.md"), "# AGENTS\n\n- a rule\n");
+const citeDir = join(rootDir, "run");
+mkdirSync(citeDir, { recursive: true });
+for (const lane of ["rules", "security", "completeness"]) {
+  writeFileSync(
+    join(citeDir, `signoff-reviewer-${lane}.mdscript.md`),
+    signoffText({ lane, round: ROUND_4, summary: `${lane} lane reasoned independently about ${lane}` }).replace(
+      "rules_reviewed:\n  - AGENTS.md",
+      "rules_reviewed:\n  - core.rules.md",
+    ),
+  );
+}
+const citeResult = lib.validateTripleBlindSignoffs({
+  root: rootDir,
+  paths: paths(citeDir),
+  goal: GOAL,
+  conversationId: CONVERSATION,
+  currentReviewRound: ROUND_4,
+});
+check({
+  name: "a sign-off that never cites AGENTS.md does not complete the gate",
+  passed: citeResult.complete === false,
+  detail: citeResult.reasons?.[0]?.slice(0, 48),
+});
+
+// A sign-off that states no round cannot be dated to this one.
+const unstatedDir = join(scratch, "unstated");
+mkdirSync(unstatedDir, { recursive: true });
+for (const lane of ["rules", "security", "completeness"]) {
+  writeFileSync(
+    join(unstatedDir, `signoff-reviewer-${lane}.mdscript.md`),
+    signoffText({ lane, round: ROUND_4, summary: `${lane} lane reasoned independently about ${lane}` }).replace(
+      `review_round: ${ROUND_4}\n`,
+      "",
+    ),
+  );
+}
+const unstatedResult = lib.validateTripleBlindSignoffs({
+  root: scratch,
+  paths: paths(unstatedDir),
+  goal: GOAL,
+  conversationId: CONVERSATION,
+});
+check({
+  name: "a sign-off that states no round does not complete the gate",
+  passed: unstatedResult.complete === false,
+  detail: unstatedResult.reasons?.[0]?.slice(0, 48),
+});
+
+// The round must survive the real path — written to goal front matter and
+// mapped back on load — not merely be accepted as an argument.
+const fmRoundTrip = lib.goalStateFromFrontMatter(
+  lib.parseMdscriptFrontMatter(
+    [
+      "---",
+      'id: "run-1"',
+      'goal: "g"',
+      'conversation_id: "c"',
+      "active: true",
+      "review_round: 6",
+      "---",
+      "",
+      "<!-- mdscript: use the mdscript-exec skill -->",
+      "",
+      "## Pursue Goal",
+      "",
+      "* keep going",
+      "",
+    ].join("\n"),
+  ),
+);
+check({
+  name: "review_round survives the goal front matter round trip",
+  passed: String(fmRoundTrip?.review_round) === "6",
+  detail: `review_round=${fmRoundTrip?.review_round}`,
 });
 
 if (failed) {

@@ -52,7 +52,7 @@
     "typecheck": "node scripts/typecheck-hooks.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.18"
   },
   "agents": {
     "skills": [

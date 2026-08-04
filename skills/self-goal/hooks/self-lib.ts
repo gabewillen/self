@@ -159,6 +159,9 @@ const SUPERSEDE_LIMIT = 100;
 /** Every sign-off, minted or legacy, ends with this. */
 const SIGNOFF_SUFFIX = "-signoff.mdscript.md";
 
+/** Every minted review verdict ends with this. */
+const VERDICT_SUFFIX = "-review-verdict.mdscript.md";
+
 export const SIGNOFF_RULES_MDSCRIPT = "signoff-reviewer-rules.mdscript.md";
 export const SIGNOFF_SECURITY_MDSCRIPT = "signoff-reviewer-security.mdscript.md";
 export const SIGNOFF_COMPLETENESS_MDSCRIPT = "signoff-reviewer-completeness.mdscript.md";
@@ -575,6 +578,10 @@ export function goalStateFromFrontMatter(
     goal_mdscript:
       typeof fm.goal_mdscript === "string" ? fm.goal_mdscript : undefined,
     status: typeof fm.status === "string" ? fm.status : undefined,
+    review_round:
+      typeof fm.review_round === "number" || typeof fm.review_round === "string"
+        ? fm.review_round
+        : undefined,
     resume_heading:
       typeof fm.resume_heading === "string" ? fm.resume_heading : undefined,
     iteration:
@@ -822,13 +829,19 @@ export function countPFindings(
   }).length;
 }
 
-export function isValidSignoff(
-  signoff: GoalSignoff,
-  goal: string,
-  conversationId: string,
-  expectedReviewerId?: GoalReviewerId,
-  root?: string,
-): boolean {
+export function isValidSignoff({
+  signoff,
+  goal,
+  conversationId,
+  expectedReviewerId,
+  root,
+}: {
+  signoff: GoalSignoff;
+  goal: string;
+  conversationId: string;
+  expectedReviewerId?: GoalReviewerId;
+  root?: string;
+}): boolean {
   if (!signoff.signed_off) {
     return false;
   }
@@ -1053,6 +1066,7 @@ goal_mdscript: ${yamlScalar(scriptRelative)}
 status: ${yamlScalar(status)}
 active: ${yamlScalar(Boolean(state.active))}
 iteration: ${yamlScalar(iteration)}
+review_round: ${yamlScalar(state.review_round ?? 1)}
 resume_heading: ${yamlScalar(resumeHeading)}
 proof_kind: ${yamlScalar(proofKind)}
 live_proof: ${yamlScalar(state.live_proof ?? liveProof)}
@@ -1475,14 +1489,21 @@ export function validateArtifactsManifest(
   return { complete: reasons.length === 0, reasons };
 }
 
-export function signoffRejectionReason(
-  signoff: GoalSignoff | null,
-  goal: string,
-  conversationId: string,
-  signoffPath: string,
-  expectedReviewerId?: GoalReviewerId,
-  root?: string,
-): string {
+export function signoffRejectionReason({
+  signoff,
+  goal,
+  conversationId,
+  signoffPath,
+  expectedReviewerId,
+  root,
+}: {
+  signoff: GoalSignoff | null;
+  goal: string;
+  conversationId: string;
+  signoffPath: string;
+  expectedReviewerId?: GoalReviewerId;
+  root?: string;
+}): string {
   const label = expectedReviewerId
     ? `Reviewer ${expectedReviewerId.toUpperCase()}`
     : "Verifier";
@@ -1755,13 +1776,55 @@ export function findLaneSignoffPath({
   return fallbackPath;
 }
 
-export function validateTripleBlindSignoffs(
-  root: string,
-  paths: GoalSessionPaths,
-  goal: string,
-  conversationId: string,
-  currentReviewRound?: number | string,
-): GoalCompletionStatus {
+/**
+ * Find this run's review verdict. Rounds mint a lexicographic name, so the
+ * newest stated round wins; the fixed legacy name remains a fallback. Sign-offs
+ * got discovery when they started being minted and the verdict did not, which
+ * left a goal run writing its verdict where its own reader could not see it.
+ */
+export function findReviewVerdictPath({
+  runDirectoryPath,
+  fallbackPath,
+}: {
+  runDirectoryPath: string;
+  fallbackPath: string;
+}): string {
+  if (!existsSync(runDirectoryPath)) return fallbackPath;
+  let names: string[] = [];
+  try {
+    names = readdirSync(runDirectoryPath);
+  } catch {
+    return fallbackPath;
+  }
+  const roundOf = (candidatePath: string): number => {
+    const record = loadMdscriptRecord<GoalReviewVerdict>(candidatePath);
+    const stated = Number(record?.review_round);
+    return Number.isFinite(stated) ? stated : -1;
+  };
+  const minted = names
+    .filter((name) => name.endsWith(VERDICT_SUFFIX))
+    .filter((name) => !name.includes(".superseded"))
+    .map((name) => join(runDirectoryPath, name))
+    .filter((candidatePath) => loadMdscriptRecord<GoalReviewVerdict>(candidatePath) !== null)
+    .sort((left, right) => roundOf(left) - roundOf(right) || left.localeCompare(right));
+  const newest = minted[minted.length - 1];
+  if (newest) return newest;
+  return fallbackPath;
+}
+
+export function validateTripleBlindSignoffs({
+  root,
+  paths,
+  goal,
+  conversationId,
+  currentReviewRound,
+}: {
+  root: string;
+  paths: GoalSessionPaths;
+  goal: string;
+  conversationId: string;
+  currentReviewRound?: number | string;
+}): GoalCompletionStatus {
   const runDirectoryPath = dirname(paths.signoffReviewerRulesMdscript);
   const lanes: Array<{ id: GoalReviewerId; path: string }> = [
     {
@@ -1795,16 +1858,25 @@ export function validateTripleBlindSignoffs(
 
   for (const lane of lanes) {
     const signoff = loadMdscriptRecord<GoalSignoff>(lane.path);
-    if (!signoff || !isValidSignoff(signoff, goal, conversationId, lane.id, root)) {
+    if (
+      !signoff ||
+      !isValidSignoff({
+        signoff,
+        goal,
+        conversationId,
+        expectedReviewerId: lane.id,
+        root,
+      })
+    ) {
       reasons.push(
-        signoffRejectionReason(
+        signoffRejectionReason({
           signoff,
           goal,
           conversationId,
-          relativePath(root, lane.path),
-          lane.id,
+          signoffPath: relativePath(root, lane.path),
+          expectedReviewerId: lane.id,
           root,
-        ),
+        }),
       );
       continue;
     }
@@ -1891,12 +1963,22 @@ export function evaluateGoalCompletion(
     reasons.push(...artifactsStatus.reasons);
   }
 
-  const triple = validateTripleBlindSignoffs(root, paths, goal, conversationId, state.review_round);
+  const triple = validateTripleBlindSignoffs({
+    root,
+    paths,
+    goal,
+    conversationId,
+    currentReviewRound: state.review_round,
+  });
   if (!triple.complete) {
     reasons.push(...triple.reasons);
   }
 
-  const verdict = loadMdscriptRecord<GoalReviewVerdict>(paths.reviewVerdictMdscript);
+  const verdictPath = findReviewVerdictPath({
+    runDirectoryPath: dirname(paths.reviewVerdictMdscript),
+    fallbackPath: paths.reviewVerdictMdscript,
+  });
+  const verdict = loadMdscriptRecord<GoalReviewVerdict>(verdictPath);
   if (!verdict || !isValidSelfReviewVerdict(verdict, goal, conversationId)) {
     reasons.push(
       selfReviewRejectionReason(

@@ -24,7 +24,9 @@
 * set `{{local_resource_path}}` from stack/bootstrap commands needed by those reproduce paths
 * set `{{blocking_severities}}` to `all findings` on the first goal-completion review round for code changes
 * set `{{run_dir}}` / `{{review_signoff_dir}}` to the active goal run directory
-* write neutral `{{run_dir}}/review-packet.mdscript.md` containing only:
+* set `{{review_round}}` to `1` when empty, otherwise to `{{review_round}}` plus `1`
+* record `review_round` in the run's goal front matter, so the completion gate can date this round's sign-offs instead of accepting any set that agrees with itself
+* write this round's neutral packet at the minted `{{review_packet}}` path, never a fixed name that overwrites an earlier round, containing only:
   * exact goal / conversation_id / run_id / goal_mdscript
   * `proof_kind`, `live_proof`, `primary_user_action`, `proof_scope`
   * in-scope changed paths
@@ -40,8 +42,9 @@
 * always-on blind lanes: `rules`, `security`, `completeness`
 * selected add-on lanes come from in-scope paths and `references/lane-catalog.md` (`eng-*`, optional `hsm`)
 * spawn every lane in `{{blind_lanes}}` as a parallel readonly subagent at `{{lane_entrypoints}}.<lane>` from this process
-* wait for one sign-off per spawned lane at the `{{signoff_path}}` this round minted for that lane
-* aggregate and persist `{{run_dir}}/review-verdict.mdscript.md` only from the parent aggregate (never invent Proven-for; never nest a self-review skill subagent to aggregate)
+* give each lane its own `{{lane_signoff_paths}}.<lane>` as `{{signoff_path}}`, plus `{{review_round}}` and `{{review_signoff_dir}}`, so no lane recomputes a fixed name
+* wait for one sign-off per spawned lane at `{{lane_signoff_paths}}.<lane>`, the path this round minted for that lane
+* aggregate and persist this round's minted `<stamp>-<round>-<subject>-<identity>-review-verdict.mdscript.md` only from the parent aggregate (never invent Proven-for; never nest a self-review skill subagent to aggregate)
 * append `review_composed` to `{{run_dir}}/progress.jsonl`
 * if every spawned lane signed off, grade starts with `Proven for`, and `blocking_findings` is empty
   * append `review_passed`
