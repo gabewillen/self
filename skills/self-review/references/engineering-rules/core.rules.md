@@ -4,6 +4,18 @@ Systems MUST produce identical observable behavior when provided identical input
 
 Runtime code MUST NOT depend on hidden mutable global state, ambient clocks, random sources, or external systems except through explicit boundaries.
 
+# CORE-ARG-001 MUST Named Arguments At Call Sites
+
+Call sites MUST name what they pass, because an agent reads code far more often than it wrote it and positional arguments carry no meaning at the call site.
+
+In languages that support keyword or named arguments — Python, Kotlin, Swift, Ruby, C#, Dart, and others — callers MUST use them rather than relying on parameter order.
+
+In languages without them — TypeScript, JavaScript, Go, Rust, C++, Java — a call taking more than one argument, or any boolean, MUST take a single object, struct, or record with named fields instead of a positional list.
+
+Positional arguments are acceptable only for a single unambiguous argument, or for an established idiom of the language or framework where naming would obscure rather than clarify.
+
+Bare boolean, magic number, and bare enum arguments at a call site are forbidden regardless of language.
+
 # CORE-MEM-001 MUST Explicit Ownership
 
 Ownership and lifetime MUST be obvious from code.

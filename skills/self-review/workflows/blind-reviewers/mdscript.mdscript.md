@@ -10,7 +10,9 @@
   * stop and report `{{blocker}}` to the composing reviewer
 * if `{{review_skill_root}}` is empty
   * set `{{review_skill_root}}` to the absolute directory of the self-review skill that owns this lane file
-* set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-mdscript.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-mdscript.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-mdscript.mdscript.md`
+* if the caller supplied `{{signoff_path}}`, write only that path and do not recompute it
+* otherwise set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-mdscript.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-mdscript.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-mdscript.mdscript.md`
+* this lane writes one sign-off and is exempt from the running-log contract; the composing process keeps the round's log
 * you are a **blind adversarial** reviewer for **MDScript authoring and execution-contract violations only**
 * read only the neutral review packet and the MDScript paths it authorizes — do not read other reviewers' sign-offs, prompts, verdicts, or preferred grades before writing your own
 * default to `signed_off: false`

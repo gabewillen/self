@@ -11,13 +11,13 @@ description: "Routed MDScript for troubleshooting a reported failure: reproduce 
 * preserve every boundary in [boundaries.md](../self/references/boundaries.md) for the routed role that entered this workflow
 * set `{{skills_root}}` to the installed skills root the router resolved, or to `~/.agents/skills` when it is empty
 * run [Ensure File Task](../self-common/workflows/file-task-comments.md#ensure-file-task) to resolve `{{task_id}}`, `{{artifact_dir}}`, and `{{return_dir}}` before any later state records evidence
+* infer `{{symptom}}`, `{{failing_surface}}`, `{{reported_evidence}}`, and `{{suspect_scope}}` from the request and current evidence
+* set `{{pass_number}}` to `1` when it is empty
 * set `{{artifact_kind}}` to `rca`
-* set `{{artifact_slug}}` to a slug of `{{symptom}}`
+* set `{{artifact_slug}}` to `{{symptom}}`
 * set `{{artifact_ordinal}}` to `{{pass_number}}`
 * run [Start MDScript Running Log](../self-common/workflows/mdscript-artifact.md#start-mdscript-running-log)
 * set `{{rca_mdscript}}` to `{{mdscript_artifact}}`
-* infer `{{symptom}}`, `{{failing_surface}}`, `{{reported_evidence}}`, and `{{suspect_scope}}` from the request and current evidence
-* set `{{pass_number}}` to `1` when it is empty
 * [Initialize Pass State](#initialize-pass-state)
 
 ## Initialize Pass State

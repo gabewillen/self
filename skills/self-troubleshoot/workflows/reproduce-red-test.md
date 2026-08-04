@@ -67,9 +67,9 @@
 * treat a passing test as evidence the reproduction is wrong, not as evidence the issue is absent
 * set `{{repro_attempts}}` to `{{repro_attempts}}` plus `1`
 * set `{{repro_mismatch}}` to the closest difference between the test and the reported failure across inputs, identity, config, data, timing, and concurrency
-* set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
-* run [Log Progress](../../self-common/workflows/mdscript-artifact.md#log-progress) with this failed reproduction attempt
 * redact credentials, tokens, identifiers, and customer data from `{{repro_mismatch}}`
+* set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
+* run [Log Progress](../../self-common/workflows/mdscript-artifact.md#log-progress) with this failed reproduction attempt and the redacted mismatch
 * record the redacted `{{repro_mismatch}}` in the file task
 * if `{{repro_attempts}}` is greater than `3`
   * [Escalate Reproduction Gap](#escalate-reproduction-gap)

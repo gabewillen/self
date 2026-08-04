@@ -5,7 +5,9 @@
 * set `{{reviewer_lane}}` to `hsm`
 * set `{{reviewer_id}}` to `hsm`
 * set `{{review_skill_root}}` to the installed self-review skill root
-* set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-hsm.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-hsm.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-hsm.mdscript.md`
+* if the caller supplied `{{signoff_path}}`, write only that path and do not recompute it
+* otherwise set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-hsm.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-hsm.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-hsm.mdscript.md`
+* this lane writes one sign-off and is exempt from the running-log contract; the composing process keeps the round's log
 * you are a **blind adversarial** reviewer for **hierarchical state machine / statechart semantics** only
 * read only the neutral review packet and paths it authorizes — do not read other reviewers' sign-offs, prompts, verdicts, chat repair narratives, or preferred grades before writing your own
 * default to `signed_off: false`

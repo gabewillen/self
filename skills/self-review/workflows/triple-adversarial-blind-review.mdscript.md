@@ -15,7 +15,8 @@
   * stop and report the incomplete always-on set
 * set `{{review_signoff_dir}}` to `{{run_dir}}` when present, otherwise `{{artifact_dir}}/reviews/{{review_key}}`
 * create `{{review_signoff_dir}}` when missing
-* set `{{artifact_dir}}` to `{{review_signoff_dir}}` for this round's artifacts
+* set `{{prior_artifact_dir}}` to `{{artifact_dir}}`
+* set `{{artifact_dir}}` to `{{review_signoff_dir}}` for this round's artifacts only
 * for each lane id in `{{blind_lanes}}`
   * set `{{artifact_kind}}` to `<lane>-signoff`
   * set `{{artifact_slug}}` to a slug of `{{review_key}}`
@@ -41,7 +42,7 @@
   * spawn one readonly subagent that runs only `mdscript-exec {{lane_entry}}`
   * do not assign `/self-review`, `self-review/SKILL.md`, or this composition workflow as the subagent's role
   * do not ask a lane subagent to spawn further subagents (many harnesses forbid nested fanout)
-* give each subagent only: neutral packet path, authorized paths, `{{proof_scope}}`, `{{goal_text}}` or `{{intended_done_state}}`, `{{conversation_id}}`, `{{review_signoff_dir}}`, `{{review_skill_root}}`, and its own MDScript entrypoint
+* give each subagent only: neutral packet path, authorized paths, `{{proof_scope}}`, `{{goal_text}}` or `{{intended_done_state}}`, `{{conversation_id}}`, `{{review_signoff_dir}}`, `{{review_skill_root}}`, its minted `{{signoff_path}}` for this round, `{{review_round}}`, and its own MDScript entrypoint
 * for engineering-rules lanes, also pass `{{reviewer_lane}}` and either `{{rules_pack}}` or `{{rules_file}}` only when the thin entrypoint does not set them itself
 * forbid each subagent from reading the other lanes' sign-offs or each other's prompts before writing its own file
 * set each subagent model to a task-appropriate reviewer model
@@ -70,11 +71,11 @@
   * union all `p_findings`, `attack_attempts`, and `remaining_gaps` into `{{blocking_findings}}` / next fix wave
   * set `{{grade}}` to `Not ready for {{proof_scope}}` when findings are repairable
   * set `{{grade}}` to `Blocked for {{proof_scope}}` only when a lane names a true missing precondition that cannot be stood up
-  * delete every lane sign-off file
+  * keep every lane sign-off file as this round's evidence, because the next round mints its own names
   * return incomplete to the caller
 * if every lane in `{{blind_lanes}}` has `signed_off: true` and empty `p_findings`
   * if any two `verifier_summary` texts are identical
-    * delete every lane sign-off file
+    * keep every lane sign-off file as this round's evidence, because the next round mints its own names
     * [Triple Adversarial Blind Review](#triple-adversarial-blind-review)
   * set `{{blocking_findings}}` to `[]`
   * set residual notes from any non-blocking commentary without weakening the gate

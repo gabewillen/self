@@ -58,6 +58,6 @@
 * record under `## Root Cause` the causal mechanism, `{{cause_owner}}`, the masking layer when one exists, and the prediction that confirmed it
 * record under `## Verify The Fix` the `{{fix_scope}}` and the rerun step that decides green
 * record under `## Open Questions` every discarded hypothesis with its evidence, so a later pass does not repeat it
-* set the artifact `re_entry` to `/mdscript-exec {{rca_mdscript}}#reproduce-this-failure`
-* run [Write MDScript Artifact](../../self-common/workflows/mdscript-artifact.md#write-mdscript-artifact)
+* set `{{artifact_re_entry}}` to `/mdscript-exec {{rca_mdscript}}#verify-the-fix`
+* run [Log Progress](../../self-common/workflows/mdscript-artifact.md#log-progress) with the confirmed root cause, so the append-only history is kept
 * [Apply Root Cause Fix](../self-troubleshoot.mdscript.md#apply-root-cause-fix)

@@ -11,6 +11,11 @@
 
 ## Write Goal MDScript
 
+* this goal MDScript is the running log for its lane: it satisfies the forward-progress boundary for `self-goal`, `self-watch`, `self-automate`, and any monitored orchestrator lane
+* include `## Done So Far` as the append-only record of completed rounds with their evidence
+* include `## Next Steps` as the executable states that remain
+* update both at every round or heartbeat that changes what is true, not only at the end
+
 * run [Resolve Goal MDScript](#resolve-goal-mdscript)
 * read [goal contract](../references/goal-contract.md)
 * read [goal template](../templates/goal.mdscript.md)
