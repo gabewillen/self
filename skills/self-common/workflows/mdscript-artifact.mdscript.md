@@ -7,6 +7,8 @@
   * set `{{blocker}}` to `running log requested without a kind or a subject`
   * stop and report `{{blocker}}` to the caller
 * run [Mint MDScript Artifact Path](#mint-mdscript-artifact-path)
+* set `{{owner_role}}` to `{{self_role}}`, or to `main` when this agent has no routed role
+* set `{{task_id}}` from the file task when one is open, otherwise to `none`
 * set `{{artifact_status}}` to `in-progress`
 * set `{{done_so_far}}` to empty
 * set `{{next_steps}}` to the plan for this work as executable states
@@ -56,6 +58,7 @@
 * reduce `{{artifact_identity}}` and `{{artifact_kind}}` to lowercase `a-z`, `0-9`, and `-`, dropping every other character
 * set `{{artifact_suffix}}` to empty
 * set `{{mdscript_artifact}}` to `{{artifact_dir}}/{{artifact_stamp}}-{{artifact_ordinal}}-{{artifact_slug}}-{{artifact_identity}}-{{artifact_kind}}.mdscript.md`
+* confirm the built name carries only `a-z`, `0-9`, `-`, `.`, and the `{{artifact_dir}}` prefix, because a reduction that silently fails produces a name with spaces that later states cannot address
 * confirm `{{mdscript_artifact}}` resolves inside `{{artifact_dir}}`
   * if it does not, set `{{blocker}}` to the escaping path and stop
 * if `{{artifact_reserve_only}}` is `true`
@@ -138,7 +141,8 @@
   * set `{{blocker}}` to `running log at {{mdscript_artifact}} failed verification three times`
   * stop and report `{{blocker}}` to the caller
 * read `{{mdscript_artifact}}` back and confirm it begins with YAML front matter, then carries the execution header and a final state holding the `/mdscript-exec` re-entry
-* confirm it carries `## Done So Far` and `## Next Steps` when `{{artifact_kind}}` is a running log; other kinds carry the states their own template defines
+* confirm it carries `## Done So Far` and `## Next Steps` when this artifact was opened through [Start MDScript Running Log](#start-mdscript-running-log), which is what makes a kind a running log
+* confirm any other kind carries the states its own template defines, such as a review packet's scope and open questions
 * confirm every in-file heading link in it resolves to one of its own `##` headings
 * confirm every relative link it names exists
 * measure it with `wc -l` and confirm it is under 200 lines
