@@ -5,7 +5,7 @@
  * no matter which wording or legacy block shape it started from — and a
  * malformed legacy marker must never swallow the user's own text.
  */
-import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -19,6 +19,13 @@ if (start < 0 || end < 0 || end <= start) {
   process.exit(1);
 }
 const scratch = mkdtempSync(join(tmpdir(), "self-router-directive-"));
+process.on("exit", () => {
+  try {
+    rmSync(scratch, { recursive: true, force: true });
+  } catch {
+    // best effort: a leaked scratch dir must not fail the suite
+  }
+});
 const modPath = join(scratch, "router.mjs");
 writeFileSync(
   modPath,
@@ -128,6 +135,23 @@ const cases = [
     input: `# x\n\n${mod.SHIPPED_DIRECTIVES.join("\n")}\n\n${block}`,
   },
   {
+    name: "a user line mentioning a marker INSIDE the managed block survives",
+    input: `# x\n\n${mod.ROUTER_BLOCK_START}\n${mod.ROUTER_DIRECTIVE}\n<!-- self:router --> ALSO: ${USER_LINE}\n${mod.ROUTER_BLOCK_END}\n`,
+    keepsUserText: true,
+  },
+  {
+    name: "one of two identical user lines cannot be dropped",
+    input: `# x\n\n- ${USER_LINE}\n\n${mod.ROUTER_BLOCK_START}\n${mod.ROUTER_DIRECTIVE}\n- ${USER_LINE}\n${mod.ROUTER_BLOCK_END}\n`,
+    keepsUserText: true,
+    expectTwoCopies: true,
+  },
+  {
+    name: "a hard-wrapped stale directive is reported, never silently left alone",
+    input: `# x\n\n- ALWAYS enter through the \`self\` router skill. Run it first on every\n  request, before planning or answering.\n\n${block}`,
+    expectNearMiss: true,
+    allowExtraDirectiveLine: true,
+  },
+  {
     name: "a pre-seeded placeholder sentinel cannot capture the block",
     input: `# x\n\n\u0000self-agents-router\u0000\n\n${block}\n`,
     noSentinel: true,
@@ -158,6 +182,17 @@ for (const c of cases) {
     check(
       `${c.name} — fenced example survives`,
       result.body.includes(OLD_SELF_DIRECTIVE),
+    );
+  }
+  if (c.expectTwoCopies) {
+    const copies = result.body.split(USER_LINE).length - 1;
+    check(`${c.name} — both copies survive`, copies === 2, `copies=${copies}`);
+  }
+  if (c.expectNearMiss) {
+    check(
+      `${c.name} — near-miss reported`,
+      (result.nearMisses || []).length >= 1,
+      `nearMisses=${(result.nearMisses || []).length}`,
     );
   }
   if (c.keepsUserComment) {

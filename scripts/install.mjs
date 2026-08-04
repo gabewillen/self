@@ -1495,7 +1495,11 @@ const SHIPPED_DIRECTIVES = [
 ];
 const normalizeDirective = (line) =>
   line.replace(/^\s*[-*]\s*/, "").replace(/\s+/g, " ").trim();
-const SHIPPED_DIRECTIVE_SET = new Set(SHIPPED_DIRECTIVES.map(normalizeDirective));
+// The directive being installed counts as shipped: a duplicate managed block
+// holding it must be collapsible, not treated as user text.
+const SHIPPED_DIRECTIVE_SET = new Set(
+  [...SHIPPED_DIRECTIVES, ROUTER_DIRECTIVE].map(normalizeDirective),
+);
 const isShippedDirective = (line) =>
   SHIPPED_DIRECTIVE_SET.has(normalizeDirective(line));
 const LEGACY_BLOCK_MARKERS = [
@@ -1628,8 +1632,25 @@ function rewriteInstructionBody(original, block) {
       i += 1;
     }
   }
-  const tidy = (text) =>
-    text.replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "").replace(/\n*$/, "\n");
+  const tidy = (text) => {
+    // Collapse blank runs only outside fenced and indented code: those blanks
+    // are the user's content, not our formatting residue.
+    let inFence = false;
+    let blanks = 0;
+    const kept = [];
+    for (const line of text.split("\n")) {
+      const indented = /^(?: {4}|\t)/.test(line);
+      if (!indented && /^ {0,3}(?:```|~~~)/.test(line)) inFence = !inFence;
+      if (!inFence && !indented && !line.trim()) {
+        blanks += 1;
+        if (blanks > 1) continue;
+      } else {
+        blanks = 0;
+      }
+      kept.push(line);
+    }
+    return kept.join("\n").replace(/^\n+/, "").replace(/\n*$/, "\n");
+  };
   const body = out.join("\n");
   let next;
   if (body.includes(ROUTER_BLOCK_PLACEHOLDER)) {
@@ -1641,8 +1662,6 @@ function rewriteInstructionBody(original, block) {
   }
   return { next, removed, hadManagedBlock: managedBlocks > 0 };
 }
-
-const countOccurrences = (text, needle) => text.split(needle).length - 1;
 
 /** A marker we own is alone on its line; anything else on it is the user's. */
 const isMarkerOnlyLine = (line, marker) =>
@@ -1672,33 +1691,75 @@ function countStructuralMarkers(text, marker) {
  * wrote. Markers, shipped directive lines, and blanks are ours to rearrange.
  */
 function protectedLines(text) {
+  // Marker-ONLY lines are ours. A line that merely mentions a marker is the
+  // user's, even inside the managed block, so it must survive the rewrite.
+  const isOurs = (l) =>
+    isMarkerOnlyLine(l, ROUTER_BLOCK_START) ||
+    isMarkerOnlyLine(l, ROUTER_BLOCK_END) ||
+    LEGACY_BLOCK_MARKERS.some(
+      ([open, close]) => isMarkerOnlyLine(l, open) || isMarkerOnlyLine(l, close),
+    );
   return text
     .split("\n")
     .map((l) => l.trim())
     .filter(
-      (l) =>
-        l &&
-        l !== ROUTER_BLOCK_PLACEHOLDER &&
-        !isShippedDirective(l) &&
-        !l.includes(ROUTER_BLOCK_START) &&
-        !l.includes(ROUTER_BLOCK_END) &&
-        !LEGACY_BLOCK_MARKERS.some(([open, close]) => l.includes(open) || l.includes(close)),
+      (l) => l && l !== ROUTER_BLOCK_PLACEHOLDER && !isShippedDirective(l) && !isOurs(l),
     );
+}
+
+/** Multiset compare: losing one of two identical user lines is still a loss. */
+function missingLines(before, after) {
+  const counts = new Map();
+  for (const l of after) counts.set(l, (counts.get(l) || 0) + 1);
+  const lost = [];
+  for (const l of before) {
+    const n = counts.get(l) || 0;
+    if (n === 0) lost.push(l);
+    else counts.set(l, n - 1);
+  }
+  return lost;
+}
+
+/**
+ * A directive we could not remove exactly — hard-wrapped by a formatter, or
+ * indented under a list item — still contradicts the managed block. Never
+ * delete on a guess; report it so the user can resolve it.
+ */
+function findNearMissDirectives(text) {
+  const hits = [];
+  let inFence = false;
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (/^(?: {4}|\t)/.test(line)) continue;
+    if (/^ {0,3}(?:```|~~~)/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    if (!/ALWAYS (?:use|enter through) .{0,12}(?:gabe|self).{0,12} router skill/i.test(line)) {
+      continue;
+    }
+    if (isShippedDirective(line)) continue;
+    if (line.trim() === ROUTER_DIRECTIVE) continue;
+    hits.push({ line: i + 1, text: line.trim() });
+  }
+  return hits;
 }
 
 function applyRouterDirective(existing, block) {
   const original = existing || "";
   const { next, removed, hadManagedBlock } = rewriteInstructionBody(original, block);
   // Whole-file safety net: whatever the parser did, no user line may vanish.
-  const before = protectedLines(original);
-  const after = new Set(protectedLines(next));
-  const lost = before.filter((l) => !after.has(l));
+  const lost = missingLines(protectedLines(original), protectedLines(next));
   if (lost.length) {
     return {
       body: original,
       action: "refused",
       removed,
-      reason: `rewrite would drop ${lost.length} user line(s), first: ${lost[0].slice(0, 80)}`,
+      reason:
+        `rewrite would drop ${lost.length} user line(s); first: ${lost[0].slice(0, 80)}` +
+        ` — check for a marker sharing a line with your text, an unclosed marker, or an unterminated code fence`,
     };
   }
   // Post-condition: exactly one managed block with the current directive in it.
@@ -1715,9 +1776,10 @@ function applyRouterDirective(existing, block) {
       reason: "router directive rewrite failed its own check",
     };
   }
-  if (next === original) return { body: original, action: "present", removed };
-  if (!original.trim()) return { body: next, action: "created", removed };
-  return { body: next, action: hadManagedBlock ? "updated" : "appended", removed };
+  const nearMisses = findNearMissDirectives(next);
+  if (next === original) return { body: original, action: "present", removed, nearMisses };
+  if (!original.trim()) return { body: next, action: "created", removed, nearMisses };
+  return { body: next, action: hadManagedBlock ? "updated" : "appended", removed, nearMisses };
 }
 
 function ensureRouterDirective() {
@@ -1729,7 +1791,15 @@ function ensureRouterDirective() {
     if (!target.always && !existsSync(dir)) continue;
     const path = join(dir, target.file);
     const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
-    const { body, action, removed, reason } = applyRouterDirective(existing, block);
+    const { body, action, removed, reason, nearMisses } = applyRouterDirective(existing, block);
+    if (nearMisses && nearMisses.length) {
+      console.error(
+        `[self-agents] ${path}: ${nearMisses.length} line(s) still read like a router directive but do not match any wording this pack shipped — left in place, please resolve:`,
+      );
+      for (const n of nearMisses) {
+        console.error(`    - line ${n.line}: ${n.text.slice(0, 120)}${n.text.length > 120 ? "…" : ""}`);
+      }
+    }
     if (action === "refused") {
       console.error(`[self-agents] SKIPPED ${path}: ${reason}`);
       report.push({ path, action });
