@@ -1493,8 +1493,19 @@ const SHIPPED_DIRECTIVES = [
   "- ALWAYS use the `gabe` router skill for Gabe-shaped work: judgment, delegation, prioritization, review, implementation, coordination, MR/PR watching, and goal loops. It routes to gabe-orchestrate, gabe-implement, gabe-review, gabe-watch, and gabe-goal.",
   "- NEVER decide for yourself that a request is too small, too conversational, or not \"Gabe-shaped\" to route. Routing is the router's call, not yours.",
 ];
+/**
+ * Normalize for comparison only. The gabe→self cutover rewrites skill ids
+ * inside instruction files, so a directive this pack shipped under the old
+ * names arrives with new ones; both images must match the same allowlist
+ * entry or the stale line survives beside the managed block.
+ */
 const normalizeDirective = (line) =>
-  line.replace(/^\s*[-*]\s*/, "").replace(/\s+/g, " ").trim();
+  line
+    .replace(/^\s*[-*]\s*/, "")
+    .replace(/\bgabe-/gi, "self-")
+    .replace(/`gabe`/gi, "`self`")
+    .replace(/\s+/g, " ")
+    .trim();
 // The directive being installed counts as shipped: a duplicate managed block
 // holding it must be collapsible, not treated as user text.
 const SHIPPED_DIRECTIVE_SET = new Set(
@@ -1502,6 +1513,14 @@ const SHIPPED_DIRECTIVE_SET = new Set(
 );
 const isShippedDirective = (line) =>
   SHIPPED_DIRECTIVE_SET.has(normalizeDirective(line));
+/**
+ * Reads like a router directive without matching a shipped wording exactly.
+ * Such a line inside one of OUR marker spans is ours to collapse; outside one
+ * it is never deleted, only reported.
+ */
+const DIRECTIVE_SHAPE_RE =
+  /ALWAYS (?:use|enter through) .{0,12}(?:gabe|self).{0,12} router skill/i;
+const isDirectiveShaped = (line) => DIRECTIVE_SHAPE_RE.test(line);
 const LEGACY_BLOCK_MARKERS = [
   ["<!-- gabe-agents:router -->", "<!-- /gabe-agents:router -->"],
   ["<!-- self:instructions -->", "<!-- /self:instructions -->"],
@@ -1600,7 +1619,10 @@ function rewriteInstructionBody(original, block) {
         const span = lines.slice(i + 1, close);
         const hadPlaceholder = span.some((l) => l.includes(ROUTER_BLOCK_PLACEHOLDER));
         const kept = span.filter(
-          (l) => !isShippedDirective(l) && !l.includes(ROUTER_BLOCK_PLACEHOLDER),
+          (l) =>
+            !isShippedDirective(l) &&
+            !isDirectiveShaped(l) &&
+            !l.includes(ROUTER_BLOCK_PLACEHOLDER),
         );
         // Only our own markers are ignorable; a comment the user wrote is theirs.
         const isOurMarker = (l) =>
@@ -1614,7 +1636,9 @@ function rewriteInstructionBody(original, block) {
           // The user put something of their own inside our old markers: keep the
           // span and only drop the directive lines we shipped into it.
           out.push(marker[0], ...kept, marker[1]);
-          for (const l of span) if (isShippedDirective(l)) removed.push(l.trim());
+          for (const l of span) {
+            if (isShippedDirective(l) || isDirectiveShaped(l)) removed.push(l.trim());
+          }
         } else {
           removed.push(`legacy router block ${marker[0]}`);
         }
@@ -1703,7 +1727,12 @@ function protectedLines(text) {
     .split("\n")
     .map((l) => l.trim())
     .filter(
-      (l) => l && l !== ROUTER_BLOCK_PLACEHOLDER && !isShippedDirective(l) && !isOurs(l),
+      (l) =>
+        l &&
+        l !== ROUTER_BLOCK_PLACEHOLDER &&
+        !isShippedDirective(l) &&
+        !isDirectiveShaped(l) &&
+        !isOurs(l),
     );
 }
 
@@ -1744,9 +1773,7 @@ function findNearMissDirectives(text) {
       continue;
     }
     if (inFence) continue;
-    if (!/ALWAYS (?:use|enter through) .{0,12}(?:gabe|self).{0,12} router skill/i.test(line)) {
-      continue;
-    }
+    if (!isDirectiveShaped(line)) continue;
     if (isShippedDirective(line)) continue;
     if (line.trim() === ROUTER_DIRECTIVE) continue;
     hits.push({ line: i + 1, text: line.trim() });

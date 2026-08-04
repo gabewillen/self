@@ -218,6 +218,26 @@ for (const c of cases) {
   check(`${c.name} — directive sits inside the managed markers`, inManagedBlock);
 }
 
+// The gabe→self cutover rewrites skill ids inside instruction files before the
+// directive is ensured, so every shipped wording must still match in its
+// renamed form — otherwise the stale line survives beside the managed block.
+for (const [i, shipped] of mod.SHIPPED_DIRECTIVES.entries()) {
+  const renamed = shipped
+    .replace(/\bgabe-/g, "self-")
+    .replace(/`gabe`/g, "`self`");
+  const seeded = `# AGENTS\n\n${renamed}\n\n- ${USER_LINE}\n`;
+  const out = mod.applyRouterDirective(seeded, block);
+  check(
+    `shipped directive ${i} still collapses after the gabe→self rename`,
+    countDirectives(out.body) === 1,
+    `directives=${countDirectives(out.body)}, action=${out.action}`,
+  );
+  check(
+    `shipped directive ${i} rename keeps the user's line`,
+    out.body.includes(USER_LINE),
+  );
+}
+
 // Applying twice must be a no-op: a repeat install cannot accumulate bullets.
 const twice = mod.applyRouterDirective(
   mod.applyRouterDirective(`# x\n\n${OLD_SELF_DIRECTIVE}\n`, block).body,
