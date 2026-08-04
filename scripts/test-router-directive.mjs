@@ -158,6 +158,24 @@ const cases = [
     allowExtraDirectiveLine: true,
   },
   {
+    name: "a 4-space indented stale directive is reported",
+    input: `# x\n\n- context:\n\n    ${OLD_SELF_DIRECTIVE}\n\n${block}`,
+    expectNearMiss: true,
+    allowExtraDirectiveLine: true,
+  },
+  {
+    name: "a tab indented stale directive is reported",
+    input: `# x\n\n\t${OLD_SELF_DIRECTIVE}\n\n${block}`,
+    expectNearMiss: true,
+    allowExtraDirectiveLine: true,
+  },
+  {
+    name: "a short hard-wrapped stale directive is reported",
+    input: `# x\n\n- ALWAYS enter through the \`self\`\n  router skill. Run it first.\n\n${block}`,
+    expectNearMiss: true,
+    allowExtraDirectiveLine: true,
+  },
+  {
     name: "a pre-seeded placeholder sentinel cannot capture the block",
     input: `# x\n\n\u0000self-agents-router\u0000\n\n${block}\n`,
     noSentinel: true,

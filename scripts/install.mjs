@@ -733,9 +733,15 @@ function installSkillSymlink(src, dest) {
   if (existsSync(dest) || isSymlink(dest)) {
     // A real directory we did not create is the user's, even when it sits under
     // a name this pack now claims. Move it aside instead of deleting it.
-    if (!isSymlink(dest) && statSync(dest).isDirectory() && !isManagedSkillDir(dest)) {
-      const aside = `${dest}.pre-self`;
-      removePath(aside);
+    const isPlainFile = !isSymlink(dest) && statSync(dest).isFile();
+    const isUnmanagedDir =
+      !isSymlink(dest) && statSync(dest).isDirectory() && !isManagedSkillDir(dest);
+    if (isPlainFile || isUnmanagedDir) {
+      let aside = `${dest}.pre-self`;
+      // Never overwrite an earlier rescue.
+      for (let n = 2; existsSync(aside) || isSymlink(aside); n += 1) {
+        aside = `${dest}.pre-self.${n}`;
+      }
       renameSync(dest, aside);
       console.error(
         `[self-agents] KEPT your existing ${dest} as ${aside} before linking this pack's version`,
@@ -1520,6 +1526,8 @@ const isShippedDirective = (line) =>
  */
 const DIRECTIVE_SHAPE_RE =
   /ALWAYS (?:use|enter through) .{0,12}(?:gabe|self).{0,12} router skill/i;
+/** A directive whose sentence wrapped: the opening clause with no "router skill". */
+const DIRECTIVE_OPENING_RE = /ALWAYS (?:use|enter through) (?:the )?[`'"]?(?:gabe|self)[`'"]?\s*$/i;
 const isDirectiveShaped = (line) => DIRECTIVE_SHAPE_RE.test(line);
 const LEGACY_BLOCK_MARKERS = [
   ["<!-- gabe-agents:router -->", "<!-- /gabe-agents:router -->"],
@@ -1641,6 +1649,9 @@ function rewriteInstructionBody(original, block) {
           }
         } else {
           removed.push(`legacy router block ${marker[0]}`);
+          for (const l of span) {
+            if (l.trim() && !isOurMarker(l)) removed.push(l.trim());
+          }
         }
         // The managed block always lands outside the retired markers.
         if (hadPlaceholder) out.push(ROUTER_BLOCK_PLACEHOLDER);
@@ -1761,9 +1772,9 @@ function findNearMissDirectives(text) {
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     if (/^(?: {4}|\t)/.test(line)) {
-      // An indented managed marker is invisible to the rewriter, so it would
-      // sit beside the block we append. Report it rather than act on it.
-      if (line.includes(ROUTER_BLOCK_START)) {
+      // Indented markup is invisible to the rewriter, so a marker or directive
+      // there would sit beside the block we append. Report, never act.
+      if (line.includes(ROUTER_BLOCK_START) || isDirectiveShaped(line)) {
         hits.push({ line: i + 1, text: line.trim() });
       }
       continue;
@@ -1773,7 +1784,7 @@ function findNearMissDirectives(text) {
       continue;
     }
     if (inFence) continue;
-    if (!isDirectiveShaped(line)) continue;
+    if (!isDirectiveShaped(line) && !DIRECTIVE_OPENING_RE.test(line.trim())) continue;
     if (isShippedDirective(line)) continue;
     if (line.trim() === ROUTER_DIRECTIVE) continue;
     hits.push({ line: i + 1, text: line.trim() });
@@ -2133,7 +2144,8 @@ function runGabeToSelfCutover(skillRoots) {
       continue;
     }
     // Legacy router blocks are handled by the line-based rewrite in
-    // ensureRouterDirective, which never deletes text the user put inside them.
+    // ensureRouterDirective, which preserves text the user put inside them
+    // unless that text is itself a router directive line, which it reports.
     let next = text;
     // Protect identity handles/repos, then rename skill ids.
     next = next.replace(/gabewillen/g, "\0GW\0");
