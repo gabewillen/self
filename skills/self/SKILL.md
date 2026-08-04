@@ -1,6 +1,6 @@
 ---
 name: self
-description: "ALWAYS use this skill for EVERY request first, before planning or answering, so it can route the role: main agents that are not subagents are orchestrate; subagents are implement (or one blind-lane MDScript); explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, and /self-voice still route first (/self-learn and /self-voice are MDScripts only, not skills; self-common is shared MDScripts/hooks, not a skill); HSM is a review blind lane not a separate skill; review composition stays on the composing process with per-lane fanout only."
+description: "ALWAYS use this skill for EVERY request first, before planning or answering, so it can route the role: main agents that are not subagents are orchestrate; subagents are implement (or one blind-lane MDScript); explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, and /self-voice still route first (/self-learn is a user-invoked skill and never runs from a hook; /self-voice is an MDScript only, not a skill; self-common is shared MDScripts/hooks, not a skill); HSM is a review blind lane not a separate skill; review composition stays on the composing process with per-lane fanout only."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -41,10 +41,10 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
   * set `{{self_role}}` to `self-unwatch`
   * [Execute Routed Role](#execute-routed-role)
 
-* if the request is `/self-learn`, a stop-hook learn pass, or a forced living-skills reflection
-  * set `{{learn_mdscript}}` to `{{skills_root}}/self-common/workflows/self-learn.mdscript.md`
-  * run `/mdscript-exec {{learn_mdscript}}#reflect-and-learn`
-  * stop after that MDScript returns — do not route a skill role for learn
+* if the request is `/self-learn` or an explicit user request for a living-skills reflection
+  * set `{{self_role}}` to `self-learn`
+  * never start a learn pass the user did not ask for — no hook, stop report, or role may force one
+  * [Execute Routed Role](#execute-routed-role)
 
 * if the request is `/self-voice`, agent-voice drafting, Slack mention reply voice, or public-writing voice check
   * set `{{voice_mdscript}}` to `{{skills_root}}/self-voice/self-voice.mdscript.md`

@@ -799,15 +799,13 @@ const REQUIRED_SKILL_ASSETS = {
     "hooks/watch-session-start.ts",
     "adapters/cursor/hooks.json",
   ],
+  "self-learn": ["SKILL.md"],
   // Shared packs (not agent skills — no SKILL.md).
   "self-common": [
     "workflows/goal-mdscript.md",
     "workflows/file-task-comments.md",
     "workflows/update-living-skills.md",
     "workflows/load-operating-context.md",
-    "workflows/self-learn.mdscript.md",
-    "hooks/learn-stop.ts",
-    "hooks/learn-session-touch.ts",
     "hooks/self-lib.ts",
     "adapters/claude/hooks.json",
     "adapters/cursor/hooks.json",
@@ -1396,8 +1394,8 @@ const ROUTER_DIRECTIVE =
   "- ALWAYS enter through the `self` router skill. Run it first on every request, before " +
   "planning or answering, and let it choose the role: any parentless main agent is a root " +
   "orchestrator (self-orchestrate); subagents are self-implement (or a single blind-lane " +
-  "MDScript); explicit routes cover self-watch, self-goal, self-automate, and self-learn " +
-  "(MDScript only); HSM is a self-review lane.";
+  "MDScript); explicit routes cover self-watch, self-goal, self-automate, and self-learn; " +
+  "HSM is a self-review lane.";
 const ROUTER_BLOCK_START = "<!-- self-agents:router -->";
 const ROUTER_BLOCK_END = "<!-- /self-agents:router -->";
 const ROUTER_BLOCK_RE =

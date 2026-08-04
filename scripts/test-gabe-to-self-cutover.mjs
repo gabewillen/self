@@ -70,6 +70,20 @@ function plant() {
     command:
       "/Users/gabrielwillen/.bun/bin/bun /tmp/skills/gabe-common/hooks/learn-stop.ts",
   });
+  // Previously installed self-era learn Stop hook: learn is now the user-invoked
+  // /self-learn skill, so upgrading must remove this too.
+  hooks.hooks.stop.push({
+    id: "self-agents:self-common:self-learn-stop",
+    command:
+      "/Users/gabrielwillen/.bun/bin/bun /tmp/skills/self-common/hooks/learn-stop.ts",
+  });
+  hooks.hooks.beforeSubmitPrompt = [
+    {
+      id: "self-agents:self-common:self-learn-session-touch",
+      command:
+        "/Users/gabrielwillen/.bun/bin/bun /tmp/skills/self-common/hooks/learn-session-touch.ts",
+    },
+  ];
   hooks.metadata = hooks.metadata || {};
   hooks.metadata["gabe-agents"] = {
     "gabe-common": {
@@ -99,6 +113,10 @@ function plant() {
         {
           type: "command",
           command: "bun /tmp/skills/gabe-common/hooks/learn-stop.ts",
+        },
+        {
+          type: "command",
+          command: "bun /tmp/skills/self-common/hooks/learn-stop.ts",
         },
       ],
     },
@@ -228,8 +246,17 @@ assert(
   "cursor stop has no gabe-* id",
 );
 assert(
-  stopIds.includes("self-learn-stop"),
-  "cursor still has self-learn-stop",
+  !stopIds.some((id) => String(id).includes("self-learn")),
+  `cursor retired learn hook ids removed (got ${JSON.stringify(stopIds)})`,
+);
+assert(
+  !stopCmds.some((c) => /learn-stop\.ts/.test(c)),
+  `cursor retired learn stop command removed (got ${JSON.stringify(stopCmds)})`,
+);
+const touchCmds = (hooks.hooks?.beforeSubmitPrompt || []).map((e) => e.command || "");
+assert(
+  !touchCmds.some((c) => /learn-session-touch\.ts/.test(c)),
+  `cursor retired learn prompt hook removed (got ${JSON.stringify(touchCmds)})`,
 );
 const claudeSettings = JSON.parse(
   readFileSync(join(home, ".claude", "settings.json"), "utf8"),
@@ -242,8 +269,8 @@ assert(
   "claude Stop has no legacy gabe command",
 );
 assert(
-  claudeStopHandlers.some((entry) => /self-common\/hooks\/learn-stop\.ts/.test(entry.command || "")),
-  "claude Stop retains current self learn hook",
+  !claudeStopHandlers.some((entry) => /learn-stop\.ts/.test(entry.command || "")),
+  `claude Stop drops the retired learn hook (got ${JSON.stringify(claudeStopHandlers)})`,
 );
 assert(
   !claudeSettings.metadata?.self?.["gabe-common"] &&

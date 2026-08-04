@@ -8,27 +8,18 @@
     "node"
   ],
   "hooks": {
-    "stop": [
-      {
-        "id": "self-learn-stop",
-        "script": "../../hooks/learn-stop.ts",
-        "timeout": 120
-      }
-    ],
-    "beforeSubmitPrompt": [
-      {
-        "id": "self-learn-session-touch",
-        "script": "../../hooks/learn-session-touch.ts"
-      }
-    ]
+    "stop": [],
+    "beforeSubmitPrompt": []
   },
   "replaceLegacyCommands": [
     "skills/self-learn/",
     "skills/self-common/hooks/learn-stop.ts",
+    "skills/self-common/hooks/learn-session-touch.ts",
     "skills/gabe-learn/",
     "skills/gabe-common/hooks/learn-stop.ts",
     "skills/gabe-common/",
     "skills/gabe-common/hooks/",
     "skills/self-common/hooks/"
-  ]
+  ],
+  "note": "self-common ships no harness hooks. Learn is user-invoked via the /self-learn skill. These empty event lists stay so install scrubs previously installed self-learn Stop/prompt hooks from this harness config."
 }

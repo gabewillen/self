@@ -23,29 +23,29 @@ import { spawnSync } from "node:child_process";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, "..");
 const install = join(pkgRoot, "scripts", "install.mjs");
-const learnStop = join(
+const watchStop = join(
   pkgRoot,
   "skills",
-  "self-common",
+  "self-watch",
   "hooks",
-  "learn-stop.ts",
+  "watch-stop.ts",
 );
 
 function md5(path) {
   return createHash("md5").update(readFileSync(path)).digest("hex");
 }
 
-if (!existsSync(learnStop)) {
-  console.error(`missing ${learnStop}`);
+if (!existsSync(watchStop)) {
+  console.error(`missing ${watchStop}`);
   process.exit(1);
 }
 
-const expected = md5(learnStop);
+const expected = md5(watchStop);
 const root = mkdtempSync(join(tmpdir(), "self-integrity-"));
-const skillHooks = join(root, "self-common", "hooks");
+const skillHooks = join(root, "self-watch", "hooks");
 mkdirSync(skillHooks, { recursive: true });
-cpSync(learnStop, join(skillHooks, "learn-stop.ts"));
-writeFileSync(join(skillHooks, "learn-stop.ts"), "// deliberately stale\n", "utf8");
+cpSync(watchStop, join(skillHooks, "watch-stop.ts"));
+writeFileSync(join(skillHooks, "watch-stop.ts"), "// deliberately stale\n", "utf8");
 
 const r = spawnSync(process.execPath, [install, "--verify-only", "--target", root], {
   encoding: "utf8",
@@ -64,8 +64,8 @@ if (!out.includes("md5-mismatch") && !out.includes("STALE")) {
   console.error(out);
   process.exit(1);
 }
-if (!out.includes(expected) && !out.includes("learn-stop.ts")) {
-  console.error("expected learn-stop.ts reference in stale report");
+if (!out.includes(expected) && !out.includes("watch-stop.ts")) {
+  console.error("expected watch-stop.ts reference in stale report");
   console.error(out);
   process.exit(1);
 }
@@ -113,4 +113,4 @@ if (clean.status !== 0) {
 }
 
 console.log("ok: script integrity detects stale md5 and isolated clean install verifies");
-console.log(`    source learn-stop.ts md5=${expected}`);
+console.log(`    source watch-stop.ts md5=${expected}`);

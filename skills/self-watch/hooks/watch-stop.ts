@@ -9,7 +9,6 @@ import {
   claimStopEvent,
   continueWorkingPayload,
   finishHook,
-  learnPassRequiredForStop,
   readHookInput,
   stopEventClaimFailed,
 } from "../../self-common/hooks/self-lib.ts";
@@ -51,12 +50,6 @@ if (input.stopHookActive) {
 if (!input.conversationId) {
   finishHook();
 }
-// self-learn owns priority for a real user turn. Deferring before claiming
-// lets learn-stop win even when hooks are invoked in reverse order.
-if (learnPassRequiredForStop(input)) {
-  finishHook();
-}
-
 const pending = listPendingWatchesForSession(
   input.conversationId,
   input.dialect,

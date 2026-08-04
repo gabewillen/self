@@ -1,5 +1,6 @@
 /**
- * Minimal stop-hook helpers for /self-learn (MDScript only — not a skill).
+ * Minimal shared Stop-hook helpers for the self pack (session identity,
+ * response payloads, and per-turn Stop-event claims).
  * Keep this small; do not import self-goal's large hooks/self-lib.
  *
  * Session identity (from harness docs):
@@ -8,8 +9,8 @@
  * - Codex: session_id (+ turn_id per turn; stop_hook_active)
  * - Grok: sessionId / GROK_SESSION_ID (+ stopHookActive; reason end_turn)
  *
- * All durable stamps are namespaced by dialect + session so parallel chats
- * cannot steal USER_TURN, learn passes, or ACTIVE pointers from each other.
+ * All durable markers are namespaced by dialect + session so parallel chats
+ * cannot steal another chat's Stop-event claims.
  */
 import {
   closeSync,
@@ -18,7 +19,6 @@ import {
   openSync,
   readFileSync,
   readdirSync,
-  realpathSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -26,7 +26,6 @@ import {
 import { createHash } from "node:crypto";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
-import { fileURLToPath } from "node:url";
 
 export type HookDialect = "cursor" | "claude" | "codex" | "grok";
 
@@ -60,19 +59,6 @@ export function releaseStopEventClaim(hookName: string, input: HookInput): void 
   } catch {
     // Rollback is best effort; the stale-claim TTL remains the recovery path.
   }
-}
-
-export interface LearnPass {
-  conversation_id: string;
-  dialect?: HookDialect;
-  session_key?: string;
-  loop_count: number;
-  status: "required" | "satisfied" | "in_flight";
-  learn_status?: string;
-  required_at?: string;
-  completed_at?: string;
-  /** Set when Stop already injected the learn followup for this user cycle. */
-  followup_injected_at?: string;
 }
 
 function readStdinJson<T>(): T {
@@ -209,8 +195,8 @@ export function readHookInput(): HookInput {
   // Claude/Codex/Grok set stop_hook_active / stopHookActive on Stop continuations.
   // Cursor does not document that field; it uses loop_count (do not map loop_count
   // into stopHookActive — it may not reset every user turn and would permanently
-  // suppress learn). Cursor self-chain is broken by ignoring synthetic prompts in
-  // session-touch and by requiring USER_TURN before inject.
+  // suppress the owning hook). Cursor self-chain is broken by the per-turn
+  // Stop-event claim instead.
   const stopHookActive = Boolean(raw.stop_hook_active ?? raw.stopHookActive);
   return {
     dialect,
@@ -244,41 +230,6 @@ export function readHookInput(): HookInput {
     model: firstString(raw.model) || undefined,
     raw,
   };
-}
-
-/**
- * Prompt text from beforeSubmitPrompt / UserPromptSubmit when the harness
- * includes it (Cursor: `prompt`; Claude/Codex often `prompt` too).
- */
-export function promptFromHookInput(input: HookInput): string {
-  return firstString(
-    input.raw.prompt,
-    input.raw.user_prompt,
-    input.raw.userPrompt,
-    input.raw.message,
-    input.raw.text,
-  );
-}
-
-/**
- * True when the submitted "user" text is actually a stop-hook / block-decision
- * continuation we (or sibling self hooks) injected. Cursor re-fires
- * beforeSubmitPrompt for followup_message; Claude/Codex/Grok feed decision
- * reasons back as the next user turn. Those must not re-arm USER_TURN or
- * clear a satisfied learn pass.
- */
-export function isHarnessFollowupPrompt(text: string): boolean {
-  const t = (text || "").trim();
-  if (!t) return false;
-  // Learn / watch / goal MDScript followups (single-line form).
-  if (/^\/?mdscript-exec\b/i.test(t)) return true;
-  if (/#reflect-and-learn\b/i.test(t)) return true;
-  if (/#resume-watch\b/i.test(t)) return true;
-  if (/self-learn\.mdscript\.md/i.test(t)) return true;
-  if (/self-watch-.*\.mdscript\.md/i.test(t)) return true;
-  // Goal stop followups are also mdscript-exec clauses from formatGoalFollowupMessage.
-  if (/\/mdscript-exec\b/i.test(t) && /#/.test(t)) return true;
-  return false;
 }
 
 /** True only for the current claim when marker storage was unavailable. */
@@ -319,55 +270,18 @@ export function finishHook(payload: Record<string, unknown> = {}): never {
   process.exit(0);
 }
 
-export function shouldSkipLearnHooks(): boolean {
-  const v = process.env.SELF_LEARN_SKIP_HOOKS ?? process.env.GABE_LEARN_SKIP_HOOKS;
-  return v === "1" || v === "true";
-}
-
-/** Stable learn dir — not project-cwd dependent. */
-export function learnHome(): string {
+/** Stable hook-state dir — not project-cwd dependent. */
+export function hookStateHome(): string {
   const home = process.env.AGENTS_HOME
     ? resolvePath(process.env.AGENTS_HOME)
     : join(homedir(), ".agents");
-  return join(home, "learn");
-}
-
-/**
- * Per-session learn pass path. Prefer sessionKey (dialect-scoped);
- * fall back to raw conversationId for legacy stamps only when reading.
- */
-export function learnPassPath(
-  _root: string,
-  sessionKeyOrConversationId: string,
-): string {
-  const id = sanitizeSessionKey(sessionKeyOrConversationId);
-  return join(learnHome(), `${id}.json`);
-}
-
-/** Pointer so the MDScript finds the active stamp for *this* session. */
-export function learnActivePath(sessionKey?: string): string {
-  if (sessionKey) {
-    return join(learnHome(), `ACTIVE.${sanitizeSessionKey(sessionKey)}`);
-  }
-  // Legacy global pointer — only written alongside the per-session one for
-  // older MDScripts that still read ACTIVE with no session key.
-  return join(learnHome(), "ACTIVE");
-}
-
-export function loadLearnPass(path: string): LearnPass | null {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf8")) as LearnPass;
-  } catch {
-    return null;
-  }
+  return join(home, "hooks");
 }
 
 const STOP_EVENT_RETENTION = 128;
 const STOP_EVENT_GLOBAL_RETENTION = 512;
 const STOP_EVENT_CLAIM_TTL_MS = 5 * 60 * 1000;
 const STOP_EVENT_CLEANUP_LOCK_TTL_MS = 60 * 1000;
-const LEARN_IN_FLIGHT_TTL_MS = 5 * 60 * 1000;
 let stopEventClaimFailure = false;
 
 /**
@@ -379,7 +293,7 @@ export function stopEventMarkerPath(hookName: string, input: HookInput): string 
   const markerKey = (value: string): string =>
     createHash("sha256").update(value, "utf8").digest("hex");
   return join(
-    learnHome(),
+    hookStateHome(),
     "stop-events",
     markerKey(hookName),
     markerKey(input.sessionKey),
@@ -453,7 +367,7 @@ function cleanupStopEventMarkers(directory: string): void {
 
 /** Bound the aggregate marker tree so abandoned sessions cannot grow it forever. */
 function cleanupGlobalStopEventMarkers(): void {
-  const root = join(learnHome(), "stop-events");
+  const root = join(hookStateHome(), "stop-events");
   const lock = join(root, ".global-cleanup.lock");
   let lockFd: number | undefined;
   try {
@@ -543,183 +457,6 @@ const markers: Array<{ path: string; mtimeMs: number }> = [];
   }
 }
 
-export function writeLearnPass(path: string, pass: LearnPass): void {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(pass, null, 2) + "\n", "utf8");
-  const key = pass.session_key || sessionKeyFor(
-    (pass.dialect as HookDialect) || "cursor",
-    pass.conversation_id,
-  );
-  if (key) {
-    writeFileSync(learnActivePath(key), path + "\n", "utf8");
-  }
-}
-
-export function clearLearnPass(
-  conversationIdOrSessionKey: string,
-  root = process.cwd(),
-  dialect?: HookDialect,
-): void {
-  const sessionKey =
-    conversationIdOrSessionKey.includes(":")
-      ? conversationIdOrSessionKey
-      : dialect
-        ? sessionKeyFor(dialect, conversationIdOrSessionKey)
-        : conversationIdOrSessionKey;
-  if (!sessionKey || sessionKey === "unscoped" || sessionKey.endsWith(":")) {
-    return;
-  }
-  const path = learnPassPath(root, sessionKey);
-  const conversationId = conversationIdOrSessionKey.includes(":")
-    ? conversationIdOrSessionKey.split(":").slice(1).join(":")
-    : conversationIdOrSessionKey;
-  writeLearnPass(path, {
-    conversation_id: conversationId || sessionKey,
-    dialect,
-    session_key: sessionKey,
-    loop_count: 0,
-    status: "required",
-    required_at: new Date().toISOString(),
-  });
-}
-
-/** Per-session marker: next Stop may run learn for this session only. */
-export function userTurnPath(sessionKey: string): string {
-  const id = sanitizeSessionKey(sessionKey);
-  return join(learnHome(), "user-turn", `${id}.json`);
-}
-
-export function markUserTurn(
-  conversationId: string,
-  dialect: HookDialect = "cursor",
-): void {
-  const sessionKey = sessionKeyFor(dialect, conversationId);
-  if (!sessionKey) return;
-  const p = userTurnPath(sessionKey);
-  mkdirSync(dirname(p), { recursive: true });
-  writeFileSync(
-    p,
-    JSON.stringify(
-      {
-        conversation_id: conversationId,
-        dialect,
-        session_key: sessionKey,
-        at: new Date().toISOString(),
-      },
-      null,
-      2,
-    ) + "\n",
-    "utf8",
-  );
-  // Remove legacy global USER_TURN so old hooks cannot bleed across sessions.
-  try {
-    const legacy = join(learnHome(), "USER_TURN");
-    if (existsSync(legacy)) unlinkSync(legacy);
-  } catch {
-    // ignore
-  }
-}
-
-/**
- * True only when a user-originated turn is pending for this exact session.
- * Empty / unknown session ids never match.
- */
-export function hasUserTurn(
-  conversationId: string,
-  dialect: HookDialect = "cursor",
-): boolean {
-  const sessionKey = sessionKeyFor(dialect, conversationId);
-  if (!sessionKey) return false;
-
-  const p = userTurnPath(sessionKey);
-  if (existsSync(p)) {
-    try {
-      const raw = JSON.parse(readFileSync(p, "utf8")) as {
-        conversation_id?: string;
-        session_key?: string;
-      };
-      if (raw.session_key && raw.session_key === sessionKey) return true;
-      if (raw.conversation_id && raw.conversation_id === conversationId) {
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }
-
-  // Legacy single-file USER_TURN: only honor exact conversation_id match.
-  const legacy = join(learnHome(), "USER_TURN");
-  if (!existsSync(legacy)) return false;
-  try {
-    const text = readFileSync(legacy, "utf8").trim();
-    if (!text || text === "{}") return false;
-    const raw = JSON.parse(text) as {
-      conversation_id?: string;
-      session_key?: string;
-    };
-    if (raw.session_key && raw.session_key === sessionKey) return true;
-    if (
-      raw.conversation_id &&
-      raw.conversation_id !== "unknown" &&
-      raw.conversation_id === conversationId
-    ) {
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-export function clearUserTurn(
-  conversationId: string,
-  dialect: HookDialect = "cursor",
-): void {
-  const sessionKey = sessionKeyFor(dialect, conversationId);
-  if (sessionKey) {
-    const p = userTurnPath(sessionKey);
-    try {
-      if (existsSync(p)) unlinkSync(p);
-    } catch {
-      // ignore
-    }
-  }
-  // Never leave a global USER_TURN that another session can inherit.
-  try {
-    const legacy = join(learnHome(), "USER_TURN");
-    if (existsSync(legacy)) unlinkSync(legacy);
-  } catch {
-    // ignore
-  }
-}
-
-/** Whether this completed Stop has an armed learn pass that must run first. */
-export function learnPassRequiredForStop(input: HookInput): boolean {
-  if (
-    shouldSkipLearnHooks() ||
-    input.stopHookActive ||
-    input.status !== "completed" ||
-    !input.conversationId ||
-    !input.sessionKey
-  ) {
-    return false;
-  }
-  const pass = loadLearnPass(learnPassPath(input.root, input.sessionKey));
-  if (pass && pass.status === "satisfied") {
-    return false;
-  }
-  if (pass?.status === "in_flight" || pass?.followup_injected_at) {
-    const injectedAt = Date.parse(pass.followup_injected_at || "");
-    if (
-      Number.isFinite(injectedAt) &&
-      Date.now() - injectedAt < LEARN_IN_FLIGHT_TTL_MS
-    ) {
-      return false;
-    }
-  }
-  return hasUserTurn(input.conversationId, input.dialect);
-}
 /**
  * Claim one Stop event for a hook and harness turn.
  *
@@ -812,36 +549,4 @@ export function claimStopEvent(hookName: string, input: HookInput): boolean {
     }
   }
   return false;
-}
-
-export function resolveLearnMdscriptPath(): string {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const sibling = join(here, "..", "workflows", "self-learn.mdscript.md");
-  if (existsSync(sibling)) {
-    try {
-      return realpathSync(sibling);
-    } catch {
-      return sibling;
-    }
-  }
-  const candidates = [
-    join(homedir(), ".agents", "skills", "self-common", "workflows", "self-learn.mdscript.md"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return p;
-  }
-  return sibling;
-}
-
-/** Stop-hook followup: multi-line instruction that includes the exact mdscript-exec clause. */
-export function formatLearnFollowup(
-  learnMdscript: string,
-  sessionKey?: string,
-): string {
-  return [
-    "Stop-hook required action before ending this turn:",
-    `Run exactly: /mdscript-exec ${learnMdscript}#reflect-and-learn`,
-    ...(sessionKey ? [`Use learn state for session: ${sessionKey}`] : []),
-    "Scan only direct user corrections from this turn. If none, stamp nothing-to-learn and stop.",
-  ].join("\n");
 }
