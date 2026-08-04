@@ -24,9 +24,10 @@
   * set that lane's sign-off path to `{{mdscript_artifact}}`
 * set `{{artifact_kind}}` to `review-packet`
 * set `{{artifact_ordinal}}` to `{{review_round}}`
-* run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path) when the caller has not already written this round's packet
+* run [Start MDScript Running Log](../../self-common/workflows/mdscript-artifact.md#start-mdscript-running-log) when the caller has not already written this round's packet, so a lost context resumes the round from disk
 * write the neutral review packet as MDScript at that path with the round's scope, authorized paths, and open question
 * never delete or overwrite an earlier round's sign-off or packet; each round mints its own lexicographic name so the history stays readable in order
+* run [Log Progress](../../self-common/workflows/mdscript-artifact.md#log-progress) with the selected lanes and the spawn as the next step
 * [Spawn Selected Lanes](#spawn-selected-lanes)
 
 ## Spawn Selected Lanes

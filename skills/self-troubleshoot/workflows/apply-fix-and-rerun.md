@@ -55,6 +55,8 @@
 * record `{{green_proof_path}}` in the file task with its iteration number
 * set `{{candidate_command}}` to `{{repro_command}}`
 * set `{{candidate_environment}}` to `{{target_environment}}`
+* set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
+* run [Log Progress](../../self-common/workflows/mdscript-artifact.md#log-progress) with the fix applied and the rerun as the next step
 * run [Confirm Safe Target](choose-environment.md#confirm-safe-target) before running against `{{target_environment}}`
 * run `{{candidate_command}}` against `{{target_environment}}` — the same `{{repro_command}}`, identity binding, and environment recorded in the reproduction contract
 * write the command output to `{{green_proof_path}}` with credentials, tokens, connection strings, private endpoints, and customer data redacted in the same write

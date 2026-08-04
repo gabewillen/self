@@ -26,6 +26,11 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 * set `{{parent_reporting_path}}` to `{{orchestrator_reporting_path}}` when set, otherwise `{{parent_reporting_path}}`; this implementer must report back there before stopping for any reason
 
+* set `{{artifact_kind}}` to `implementation`
+* set `{{artifact_slug}}` to a slug of `{{objective}}`
+* run [Start MDScript Running Log](../self-common/workflows/mdscript-artifact.md#start-mdscript-running-log) after the first context read, before editing anything
+* run [Log Progress](../self-common/workflows/mdscript-artifact.md#log-progress) after each contract decision, each edit batch, each proof run, and before any long or risky step
+
 * when this lane will be monitored, resumed, or handed across agents, create or refresh `{{goal_mdscript}}` after the first context read with the lane objective, proof contract, current context digest, live refresh commands, event execs, and stop/report rules
 
 * if required delegation details are missing

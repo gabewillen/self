@@ -109,8 +109,8 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 * for coordination that is not a monitored lane — a decision, a triage pass, a handoff, a closure — emit a durable MDScript artifact instead of a chat-only note
   * set `{{artifact_kind}}` to `coordination`
-  * run [Mint MDScript Artifact Path](../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path)
-  * run [Write MDScript Artifact](../self-common/workflows/mdscript-artifact.md#write-mdscript-artifact) with the decision, its evidence, and the next executable step for the owner
+  * run [Start MDScript Running Log](../self-common/workflows/mdscript-artifact.md#start-mdscript-running-log)
+  * run [Log Progress](../self-common/workflows/mdscript-artifact.md#log-progress) as each decision lands, so the coordination state survives a lost or compacted context
 
 * run [Write Goal MDScript](../self-common/workflows/goal-mdscript.md#write-goal-mdscript)
 

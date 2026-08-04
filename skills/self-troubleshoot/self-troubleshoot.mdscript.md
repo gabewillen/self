@@ -11,6 +11,11 @@ description: "Routed MDScript for troubleshooting a reported failure: reproduce 
 * preserve every boundary in [boundaries.md](../self/references/boundaries.md) for the routed role that entered this workflow
 * set `{{skills_root}}` to the installed skills root the router resolved, or to `~/.agents/skills` when it is empty
 * run [Ensure File Task](../self-common/workflows/file-task-comments.md#ensure-file-task) to resolve `{{task_id}}`, `{{artifact_dir}}`, and `{{return_dir}}` before any later state records evidence
+* set `{{artifact_kind}}` to `rca`
+* set `{{artifact_slug}}` to a slug of `{{symptom}}`
+* set `{{artifact_ordinal}}` to `{{pass_number}}`
+* run [Start MDScript Running Log](../self-common/workflows/mdscript-artifact.md#start-mdscript-running-log)
+* set `{{rca_mdscript}}` to `{{mdscript_artifact}}`
 * infer `{{symptom}}`, `{{failing_surface}}`, `{{reported_evidence}}`, and `{{suspect_scope}}` from the request and current evidence
 * set `{{pass_number}}` to `1` when it is empty
 * [Initialize Pass State](#initialize-pass-state)
@@ -28,7 +33,6 @@ description: "Routed MDScript for troubleshooting a reported failure: reproduce 
 * set `{{red_confirmed}}` to `false`
 * set `{{root_cause}}`, `{{red_proof_path}}`, `{{repro_test_path}}`, `{{repro_command}}`, and `{{repro_test_fingerprint}}` to empty
 * set `{{green_proof_paths}}` to an empty list
-* set `{{rca_mdscript}}` to empty
 * if `{{symptom}}` is empty
   * [Ask For Symptom](#ask-for-symptom)
 * if the request names more than one failure

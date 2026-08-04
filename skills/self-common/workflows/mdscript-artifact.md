@@ -1,5 +1,27 @@
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
+## Start MDScript Running Log
+
+* start the log at the first context read, before the work begins, not when it finishes
+* run [Mint MDScript Artifact Path](#mint-mdscript-artifact-path)
+* write it immediately with `## Done So Far` empty and `## Next Steps` holding the plan as executable states
+* set the front matter `status` to `in-progress` and `re_entry` to the first state of `## Next Steps`
+* run [Write MDScript Artifact](#write-mdscript-artifact)
+* run [Log Progress](#log-progress) at every state transition that changes what is true, not only at the end
+* return `{{mdscript_artifact}}` to the caller
+
+## Log Progress
+
+* if `{{mdscript_artifact}}` is empty
+  * [Start MDScript Running Log](#start-mdscript-running-log)
+* append to `## Done So Far` what just happened: the command run, its result, the decision taken, and the evidence path
+* rewrite `## Next Steps` to the steps that remain, as executable states the next agent runs
+* update the front matter `re_entry` to the exact `/mdscript-exec` command for the first remaining step
+* write this before any long, risky, or context-heavy operation, so a lost or compacted context resumes from disk instead of memory
+* if nothing changed since the last entry
+  * return to the caller without writing
+* run [Update MDScript Artifact](#update-mdscript-artifact)
+
 ## Mint MDScript Artifact Path
 
 * run [Resolve File Task Root](file-task-comments.md#resolve-file-task-root) when `{{artifact_dir}}` is empty
@@ -34,7 +56,9 @@
 * write YAML front matter with `artifact_kind`, `artifact_stamp`, `subject`, `owner_role`, `task_id`, `conversation_id` when known, `status`, and `re_entry`
 * write every heading as a `##` state, never `#`, so another agent can enter at any of them
 * write a first state that restores the durable context this artifact carries: subject, scope, evidence paths, and open questions
-* write the body states as executable steps the next agent runs, not as a narrative of what already happened
+* write `## Done So Far` as the append-only record of completed steps with their evidence
+* write `## Next Steps` as the executable states that remain, rewritten as work advances
+* write the remaining body states as executable steps the next agent runs, not as a narrative of what already happened
 * write a final state that names the exact `/mdscript-exec {{mdscript_artifact}}#<heading>` command to continue this work
 * keep the file under 200 lines, extracting crowded states into linked MDScripts under `{{artifact_dir}}`
 * include only sanitized state: no credentials, tokens, private endpoints, or customer data

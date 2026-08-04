@@ -51,8 +51,6 @@
 * set `{{artifact_kind}}` to `rca`
 * set `{{artifact_slug}}` to a slug of `{{symptom}}`
 * set `{{artifact_ordinal}}` to `{{pass_number}}`
-* run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path) when `{{rca_mdscript}}` is empty
-* set `{{rca_mdscript}}` to `{{mdscript_artifact}}` when `{{rca_mdscript}}` is empty
 * set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
 * write these states into the artifact: `## Restore Troubleshoot Context`, `## Reproduce This Failure`, `## Root Cause`, `## Verify The Fix`, and `## Open Questions`
 * record under `## Restore Troubleshoot Context` the `{{symptom}}`, `{{failing_surface}}`, `{{suspect_scope}}`, `{{target_environment}}`, and `{{fidelity_gap}}`
