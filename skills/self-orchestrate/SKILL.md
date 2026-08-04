@@ -109,6 +109,7 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 * for coordination that is not a monitored lane — a decision, a triage pass, a handoff, a closure — emit a durable MDScript artifact instead of a chat-only note
   * set `{{artifact_kind}}` to `coordination`
+  * set `{{artifact_subject}}` to the decision or lane this coordination is about
   * run [Start MDScript Running Log](../self-common/workflows/mdscript-artifact.mdscript.md#start-mdscript-running-log)
   * run [Log Progress](../self-common/workflows/mdscript-artifact.mdscript.md#log-progress) as each decision lands, so the coordination state survives a lost or compacted context
 

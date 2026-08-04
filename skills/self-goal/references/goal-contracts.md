@@ -20,7 +20,7 @@ Run state stays out of the working repository unless the pack was installed with
 | `runs/<run_id>/progress.jsonl` | Append-only iteration log |
 | `runs/<run_id>/artifacts/**` | New timestamped files only |
 | `runs/<run_id>/artifacts/manifest.json` | Reproduce map |
-| `runs/<run_id>/review-packet.md` | Neutral packet for self-review |
+| `runs/<run_id>/review-packet.mdscript.md` | Neutral packet for self-review |
 | `runs/<run_id>/review-verdict.mdscript.md` | Durable self-review verdict (front matter) + `Resume From Verdict` dispatch |
 | `runs/<run_id>/<stamp>-<round>-<subject>-rules-signoff.mdscript.md` | Blind rules lane |
 | `runs/<run_id>/<stamp>-<round>-<subject>-security-signoff.mdscript.md` | Blind security lane |

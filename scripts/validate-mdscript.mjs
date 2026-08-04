@@ -125,7 +125,7 @@ for (const [abs, doc] of parsed.entries()) {
   for (const { line, text: l } of body) {
     if (/^### /.test(l))
       add(abs, line, "error", "structure", "`###` is not a state; use `##` or fold into the parent state");
-    if (l && !/^\s/.test(l) && !/^(#|<!--|\||\*|-|>)/.test(l))
+    if (l && !/^\s/.test(l) && !/^(#|<!--|\||\*|-|>)/.test(l) && !/^\d+[.)]\s/.test(l))
       add(abs, line, "error", "narration", "prose outside a bullet; a state body is executable steps");
     if (/^\s*\d+[.)]\s/.test(l))
       add(

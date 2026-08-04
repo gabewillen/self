@@ -24,7 +24,7 @@
 * set `{{local_resource_path}}` from stack/bootstrap commands needed by those reproduce paths
 * set `{{blocking_severities}}` to `all findings` on the first goal-completion review round for code changes
 * set `{{run_dir}}` / `{{review_signoff_dir}}` to the active goal run directory
-* write neutral `{{run_dir}}/review-packet.md` containing only:
+* write neutral `{{run_dir}}/review-packet.mdscript.md` containing only:
   * exact goal / conversation_id / run_id / goal_mdscript
   * `proof_kind`, `live_proof`, `primary_user_action`, `proof_scope`
   * in-scope changed paths

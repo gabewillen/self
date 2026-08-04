@@ -19,7 +19,7 @@ re_entry: /mdscript-exec <this-file>#next-steps
 ## Done So Far
 
 * record each completed step as one bullet with its command, result, and evidence path
-* append new entries at the end; never edit or delete an earlier entry
+* append new entries at the end; never edit or delete an earlier entry, except to purge a leaked secret, which must also be rotated
 * supersede an earlier decision by appending the correction
 
 ## Next Steps

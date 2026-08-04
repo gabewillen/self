@@ -147,6 +147,9 @@ export interface GoalReviewVerdict {
 
 export const MIN_SUMMARY_LENGTH = 40;
 /** Blind-lane sign-offs and verdicts are re-enterable MDScript only. */
+/** Upper bound on retained superseded sign-offs, so the search is provably finite. */
+const SUPERSEDE_LIMIT = 100;
+
 export const SIGNOFF_RULES_MDSCRIPT = "signoff-reviewer-rules.mdscript.md";
 export const SIGNOFF_SECURITY_MDSCRIPT = "signoff-reviewer-security.mdscript.md";
 export const SIGNOFF_COMPLETENESS_MDSCRIPT = "signoff-reviewer-completeness.mdscript.md";
@@ -156,7 +159,7 @@ export const ARTIFACTS_MANIFEST_FILE = "manifest.json";
 export const SESSION_LOG_FILE = "session-log.jsonl";
 export const PROGRESS_LOG_FILE = "progress.jsonl";
 export const GOAL_MDSCRIPT_FILE = "goal.mdscript.md";
-export const REVIEW_PACKET_FILE = "review-packet.md";
+export const REVIEW_PACKET_FILE = "review-packet.mdscript.md";
 export const RUNS_DIR_NAME = "runs";
 export const DEFAULT_RESUME_HEADING = "pursue-goal";
 export const MDSCRIPT_EXEC_HEADER =
@@ -1542,17 +1545,23 @@ export function signoffRejectionReason(
  * round failed. Each file is moved aside to a superseded name instead.
  */
 export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
+  const runDirectoryPath = dirname(paths.signoffReviewerRulesMdscript);
   for (const file of [
-    paths.signoffReviewerRulesMdscript,
-    paths.signoffReviewerSecurityMdscript,
-    paths.signoffReviewerCompletenessMdscript,
-    paths.signoffReviewerHsmMdscript,
+    findLaneSignoffPath(runDirectoryPath, "rules", paths.signoffReviewerRulesMdscript),
+    findLaneSignoffPath(runDirectoryPath, "security", paths.signoffReviewerSecurityMdscript),
+    findLaneSignoffPath(runDirectoryPath, "completeness", paths.signoffReviewerCompletenessMdscript),
+    findLaneSignoffPath(runDirectoryPath, "hsm", paths.signoffReviewerHsmMdscript),
     paths.reviewVerdictMdscript,
   ]) {
     if (!existsSync(file)) continue;
     const stem = file.replace(/\.mdscript\.md$/, "");
     let aside = `${stem}.superseded.mdscript.md`;
     for (let n = 2; existsSync(aside); n += 1) {
+      if (n > SUPERSEDE_LIMIT) {
+        throw new Error(
+          `cannot supersede ${file}: ${SUPERSEDE_LIMIT} superseded copies already exist`,
+        );
+      }
       aside = `${stem}.superseded-${n}.mdscript.md`;
     }
     renameSync(file, aside);
@@ -1666,16 +1675,61 @@ export function selfReviewRejectionReason(
 }
 
 
+/**
+ * Find this run's sign-off for a lane. Rounds mint lexicographic names, so the
+ * newest matching file is the current one; the fixed legacy name is still
+ * accepted so a run started before minting can finish. `.superseded` copies are
+ * retained evidence and never count.
+ */
+export function findLaneSignoffPath(
+  runDirectoryPath: string,
+  laneId: string,
+  fallbackPath: string,
+): string {
+  if (!existsSync(runDirectoryPath)) return fallbackPath;
+  let names: string[] = [];
+  try {
+    names = readdirSync(runDirectoryPath);
+  } catch {
+    return fallbackPath;
+  }
+  const matches = names
+    .filter((name) => name.endsWith(".mdscript.md"))
+    .filter((name) => !name.includes(".superseded"))
+    .filter(
+      (name) =>
+        name.endsWith(`-${laneId}-signoff.mdscript.md`) ||
+        name === `signoff-reviewer-${laneId}.mdscript.md`,
+    )
+    .sort();
+  const newest = matches[matches.length - 1];
+  return newest ? join(runDirectoryPath, newest) : fallbackPath;
+}
+
 export function validateTripleBlindSignoffs(
   root: string,
   paths: GoalSessionPaths,
   goal: string,
   conversationId: string,
 ): GoalCompletionStatus {
+  const runDirectoryPath = dirname(paths.signoffReviewerRulesMdscript);
   const lanes: Array<{ id: GoalReviewerId; path: string }> = [
-    { id: "rules", path: paths.signoffReviewerRulesMdscript },
-    { id: "security", path: paths.signoffReviewerSecurityMdscript },
-    { id: "completeness", path: paths.signoffReviewerCompletenessMdscript },
+    {
+      id: "rules",
+      path: findLaneSignoffPath(runDirectoryPath, "rules", paths.signoffReviewerRulesMdscript),
+    },
+    {
+      id: "security",
+      path: findLaneSignoffPath(runDirectoryPath, "security", paths.signoffReviewerSecurityMdscript),
+    },
+    {
+      id: "completeness",
+      path: findLaneSignoffPath(
+        runDirectoryPath,
+        "completeness",
+        paths.signoffReviewerCompletenessMdscript,
+      ),
+    },
   ];
   const reasons: string[] = [];
   const signoffs: GoalSignoff[] = [];

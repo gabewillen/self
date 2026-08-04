@@ -35,6 +35,8 @@
   * [Sign-off Decision](#sign-off-decision)
 * read `{{rules_file}}` end-to-end
 * read every file named in `{{extra_rules_files}}` from the same directory end-to-end, and attack against those rules too
+* if a file named in `{{extra_rules_files}}` is missing
+  * set `{{blocker}}` to the missing rules path and stop without signing off
 * parse every top-level `# <RULE-ID> <RFC-2119-KEYWORD> <Title>` heading as a rule under review
 * follow Markdown See-links to related rules only when needed to interpret an in-scope rule; do not expand into an unbounded walk of the whole rules repo
 * set `rules_reviewed` to `{{rules_file}}` plus any linked rule files actually opened

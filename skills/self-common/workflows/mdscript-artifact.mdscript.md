@@ -28,7 +28,6 @@
 * set `{{unsafe_text}}` to the steps that remain as executable states
 * run [Sanitize Text](#sanitize-text)
 * set `{{next_steps}}` to `{{safe_text}}`
-* append `{{log_entry}}` to `## Done So Far` with the command run, its result, the decision taken, and the evidence path
 * set `{{artifact_re_entry}}` to the exact `/mdscript-exec {{mdscript_artifact}}#<heading>` command for the first remaining step
 * run [Update MDScript Artifact](#update-mdscript-artifact)
 
@@ -79,6 +78,13 @@
 
 * if `{{mdscript_artifact}}` is empty
   * [Mint MDScript Artifact Path](#mint-mdscript-artifact-path)
+* set `{{unsafe_text}}` to `{{next_steps}}`
+* run [Sanitize Text](#sanitize-text)
+* set `{{next_steps}}` to `{{safe_text}}`
+* set `{{unsafe_text}}` to `{{done_so_far}}`
+* run [Sanitize Text](#sanitize-text)
+* set `{{done_so_far}}` to `{{safe_text}}`
+* compose the content only after both are sanitized, so no unsanitized value is ever embedded
 * start the content with the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->`
 * add YAML front matter with `artifact_kind`, `artifact_stamp`, `subject`, `owner_role`, `task_id`, `status` from `{{artifact_status}}`, and `re_entry` from `{{artifact_re_entry}}`
 * start from [running-log template](../templates/running-log.mdscript.md) so the file begins valid instead of as a blank page
@@ -88,9 +94,6 @@
 * write every step as a `*` bullet: no numbered lists, no prose paragraphs, because order comes from bullet sequence and heading links
 * name the file `<name>.mdscript.md` so the next reader sees which grammar applies
 * keep the content under 200 lines, extracting crowded states into linked MDScripts under `{{artifact_dir}}`
-* set `{{unsafe_text}}` to `{{next_steps}}`
-* run [Sanitize Text](#sanitize-text)
-* set `{{next_steps}}` to `{{safe_text}}`
 * write that content to `{{mdscript_artifact}}`
   * if the write fails, stop and report the exact path and error
 * [Verify MDScript Artifact](#verify-mdscript-artifact)
@@ -98,11 +101,18 @@
 ## Update MDScript Artifact
 
 * if `{{mdscript_artifact}}` does not exist
-  * [Write MDScript Artifact](#write-mdscript-artifact)
-* append `{{log_entry}}` under `## Done So Far` without rewriting entries already there
+  * set `{{done_so_far}}` to `{{log_entry}}` so a first write keeps this entry
+  * run [Write MDScript Artifact](#write-mdscript-artifact)
+  * return to the caller
+* sanitize in this state rather than relying on the caller, since every `##` heading is reachable as a cold entry point
+* set `{{unsafe_text}}` to `{{log_entry}}`
+* run [Sanitize Text](#sanitize-text)
+* set `{{log_entry}}` to `{{safe_text}}`
 * set `{{unsafe_text}}` to `{{next_steps}}`
 * run [Sanitize Text](#sanitize-text)
-* replace `## Next Steps` with `{{safe_text}}`
+* set `{{next_steps}}` to `{{safe_text}}`
+* append `{{log_entry}}` under `## Done So Far` without rewriting entries already there
+* replace `## Next Steps` with `{{next_steps}}`
 * update the front matter `status` and `re_entry` to the current position
 * supersede an earlier decision by appending the correction, never by editing history
 * [Verify MDScript Artifact](#verify-mdscript-artifact)
@@ -125,7 +135,8 @@
 * if retained output is unfenced or still carries a heading, run bullet, or exec command
   * set `{{unsafe_text}}` to that content
   * run [Sanitize Text](#sanitize-text)
-  * [Repair MDScript Artifact](#repair-mdscript-artifact)
+  * replace that content in `{{mdscript_artifact}}` with `{{safe_text}}`
+  * [Verify MDScript Artifact](#verify-mdscript-artifact)
 * if any other check fails
   * [Repair MDScript Artifact](#repair-mdscript-artifact)
 * set `{{verify_attempts}}` to empty
@@ -137,11 +148,16 @@
 * redact the leaked value in `{{mdscript_artifact}}` in place, as the one exception to the append-only rule
 * record in `## Done So Far` that a redaction happened, naming the class of value removed and never the value
 * rotate or report the exposed credential through its owner, because redaction does not undo the exposure
-* [Verify MDScript Artifact](#verify-mdscript-artifact)
+* set `{{purge_attempts}}` to `1` when empty, otherwise to `{{purge_attempts}}` plus `1`
+* if `{{purge_attempts}}` is greater than `2`
+  * set `{{blocker}}` to `secret purge did not clear the scan at {{mdscript_artifact}}`
+  * stop and report `{{blocker}}` to the caller
+* [Verify MDScript Artifact](#verify-mdscript-artifact) as a fresh check; do not return to this state
 
 ## Repair MDScript Artifact
 
 * fix the exact failed check: missing header, missing front matter field, missing required state, dead anchor, missing link target, or line budget
+* if the failed check is unfenced or executable retained output, replace it with `{{safe_text}}` rather than editing it by hand
 * if the file is over 200 lines
   * move the oldest `## Done So Far` entries into a linked MDScript beside it and link to that file
 * [Verify MDScript Artifact](#verify-mdscript-artifact)

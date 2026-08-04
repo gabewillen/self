@@ -792,9 +792,10 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/blind-reviewers/engineering-rules.mdscript.md",
     "references/lane-catalog.md",
     "references/engineering-rules/SOURCE.md",
+    // locally authored rules — NOT vendored; a re-vendor must leave this file alone
+    "references/engineering-rules/local.rules.md",
     // engineering rule packs (vendored from gabewillen/rules)
     "references/engineering-rules/core.rules.md",
-    "references/engineering-rules/local.rules.md",
     "references/engineering-rules/dbc.rules.md",
     "references/engineering-rules/patterns.rules.md",
     "references/engineering-rules/rust.rules.md",
