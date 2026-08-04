@@ -1,7 +1,7 @@
 ---
 artifact_type: self-voice
 name: self-voice
-description: "Routed MDScript for agent-voice drafts (Slack, review comments, public writing). Not a skill. Enter via /self-voice or the self router."
+description: "Routed MDScript for agent-voice drafts (Slack, review comments, public writing). Body of the self-voice skill; enter via /self-voice, its SKILL.md, or the self router."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

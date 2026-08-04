@@ -1,8 +1,8 @@
 # self-troubleshoot
 
-Routed MDScript (not an agent skill) for diagnosing a reported failure.
+Troubleshooting skill. `SKILL.md` is the entry the harness lists; the body is the linked MDScript.
 
-Entry: `self-troubleshoot.mdscript.md` (route `/self-troubleshoot` via the `self` router).
+Entry: `/self-troubleshoot`, or `self-troubleshoot.mdscript.md` directly, or via the `self` router.
 
 ```text
 /mdscript-exec {{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md#troubleshoot-reported-issue

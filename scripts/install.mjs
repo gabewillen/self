@@ -157,11 +157,11 @@ function listSkillDirs(root) {
 }
 
 /**
- * Non-skill packs: shared MDScripts/hooks (self-common) and routed MDScripts
- * (self-voice, self-troubleshoot). Installed like skills but not discoverable
- * as agent skills.
+ * Non-skill packs: shared MDScripts and hooks other skills link into. These
+ * carry no SKILL.md, so no harness lists them as a skill; self-voice and
+ * self-troubleshoot are real skills whose bodies live in a linked MDScript.
  */
-const SHARED_PACKS = ["self-common", "self-voice", "self-troubleshoot"];
+const SHARED_PACKS = ["self-common"];
 
 function listSharedPackDirs(root) {
   if (!existsSync(root)) return [];
@@ -888,6 +888,7 @@ const REQUIRED_SKILL_ASSETS = {
     "adapters/grok/hooks.json",
   ],
   "self-voice": [
+    "SKILL.md",
     "self-voice.mdscript.md",
     "workflows/durable-voice-rule.mdscript.md",
     "workflows/slack-style.mdscript.md",
@@ -895,6 +896,7 @@ const REQUIRED_SKILL_ASSETS = {
     "references/slack-samples.md",
   ],
   "self-troubleshoot": [
+    "SKILL.md",
     "self-troubleshoot.mdscript.md",
     "workflows/reproduce-red-test.mdscript.md",
     "workflows/choose-environment.mdscript.md",

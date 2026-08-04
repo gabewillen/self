@@ -1,7 +1,7 @@
 ---
 artifact_type: self-troubleshoot
 name: self-troubleshoot
-description: "Routed MDScript for troubleshooting a reported failure: reproduce with a red test on the closest safe production-like surface, root-cause it, fix the cause, rerun the same reproduction, and loop until green. Not a skill. Enter via /self-troubleshoot or the self router."
+description: "Routed MDScript for troubleshooting a reported failure: reproduce with a red test on the closest safe production-like surface, root-cause it, fix the cause, rerun the same reproduction, and loop until green. Body of the self-troubleshoot skill; enter via /self-troubleshoot, its SKILL.md, or the self router."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
