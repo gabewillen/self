@@ -26,7 +26,8 @@
 * set `{{artifact_kind}}` to `review-packet`
 * set `{{artifact_ordinal}}` to `{{review_round}}`
 * run [Start MDScript Running Log](../../self-common/workflows/mdscript-artifact.md#start-mdscript-running-log) when the caller has not already written this round's packet, so a lost context resumes the round from disk
-* write the neutral review packet as MDScript at that path with the round's scope, authorized paths, and open question
+* set `{{review_packet}}` to `{{mdscript_artifact}}`
+* write the neutral review packet as MDScript at `{{review_packet}}` with the round's scope, authorized paths, and open question
 * never delete or overwrite an earlier round's sign-off or packet; each round mints its own lexicographic name so the history stays readable in order
 * run [Log Progress](../../self-common/workflows/mdscript-artifact.md#log-progress) with the selected lanes and the spawn as the next step
 * [Spawn Selected Lanes](#spawn-selected-lanes)
@@ -53,6 +54,11 @@
 
 ## Aggregate Triple Signoffs
 
+* read only the sign-off files this round minted, at each lane's `{{signoff_path}}`
+* if any sign-off names a `review_round` other than `{{review_round}}`
+  * set `{{grade}}` to `Not ready for {{proof_scope}}`
+  * set `{{proof_decision}}` to `Not accepted: a sign-off from an earlier round cannot count for this one`
+  * return incomplete to the caller
 * if any sign-off file for a lane in `{{blind_lanes}}` is missing
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
   * set `{{proof_decision}}` to `Not accepted: missing blind reviewer sign-off(s)`
@@ -73,6 +79,7 @@
   * set `{{grade}}` to `Blocked for {{proof_scope}}` only when a lane names a true missing precondition that cannot be stood up
   * keep every lane sign-off file as this round's evidence, because the next round mints its own names
   * return incomplete to the caller
+* set `{{artifact_dir}}` back to `{{prior_artifact_dir}}` now that this round's artifacts are written
 * if every lane in `{{blind_lanes}}` has `signed_off: true` and empty `p_findings`
   * if any two `verifier_summary` texts are identical
     * keep every lane sign-off file as this round's evidence, because the next round mints its own names
