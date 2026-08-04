@@ -24,7 +24,7 @@ The loop:
    red returns to step 2, and repeated red returns to reassessing the
    reproduction itself.
 
-Workflows: [choose-environment.md](workflows/choose-environment.md) (safe target,
-test isolation, fidelity), [reproduce-red-test.md](workflows/reproduce-red-test.md),
-[root-cause-analysis.md](workflows/root-cause-analysis.md),
-[apply-fix-and-rerun.md](workflows/apply-fix-and-rerun.md).
+Workflows: [choose-environment.mdscript.md](workflows/choose-environment.mdscript.md) (safe target,
+test isolation, fidelity), [reproduce-red-test.mdscript.md](workflows/reproduce-red-test.mdscript.md),
+[root-cause-analysis.mdscript.md](workflows/root-cause-analysis.mdscript.md),
+[apply-fix-and-rerun.mdscript.md](workflows/apply-fix-and-rerun.mdscript.md).

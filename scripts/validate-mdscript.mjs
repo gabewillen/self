@@ -105,6 +105,18 @@ for (const [abs, doc] of parsed.entries()) {
   }
   if (!isMdscript) continue;
 
+  // The name carries the grammar: an MDScript that does not say so in its
+  // filename gets read and edited as a document, which is how invalid MDScript
+  // gets written. SKILL.md is the one name the harness fixes for us.
+  if (!abs.endsWith(".mdscript.md") && !abs.endsWith("SKILL.md"))
+    add(
+      abs,
+      1,
+      "error",
+      "naming",
+      "carries the MDScript execution header but is not named <name>.mdscript.md",
+    );
+
   if (lines.length > LINE_CEILING)
     add(abs, lines.length, "error", "size", `${lines.length} lines exceeds the ${LINE_CEILING}-line ceiling`);
   else if (lines.length > LINE_TARGET)
@@ -115,6 +127,14 @@ for (const [abs, doc] of parsed.entries()) {
       add(abs, line, "error", "structure", "`###` is not a state; use `##` or fold into the parent state");
     if (l && !/^\s/.test(l) && !/^(#|<!--|\||\*|-|>)/.test(l))
       add(abs, line, "error", "narration", "prose outside a bullet; a state body is executable steps");
+    if (/^\s*\d+[.)]\s/.test(l))
+      add(
+        abs,
+        line,
+        "error",
+        "ordered-list",
+        "numbered list in a state body; sequence is expressed by bullet order and heading links",
+      );
     if (/^\s*\* /.test(l) && RATIONALE.test(l))
       add(abs, line, "warn", "rationale", "bullet explains why rather than naming an action; move it to a reference file");
   }

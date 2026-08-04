@@ -6,7 +6,7 @@
 * do not spawn a subagent whose assignment is the full `self-review` skill or this whole composition skill
 * require independent blind adversarial **lane** subagents for terminal readiness — do not self-grade as a single reviewer for completion
 * set `{{review_skill_root}}` to this skill's absolute directory when empty
-* run [Select Review Lanes](select-review-lanes.md#select-review-lanes)
+* run [Select Review Lanes](select-review-lanes.mdscript.md#select-review-lanes)
 * if `{{blind_lanes}}` is empty after selection
   * set `{{blocker}}` to `lane selection produced no blind lanes`
   * stop and report the empty lane set
@@ -15,21 +15,25 @@
   * stop and report the incomplete always-on set
 * set `{{review_signoff_dir}}` to `{{run_dir}}` when present, otherwise `{{artifact_dir}}/reviews/{{review_key}}`
 * create `{{review_signoff_dir}}` when missing
-* set `{{prior_artifact_dir}}` to `{{artifact_dir}}`
+* set `{{prior_artifact_dir}}` to `{{artifact_dir}}` when `{{prior_artifact_dir}}` is empty, so a retry never captures an already-rebound value
 * set `{{artifact_dir}}` to `{{review_signoff_dir}}` for this round's artifacts only
 * for each lane id in `{{blind_lanes}}`
   * set `{{artifact_kind}}` to `<lane>-signoff`
-  * set `{{artifact_slug}}` to a slug of `{{review_key}}`
+  * set `{{artifact_subject}}` to `{{review_key}}`
   * set `{{artifact_ordinal}}` to `{{review_round}}`
-  * run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path)
-  * set that lane's sign-off path to `{{mdscript_artifact}}`
+  * set `{{artifact_reserve_only}}` to `true`
+  * run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.mdscript.md#mint-mdscript-artifact-path)
+  * set that lane's sign-off path to `{{mdscript_artifact}}`, which stays absent until that lane writes it
 * set `{{artifact_kind}}` to `review-packet`
 * set `{{artifact_ordinal}}` to `{{review_round}}`
-* run [Start MDScript Running Log](../../self-common/workflows/mdscript-artifact.md#start-mdscript-running-log) when the caller has not already written this round's packet, so a lost context resumes the round from disk
+* set `{{artifact_reserve_only}}` to empty
+* set `{{mdscript_artifact}}` to empty, so the packet never inherits the last lane's sign-off path
+* set `{{artifact_subject}}` to `{{review_key}}`
+* run [Start MDScript Running Log](../../self-common/workflows/mdscript-artifact.mdscript.md#start-mdscript-running-log) when the caller has not already written this round's packet, so a lost context resumes the round from disk
 * set `{{review_packet}}` to `{{mdscript_artifact}}`
-* write the neutral review packet as MDScript at `{{review_packet}}` with the round's scope, authorized paths, and open question
+* write the neutral review packet at `{{review_packet}}` from [review-packet template](../../self-common/templates/review-packet.mdscript.md), with the round's scope, authorized paths, and open questions
 * never delete or overwrite an earlier round's sign-off or packet; each round mints its own lexicographic name so the history stays readable in order
-* run [Log Progress](../../self-common/workflows/mdscript-artifact.md#log-progress) with the selected lanes and the spawn as the next step
+* run [Log Progress](../../self-common/workflows/mdscript-artifact.mdscript.md#log-progress) with the selected lanes and the spawn as the next step
 * [Spawn Selected Lanes](#spawn-selected-lanes)
 
 ## Spawn Selected Lanes
@@ -52,17 +56,29 @@
 * read the front matter of every lane's sign-off MDScript
 * [Aggregate Triple Signoffs](#aggregate-triple-signoffs)
 
+## Restore Artifact Dir
+
+* set `{{artifact_dir}}` back to `{{prior_artifact_dir}}`, so the author's repair log never mints among the blind sign-offs
+* return to the caller
+
 ## Aggregate Triple Signoffs
 
 * read only the sign-off files this round minted, at each lane's `{{signoff_path}}`
+* if any sign-off omits `review_round` in its front matter
+  * set `{{grade}}` to `Not ready for {{proof_scope}}`
+  * set `{{proof_decision}}` to `Not accepted: a sign-off without a review_round cannot be dated to this round`
+  * [Restore Artifact Dir](#restore-artifact-dir)
+  * return incomplete to the caller
 * if any sign-off names a `review_round` other than `{{review_round}}`
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
   * set `{{proof_decision}}` to `Not accepted: a sign-off from an earlier round cannot count for this one`
+  * [Restore Artifact Dir](#restore-artifact-dir)
   * return incomplete to the caller
 * if any sign-off file for a lane in `{{blind_lanes}}` is missing
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
   * set `{{proof_decision}}` to `Not accepted: missing blind reviewer sign-off(s)`
   * set `{{blocking_findings}}` to a finding naming the missing lane(s)
+  * [Restore Artifact Dir](#restore-artifact-dir)
   * return incomplete to the caller
 * validate each sign-off independently:
   * matching `goal` / `conversation_id` when those are in the packet
@@ -78,11 +94,19 @@
   * set `{{grade}}` to `Not ready for {{proof_scope}}` when findings are repairable
   * set `{{grade}}` to `Blocked for {{proof_scope}}` only when a lane names a true missing precondition that cannot be stood up
   * keep every lane sign-off file as this round's evidence, because the next round mints its own names
+  * [Restore Artifact Dir](#restore-artifact-dir)
   * return incomplete to the caller
-* set `{{artifact_dir}}` back to `{{prior_artifact_dir}}` now that this round's artifacts are written
 * if every lane in `{{blind_lanes}}` has `signed_off: true` and empty `p_findings`
+  * set `{{summary_collision_attempts}}` to `1` when empty, otherwise to `{{summary_collision_attempts}}` plus `1`
+  * if `{{summary_collision_attempts}}` is greater than `2`
+    * set `{{grade}}` to `Not ready for {{proof_scope}}`
+    * set `{{proof_decision}}` to `Not accepted: lanes kept returning identical summaries`
+    * [Restore Artifact Dir](#restore-artifact-dir)
+    * return incomplete to the caller
   * if any two `verifier_summary` texts are identical
     * keep every lane sign-off file as this round's evidence, because the next round mints its own names
+    * set `{{review_round}}` to `{{review_round}}` plus `1`, so the retry mints and dates its own artifacts
+    * [Restore Artifact Dir](#restore-artifact-dir)
     * [Triple Adversarial Blind Review](#triple-adversarial-blind-review)
   * set `{{blocking_findings}}` to `[]`
   * set residual notes from any non-blocking commentary without weakening the gate
@@ -91,7 +115,7 @@
   * when an `hsm` or `eng-hsm` lane signed off `n/a` or `lane_applicable: false`, keep that in residual notes so the verdict never reads as state machine proof
   * set `{{artifact_kind}}` to `review-verdict`
   * set `{{artifact_ordinal}}` to `{{review_round}}`
-  * run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path)
+  * run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.mdscript.md#mint-mdscript-artifact-path)
   * persist the durable verdict at `{{mdscript_artifact}}`
   * write its final state as the exact next-step command: the repair entrypoint when blocked, or the publication entrypoint when proven
   * write it as executable MDScript: the exact execution header, YAML front matter, then the states below

@@ -2,23 +2,24 @@
 
 ## Start MDScript Running Log
 
-* require `{{artifact_kind}}` and the subject text from the caller before this state runs
-* if `{{artifact_kind}}` is empty
-  * set `{{blocker}}` to `running log requested without a kind`
+* require `{{artifact_kind}}` and `{{artifact_subject}}` from the caller before this state runs
+* if `{{artifact_kind}}` is empty or `{{artifact_subject}}` is empty
+  * set `{{blocker}}` to `running log requested without a kind or a subject`
   * stop and report `{{blocker}}` to the caller
 * run [Mint MDScript Artifact Path](#mint-mdscript-artifact-path)
 * set `{{artifact_status}}` to `in-progress`
 * set `{{done_so_far}}` to empty
 * set `{{next_steps}}` to the plan for this work as executable states
+* set `{{artifact_re_entry}}` to `/mdscript-exec {{mdscript_artifact}}#next-steps`
 * run [Write MDScript Artifact](#write-mdscript-artifact)
 * return `{{mdscript_artifact}}` to the caller
 
 ## Log Progress
 
-* if `{{mdscript_artifact}}` is empty and `{{artifact_kind}}` is empty
+* if `{{mdscript_artifact}}` is empty and `{{artifact_kind}}` is empty and `{{artifact_subject}}` is empty
   * return to the caller without logging, because no caller has opened a log for this work
 * if `{{mdscript_artifact}}` is empty
-  * [Start MDScript Running Log](#start-mdscript-running-log)
+  * run [Start MDScript Running Log](#start-mdscript-running-log)
 * if nothing has changed since the last entry
   * return to the caller without writing
 * set `{{unsafe_text}}` to the progress text this caller is recording
@@ -48,7 +49,7 @@
 * run `date -u +%Y%m%dT%H%M%SZ` and set `{{artifact_stamp}}` to its output
 * set `{{artifact_ordinal}}` to the round, pass, or iteration this artifact belongs to, or to `1`
 * pad `{{artifact_ordinal}}` to three digits so ordinal `2` sorts before ordinal `10`
-* set `{{artifact_slug}}` to the subject reduced to lowercase `a-z`, `0-9`, and `-`, dropping every other character, with no leading or trailing `-` and at most 48 characters
+* set `{{artifact_slug}}` to `{{artifact_subject}}` reduced to lowercase `a-z`, `0-9`, and `-`, dropping every other character, with no leading or trailing `-` and at most 48 characters
 * if `{{artifact_slug}}` is empty after that reduction
   * set `{{artifact_slug}}` to `subject`
 * set `{{artifact_identity}}` to this agent's lane id, subagent name, or `main` when it has none

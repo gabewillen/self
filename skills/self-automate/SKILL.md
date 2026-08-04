@@ -16,9 +16,9 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 * infer `{{automation_goal}}`, `{{owner_role}}`, `{{lane_id}}`, `{{thread_id}}`, `{{issue_or_mr}}`, `{{watched_target}}`, `{{cadence}}`, `{{stop_condition}}`, `{{task_mdscript}}`, `{{mdscript_reentry}}`, and `{{reporting_path}}`
 
-* run [Resolve File Task Root](../self-common/workflows/file-task-comments.md#resolve-file-task-root)
+* run [Resolve File Task Root](../self-common/workflows/file-task-comments.mdscript.md#resolve-file-task-root)
 
-* run [Read File Task Packet](../self-common/workflows/file-task-comments.md#read-file-task-packet) when the automation belongs to a file task
+* run [Read File Task Packet](../self-common/workflows/file-task-comments.mdscript.md#read-file-task-packet) when the automation belongs to a file task
 
 * if the automation belongs to a role lane
   * read the relevant role skill: `{{repo_root}}/skills/self-orchestrate/SKILL.md`, `{{repo_root}}/skills/self-implement/SKILL.md`, or `{{repo_root}}/skills/self-review/SKILL.md`
@@ -78,14 +78,14 @@ description: "ALWAYS use this skill before calling automation_update or creating
 * prefer workflow-file entry points over broad role `SKILL.md` entry points when the workflow file owns the continuation
 
 * common orchestrator re-entry points include:
-  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/mr-comment-watcher.md#create-mr-comment-watcher`
-  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/monitor-implementer-lane.md#monitor-implementer-lane`
-  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/merge-or-close-decision.md#handle-merge-or-close-decision`
+  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/mr-comment-watcher.mdscript.md#create-mr-comment-watcher`
+  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
+  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision`
 
 * common implementer re-entry points include:
-  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.md#create-mr-monitor-goal`
-  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.md#create-blocker-watcher`
-  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/report-to-orchestrator.md#report-to-orchestrator`
+  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`
+  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
+  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator`
 
 * if another agent must continue at a specific point after the automation fires
   * include that exact `/mdscript-exec` jump in the automation report body
@@ -127,7 +127,7 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 * do not treat an earlier request, durable authority record, goal, handoff, automation record, or agent instruction as a fresh explicit user request
 
-* run [Resolve Goal MDScript](../self-common/workflows/goal-mdscript.md#resolve-goal-mdscript)
+* run [Resolve Goal MDScript](../self-common/workflows/goal-mdscript.mdscript.md#resolve-goal-mdscript)
 
 * if `{{explicit_automation_request}}` is absent, continue at [Stop Without Automation](#stop-without-automation)
 
@@ -197,5 +197,5 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 * if `{{blocker}}` is set
   * report `Blocked: {{blocker}}`
-  * before asking the user, a repository owner, or another authority surface for input, run [Prepare Prompt Return Script](../self-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-automation`
+  * before asking the user, a repository owner, or another authority surface for input, run [Prepare Prompt Return Script](../self-common/workflows/return-script.mdscript.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-automation`
   * ask the smallest decision-ready question needed to proceed

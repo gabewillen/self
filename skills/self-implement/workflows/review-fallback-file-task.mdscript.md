@@ -8,7 +8,7 @@
 * for each lane in `{{blind_lanes}}`
   * resolve `{{lane_entry}}` from `{{lane_entrypoints}}.<lane>`
   * run that lane MDScript in this process with `/mdscript-exec {{lane_entry}}`
-  * require the lane pass to write `signoff-reviewer-<lane>.mdscript.md` under `{{review_signoff_dir}}`
+  * require the lane pass to write the `{{signoff_path}}` this round minted for that lane, under `{{review_signoff_dir}}`
 * never run the full `self-review` skill as a nested “reviewer role” substitute for multi-lane fanout
 * after every selected lane has a sign-off file, run [Aggregate Triple Signoffs](../../self-review/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs) in this process
 * do not claim public MR/PR merge-readiness through this fallback when the repository or tracker requires live blind subagents

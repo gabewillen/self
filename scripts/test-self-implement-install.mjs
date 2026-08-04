@@ -18,9 +18,9 @@ const reviewRules = join(pkgRoot, "skills", "self-review", "references", "engine
 
 const required = [
   "SKILL.md",
-  "workflows/select-implementation-rules.md",
-  "workflows/select-language-framework-rules.md",
-  "workflows/apply-selected-engineering-rules.md",
+  "workflows/select-implementation-rules.mdscript.md",
+  "workflows/select-language-framework-rules.mdscript.md",
+  "workflows/apply-selected-engineering-rules.mdscript.md",
   "workflows/engineering-rules/apply-engineering-rules.mdscript.md",
   "references/implementation-rules-catalog.md",
 ];

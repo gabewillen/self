@@ -12,7 +12,7 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 * if `{{pr}}` is empty
   * ask the user for `{{pr}}` (GitHub PR URL or `owner/repo#N`)
   * [Setup Watch](#setup-watch)
-* run [Select Configured Model And Reasoning](../self-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{self_role}}` set to `implementer`
+* run [Select Configured Model And Reasoning](../self-common/workflows/model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning) with `{{self_role}}` set to `implementer`
 * set `{{easy_model}}` to the fastest available model that can reliably land mechanical single-file fixes
 * set `{{easy_effort}}` to a low effort level
 * set `{{hard_model}}` to the strongest available model for ambiguous, multi-file, or risky repairs
@@ -34,7 +34,7 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
   * [Report Blocker](#report-blocker)
 * set `{{skill_root}}` to this skill's absolute directory (`~/.agents/skills/self-watch` unless overridden)
 * set `{{project_name}}` from `{{repo}}`
-* run [Resolve Agent Home](../self-common/workflows/agent-home.md#resolve-agent-home)
+* run [Resolve Agent Home](../self-common/workflows/agent-home.mdscript.md#resolve-agent-home)
 * set `{{watch_mdscript}}` to `{{project_home}}/goals/self-watch-{{pr_number}}.mdscript.md`
 * create `~/.agents/projects/{{project_name}}/goals` when missing
 * if a legacy `~/.agents/projects/{{project_name}}/self-watch/pr-{{pr_number}}.json` exists and `{{watch_mdscript}}` does not
@@ -117,15 +117,15 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 
 ## Resolve Owner Process
 
-* run [Resolve Owner Process](workflows/ticker-process.md#resolve-owner-process)
+* run [Resolve Owner Process](workflows/ticker-process.mdscript.md#resolve-owner-process)
 
 ## Check Ticker Liveness
 
-* run [Check Ticker Liveness](workflows/ticker-process.md#check-ticker-liveness)
+* run [Check Ticker Liveness](workflows/ticker-process.mdscript.md#check-ticker-liveness)
 
 ## Reattach Tick Listener
 
-* run [Reattach Tick Listener](workflows/ticker-process.md#reattach-tick-listener)
+* run [Reattach Tick Listener](workflows/ticker-process.mdscript.md#reattach-tick-listener)
 
 ## Resume Watch
 
@@ -156,10 +156,10 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 
 ## Watch Tick
 
-* run [Watch Tick](workflows/watch-tick.md#watch-tick) with `{{watch_mdscript}}` set for this watch
+* run [Watch Tick](workflows/watch-tick.mdscript.md#watch-tick) with `{{watch_mdscript}}` set for this watch
 * end the turn without re-arming, without `sleep`, and without a one-shot wake — the detached ticker owns the next tick
 
 ## Report Blocker
 
-* run [Report Blocker](workflows/watch-tick.md#report-blocker) with `{{watch_mdscript}}` set for this watch
+* run [Report Blocker](workflows/watch-tick.mdscript.md#report-blocker) with `{{watch_mdscript}}` set for this watch
 * end the turn without killing the loop and without re-arming

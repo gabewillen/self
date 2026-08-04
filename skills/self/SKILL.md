@@ -28,10 +28,10 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * ask "What would the user do?" from the current request, active local instructions, current evidence, and this installed skill family
 
 * if the installed skills do not carry the needed context, appear stale, or are contradicted by a new user correction
-  * run [Load Operating Context](../self-common/workflows/load-operating-context.md#load-operating-context)
+  * run [Load Operating Context](../self-common/workflows/load-operating-context.mdscript.md#load-operating-context)
   * if the user stated a durable correction in their own words
     * set `{{correction_source}}` to that user quote only
-    * run [Update Living Skills](../self-common/workflows/update-living-skills.md#update-living-skills)
+    * run [Update Living Skills](../self-common/workflows/update-living-skills.mdscript.md#update-living-skills)
 
 * if the request is a standalone interval PR watch that repairs review comments and CI with selected fixer models (`/self-watch`, interval+PR babysit, merge-ready watch loop)
   * set `{{self_role}}` to `self-watch`
@@ -110,7 +110,7 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * carry `{{self_role}}`, `{{agent_position}}`, `{{is_root_orchestrator}}`, `{{parent_agent}}`, `{{parent_reporting_path}}`, and `{{can_spawn_subagents}}` into the routed skill
 
 * if `{{self_role}}` is `self-orchestrate`
-  * run `/mdscript-exec {{skills_root}}/self-common/workflows/goal-mdscript.md#write-goal-mdscript` before claiming ongoing monitoring, resumed coordination, or watcher ownership
+  * run `/mdscript-exec {{skills_root}}/self-common/workflows/goal-mdscript.mdscript.md#write-goal-mdscript` before claiming ongoing monitoring, resumed coordination, or watcher ownership
   * do not claim the lane is resumable until that goal names the exact re-entry point and validation fields
 
 * stop after the routed skill returns

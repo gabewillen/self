@@ -64,7 +64,7 @@
 * record `{{blind_lanes}}`, `{{lane_entrypoints}}`, and `{{lane_selection_reasons}}` in the packet and a parent-visible `review_round=start` file comment
 * set `{{review_signoff_dir}}` to the current review artifact directory under the file-task project home or `{{run_dir}}` when this is a goal run
 * create `{{review_signoff_dir}}` when missing
-* delete every existing `signoff-reviewer-*.mdscript.md` under `{{review_signoff_dir}}` for this round
+* keep every existing sign-off under `{{review_signoff_dir}}`; this round mints its own lexicographic names for each lane
 * if subagent tooling is unavailable
   * run [Run File Task Reviewer Fallback](review-fallback-file-task.mdscript.md#run-file-task-reviewer-fallback)
   * [Collect Review Round Results](#collect-review-round-results)
@@ -94,7 +94,7 @@
 
 ## Collect Review Round Results
 
-* read every `signoff-reviewer-<lane>.mdscript.md` under `{{review_signoff_dir}}` for lanes in `{{blind_lanes}}`
+* read the `{{signoff_path}}` this round minted for each lane in `{{blind_lanes}}`, and reject any sign-off whose `review_round` is not this round
 * run [Aggregate Triple Signoffs](../../self-review/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs) in **this** process (not a nested review subagent)
 * set `{{blocking_findings}}` and `{{residual_findings}}` from the aggregate against `{{blocking_severities}}`
 * set `{{grade}}` and `{{proof_decision}}` from the aggregate

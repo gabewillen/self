@@ -30,7 +30,7 @@ description: "Routed MDScript for agent-voice drafts (Slack, review comments, pu
 
 ## Handle Slack Mention Watch Run
 
-* run [Handle Slack Mention Watch Run](workflows/mention-watch-run.md#handle-slack-mention-watch-run)
+* run [Handle Slack Mention Watch Run](workflows/mention-watch-run.mdscript.md#handle-slack-mention-watch-run)
 
 ## Draft Agent Voice Response
 
@@ -60,23 +60,23 @@ description: "Routed MDScript for agent-voice drafts (Slack, review comments, pu
 
 ## Use Durable Agent Voice Rule
 
-* run [Use Durable Agent Voice Rule](workflows/durable-voice-rule.md#use-durable-agent-voice-rule)
+* run [Use Durable Agent Voice Rule](workflows/durable-voice-rule.mdscript.md#use-durable-agent-voice-rule)
 
 ## Use Natural Slack Cadence
 
-* run [Use Natural Slack Cadence](workflows/slack-style.md#use-natural-slack-cadence)
+* run [Use Natural Slack Cadence](workflows/slack-style.mdscript.md#use-natural-slack-cadence)
 
 ## Decide Humor
 
-* run [Decide Humor](workflows/slack-style.md#decide-humor)
+* run [Decide Humor](workflows/slack-style.mdscript.md#decide-humor)
 
 ## Prefer Questions When Possible
 
-* run [Prefer Questions When Possible](workflows/slack-style.md#prefer-questions-when-possible)
+* run [Prefer Questions When Possible](workflows/slack-style.mdscript.md#prefer-questions-when-possible)
 
 ## Check Authority And Evidence
 
-* run [Check Authority And Evidence](workflows/slack-style.md#check-authority-and-evidence)
+* run [Check Authority And Evidence](workflows/slack-style.mdscript.md#check-authority-and-evidence)
 
 ## Return Slack Response
 

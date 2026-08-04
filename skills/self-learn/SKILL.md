@@ -38,7 +38,7 @@ description: "ALWAYS use this skill when the user runs /self-learn or explicitly
   * [Report Learn Pass](#report-learn-pass)
 * set `{{correction_kind}}` to that finding's `kind`
 * set `{{skill_update_summary}}` to that finding's `summary`
-* run [Update Living Skills](../self-common/workflows/update-living-skills.md#update-living-skills)
+* run [Update Living Skills](../self-common/workflows/update-living-skills.mdscript.md#update-living-skills)
 * remove that finding from `{{learn_findings}}`
 * if more findings remain in `{{learn_findings}}`
   * [Apply Findings](#apply-findings)

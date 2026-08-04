@@ -1,6 +1,6 @@
 # Review blind lane catalog
 
-Lane selection lives in [select-review-lanes.md](../workflows/select-review-lanes.md). This catalog is the durable map of lane id → entrypoint → rule source → when to add.
+Lane selection lives in [select-review-lanes.mdscript.md](../workflows/select-review-lanes.mdscript.md). This catalog is the durable map of lane id → entrypoint → rule source → when to add.
 
 ## Always-on terminal lanes
 

@@ -49,7 +49,7 @@
 ## Record Root Cause Analysis
 
 * set `{{artifact_kind}}` to `rca`
-* set `{{artifact_slug}}` to a slug of `{{symptom}}`
+* set `{{artifact_subject}}` to `{{symptom}}`
 * set `{{artifact_ordinal}}` to `{{pass_number}}`
 * set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
 * write these states into the artifact: `## Restore Troubleshoot Context`, `## Reproduce This Failure`, `## Root Cause`, `## Verify The Fix`, and `## Open Questions`

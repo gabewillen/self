@@ -167,7 +167,7 @@ rather than stating a clean unresolved count.
 ## Models
 
 Pick both the model and the effort level from what the runtime offers, per
-[the model contract](../self-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning).
+[the model contract](../self-common/workflows/model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning).
 Never carry a slug over from a previous session.
 
 | Difficulty | Choose | Use for |

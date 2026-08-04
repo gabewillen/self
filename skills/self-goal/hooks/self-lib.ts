@@ -4,7 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
-  unlinkSync,
+  renameSync,
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve as resolvePath } from "node:path";
@@ -1536,6 +1536,11 @@ export function signoffRejectionReason(
   return `${label} sign-off rejected: invalid or incomplete response.`;
 }
 
+/**
+ * Retire this round's sign-offs without destroying them. A sign-off is review
+ * evidence: the next round must not count it, but deleting it erases why the
+ * round failed. Each file is moved aside to a superseded name instead.
+ */
 export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
   for (const file of [
     paths.signoffReviewerRulesMdscript,
@@ -1544,9 +1549,13 @@ export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
     paths.signoffReviewerHsmMdscript,
     paths.reviewVerdictMdscript,
   ]) {
-    if (existsSync(file)) {
-      unlinkSync(file);
+    if (!existsSync(file)) continue;
+    const stem = file.replace(/\.mdscript\.md$/, "");
+    let aside = `${stem}.superseded.mdscript.md`;
+    for (let n = 2; existsSync(aside); n += 1) {
+      aside = `${stem}.superseded-${n}.mdscript.md`;
     }
+    renameSync(file, aside);
   }
 }
 
@@ -1704,7 +1713,7 @@ export function validateTripleBlindSignoffs(
       return {
         complete: false,
         reasons: [
-          "Two or more blind lane summaries are identical — rules/security/completeness reviewers must scrutinize independently. Cleared sign-offs; re-run multi-lane adversarial blind self-review.",
+          "Two or more blind lane summaries are identical — rules/security/completeness reviewers must scrutinize independently. Superseded this round's sign-offs (kept as .superseded); re-run multi-lane adversarial blind self-review.",
         ],
       };
     }

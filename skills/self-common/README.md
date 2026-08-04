@@ -2,7 +2,7 @@
 
 Shared **MDScripts**, templates, and hooks for the self pack. **Not an agent skill.**
 
-Other skills link workflows here (e.g. `../self-common/workflows/goal-mdscript.md`).  
+Other skills link workflows here (e.g. `../self-common/workflows/goal-mdscript.mdscript.md`).  
 `hooks/self-lib.ts` is the shared Stop-hook library for `self-goal` and `self-watch`.
 This pack ships **no harness hooks of its own** — its `adapters/*/hooks.json` keep empty
 event lists only so install scrubs the retired `self-learn` Stop/prompt hooks.

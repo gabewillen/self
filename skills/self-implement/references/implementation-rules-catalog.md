@@ -1,6 +1,6 @@
 # self-implement engineering-rules catalog
 
-Implementers load the **same** vendored rule files as `self-review` blind eng lanes. Selection lives in [select-implementation-rules.md](../workflows/select-implementation-rules.md). This catalog maps pack id → entrypoint → rule source → when to add.
+Implementers load the **same** vendored rule files as `self-review` blind eng lanes. Selection lives in [select-implementation-rules.mdscript.md](../workflows/select-implementation-rules.mdscript.md). This catalog maps pack id → entrypoint → rule source → when to add.
 
 Rule files are **not** duplicated. Resolve each pack's `{{rules_file}}` under `self-review/references/engineering-rules/` (see [SOURCE.md](../../self-review/references/engineering-rules/SOURCE.md)).
 

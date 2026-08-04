@@ -33,14 +33,14 @@
   * paths to applicable rules including Cursor (`.cursor/rules/**`), VS Code (`.vscode/**` instructions), and Windsurf (`.windsurf/rules/**`) when those trees exist
   * worker notes only as claims to falsify
 * do not include a preferred verdict, prior sign-off narrative, or approve language
-* delete stale `{{run_dir}}/review-verdict.mdscript.md` and any prior `signoff-reviewer-*.mdscript.md` before the fresh round
+* keep every prior round's verdict and sign-offs; this round mints its own lexicographic names and never overwrites earlier evidence
 * in **this** process, run lane selection and multi-lane spawn:
   * `mdscript-exec {{review_skill_root}}/workflows/select-review-lanes.mdscript.md#select-review-lanes`
   * `mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#triple-adversarial-blind-review`
 * always-on blind lanes: `rules`, `security`, `completeness`
 * selected add-on lanes come from in-scope paths and `references/lane-catalog.md` (`eng-*`, optional `hsm`)
 * spawn every lane in `{{blind_lanes}}` as a parallel readonly subagent at `{{lane_entrypoints}}.<lane>` from this process
-* wait for one sign-off per spawned lane under `{{run_dir}}` named `signoff-reviewer-<lane>.mdscript.md`
+* wait for one sign-off per spawned lane at the `{{signoff_path}}` this round minted for that lane
 * aggregate and persist `{{run_dir}}/review-verdict.mdscript.md` only from the parent aggregate (never invent Proven-for; never nest a self-review skill subagent to aggregate)
 * append `review_composed` to `{{run_dir}}/progress.jsonl`
 * if every spawned lane signed off, grade starts with `Proven for`, and `blocking_findings` is empty
@@ -48,7 +48,7 @@
   * return complete to the caller
 * if any lane failed or grade is `Not ready for …`
   * union findings into the next fix wave
-  * delete every lane sign-off and `review-verdict.mdscript.md`
+  * keep every lane sign-off and verdict as this round's evidence
   * append `review_rejected`
   * return incomplete to the caller
 * if grade is `Blocked for …` and the missing precondition cannot be stood up locally

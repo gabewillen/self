@@ -10,7 +10,11 @@
   * stop and report `{{blocker}}` to the composing reviewer
 * if `{{review_skill_root}}` is empty
   * set `{{review_skill_root}}` to the absolute directory of the self-review skill that owns this lane file
-* if the caller supplied `{{signoff_path}}`, write only that path and do not recompute it
+* if the caller supplied `{{signoff_path}}`
+  * confirm it ends in `.mdscript.md` and resolves inside `{{review_signoff_dir}}`
+  * if it does not, set `{{blocker}}` to the out-of-scope sign-off path and stop
+  * create it now, failing when it already exists, so this lane cannot overwrite another lane's or another round's sign-off
+  * write only that path and do not recompute it
 * otherwise set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-mdscript.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-mdscript.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-mdscript.mdscript.md`
 * this lane writes one sign-off and is exempt from the running-log contract; the composing process keeps the round's log
 * you are a **blind adversarial** reviewer for **MDScript authoring and execution-contract violations only**
@@ -59,7 +63,7 @@
 * allow `signed_off: true` only when every serious attack fails, `p_findings` is `[]`, and `remaining_gaps` is `[]`
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`
 * write only `{{signoff_path}}` as executable MDScript: the exact execution header, YAML front matter, then the states below
-* set front matter to `reviewer_id: "mdscript"`, `reviewer_lane: "mdscript"`, `goal` and `conversation_id` from the packet when present, `signed_off`, `lane_applicable`, `verifier_summary`, `evidence`, `commands_run`, `attack_attempts`, `p_findings`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
+* set front matter to `reviewer_id: "mdscript"`, `reviewer_lane: "mdscript"`, `review_round` from the packet, `goal` and `conversation_id` from the packet when present, `signed_off`, `lane_applicable`, `verifier_summary`, `evidence`, `commands_run`, `attack_attempts`, `p_findings`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
 * write a `## Signoff` state that names the lane verdict and one bullet per `p_findings` entry with its location and remediation
 * write a `## Resume From Signoff` state that continues at `/mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs` when `signed_off` is `true`
 * in that same state, when `signed_off` is `false`, name `repair_resume_command` as the next jump and require a fresh blind reviewer after repair
