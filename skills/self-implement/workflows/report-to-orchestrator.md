@@ -6,6 +6,14 @@
 
 * run [Resolve File Task Root](../../self-common/workflows/file-task-comments.md#resolve-file-task-root)
 
+* set `{{artifact_kind}}` to `implementation`
+* set `{{artifact_slug}}` to a slug of `{{objective}}`
+* set `{{artifact_ordinal}}` to this lane's report count, starting at `1`
+* run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path)
+* write into that artifact the contract, what changed, the proof path and its result, the residual risk, and the next executable step for whoever continues
+* run [Write MDScript Artifact](../../self-common/workflows/mdscript-artifact.md#write-mdscript-artifact)
+* name `{{mdscript_artifact}}` and its `/mdscript-exec` re-entry in the report
+
 * report to `{{parent_agent}}` or `{{parent_reporting_path}}` before this implementer stops for any reason
 
 * add a parent-visible file comment before reporting through chat or an external tracker

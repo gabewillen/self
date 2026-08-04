@@ -28,6 +28,7 @@ description: "Routed MDScript for troubleshooting a reported failure: reproduce 
 * set `{{red_confirmed}}` to `false`
 * set `{{root_cause}}`, `{{red_proof_path}}`, `{{repro_test_path}}`, `{{repro_command}}`, and `{{repro_test_fingerprint}}` to empty
 * set `{{green_proof_paths}}` to an empty list
+* set `{{rca_mdscript}}` to empty
 * if `{{symptom}}` is empty
   * [Ask For Symptom](#ask-for-symptom)
 * if the request names more than one failure
@@ -100,10 +101,13 @@ description: "Routed MDScript for troubleshooting a reported failure: reproduce 
 * state `{{symptom}}`, `{{root_cause}}`, `{{fix_scope}}`, `{{pass_number}}`, and `{{troubleshoot_iteration}}` in the report
 * state the redacted `{{repro_command}}`, `{{repro_test_path}}`, and `{{target_environment}}` used for both the red and the green run
 * link `{{red_proof_path}}` and every path in `{{green_proof_paths}}` as the before and after evidence
+* link `{{rca_mdscript}}` as the durable root-cause record and name its `/mdscript-exec` re-entry
 * state `{{fidelity_gap}}`, or state that the reproduction ran against the reported surface with no gap
 * claim only what the rerun proved: a green reproduction proves this failure path on `{{target_environment}}`, not release, deployment, or unrelated behavior
 * state every earlier pass that is not green as still open
-* run [Add File Comment](../self-common/workflows/file-task-comments.md#add-file-comment) with the red and green evidence
+* set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
+* run [Update MDScript Artifact](../self-common/workflows/mdscript-artifact.md#update-mdscript-artifact) with the outcome, the green proof, and `status` set to `resolved`
+* run [Add File Comment](../self-common/workflows/file-task-comments.md#add-file-comment) with the red and green evidence and a link to `{{rca_mdscript}}`
 * if `{{parent_reporting_path}}` is set
   * report this outcome to `{{parent_reporting_path}}` before stopping
 * if failures were deferred to separate passes and are still unreproduced
@@ -130,6 +134,9 @@ description: "Routed MDScript for troubleshooting a reported failure: reproduce 
 * report `Blocked: {{blocker}}` with the redacted command and its redacted output
 * state which of reproduction, root cause, fix, or rerun this lane stopped at
 * do not report the issue as fixed while `{{blocker}}` is set
+* if `{{rca_mdscript}}` is set
+  * set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
+  * run [Update MDScript Artifact](../self-common/workflows/mdscript-artifact.md#update-mdscript-artifact) with the blocker and `status` set to `blocked`
 * run [Add File Comment](../self-common/workflows/file-task-comments.md#add-file-comment) with the blocker and the redacted evidence gathered so far
 * if `{{parent_reporting_path}}` is set
   * report this blocker to `{{parent_reporting_path}}` before any prompt stops this lane

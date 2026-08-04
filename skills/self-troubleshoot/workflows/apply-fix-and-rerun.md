@@ -89,6 +89,8 @@
   * set `{{next_symptom}}` to `{{suite_result}}`
   * [Start New Troubleshoot Pass](../self-troubleshoot.mdscript.md#start-new-troubleshoot-pass)
 * record the failed attempt, its output, and the discarded hypothesis in the file task so the next iteration does not repeat it
+* set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
+* run [Update MDScript Artifact](../../self-common/workflows/mdscript-artifact.md#update-mdscript-artifact) with the discarded hypothesis appended under `## Open Questions`
 * set `{{troubleshoot_iteration}}` to `{{troubleshoot_iteration}}` plus `1`
 * if `{{troubleshoot_iteration}}` is greater than `{{max_troubleshoot_iterations}}`
   * [Reassess Failing Loop](#reassess-failing-loop)

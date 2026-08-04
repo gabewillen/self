@@ -12,8 +12,9 @@ Install once; agents route through `self`, execute workflows, learn at stop, and
 
 1. **Always enter through `self`.** Every request routes by agent position (orchestrator / implementer / review / watch / goal / …).
 2. **Skills are executable MDScript.** `SKILL.md` and linked workflows are the procedure—not prose you skim once.
-3. **Work leaves durable records.** Goals, tasks, comments, ledgers live under `~/.agents/projects/<project>/` as MDScript, outside product repos unless `--local`.
-4. **The pack stays alive.** User corrections become living skill updates. Stop hooks force a learn pass. Global edits go on a live branch + PR; project rules go in `<repo>/.agents/`.
+3. **Executing MDScript means writing MDScript.** Every workflow that moves work forward mints a durable `*.mdscript.md` under the project's artifact dir — lexicographically named, append-only, states are the next executable steps, last state carries the `/mdscript-exec` re-entry. Review rounds, RCA records, implementation reports, and coordination decisions are all workflows a later agent can run, not notes.
+4. **Work leaves durable records.** Goals, tasks, comments, ledgers live under `~/.agents/projects/<project>/` as MDScript, outside product repos unless `--local`.
+5. **The pack stays alive.** User corrections become living skill updates. Stop hooks force a learn pass. Global edits go on a live branch + PR; project rules go in `<repo>/.agents/`.
 
 If a rule is only true for this product, it does **not** belong in this pack. Prefer project scope over global.
 

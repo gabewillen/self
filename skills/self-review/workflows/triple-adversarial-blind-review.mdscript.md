@@ -15,10 +15,18 @@
   * stop and report the incomplete always-on set
 * set `{{review_signoff_dir}}` to `{{run_dir}}` when present, otherwise `{{artifact_dir}}/reviews/{{review_key}}`
 * create `{{review_signoff_dir}}` when missing
+* set `{{artifact_dir}}` to `{{review_signoff_dir}}` for this round's artifacts
 * for each lane id in `{{blind_lanes}}`
-  * set that lane's sign-off path to `{{review_signoff_dir}}/signoff-reviewer-<lane>.mdscript.md`
-* write or refresh the neutral review packet first when the caller has not already written one
-* delete every existing `signoff-reviewer-*.mdscript.md` under `{{review_signoff_dir}}` before a new round
+  * set `{{artifact_kind}}` to `<lane>-signoff`
+  * set `{{artifact_slug}}` to a slug of `{{review_key}}`
+  * set `{{artifact_ordinal}}` to `{{review_round}}`
+  * run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path)
+  * set that lane's sign-off path to `{{mdscript_artifact}}`
+* set `{{artifact_kind}}` to `review-packet`
+* set `{{artifact_ordinal}}` to `{{review_round}}`
+* run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path) when the caller has not already written this round's packet
+* write the neutral review packet as MDScript at that path with the round's scope, authorized paths, and open question
+* never delete or overwrite an earlier round's sign-off or packet; each round mints its own lexicographic name so the history stays readable in order
 * [Spawn Selected Lanes](#spawn-selected-lanes)
 
 ## Spawn Selected Lanes
@@ -72,7 +80,11 @@
   * set `{{grade}}` to `Proven for {{proof_scope}}`
   * set `{{proof_decision}}` to `Proven for {{proof_scope}} via adversarial blind multi-lane review ({{blind_lanes}})`
   * when an `hsm` or `eng-hsm` lane signed off `n/a` or `lane_applicable: false`, keep that in residual notes so the verdict never reads as state machine proof
-  * persist durable `review-verdict.mdscript.md` when `{{run_dir}}` or `{{review_signoff_dir}}` is the goal/run surface
+  * set `{{artifact_kind}}` to `review-verdict`
+  * set `{{artifact_ordinal}}` to `{{review_round}}`
+  * run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path)
+  * persist the durable verdict at `{{mdscript_artifact}}`
+  * write its final state as the exact next-step command: the repair entrypoint when blocked, or the publication entrypoint when proven
   * write it as executable MDScript: the exact execution header, YAML front matter, then the states below
   * set front matter to `reviewer_skill: "self-review"`, `multi_lane_blind: true`, `lanes` set to `{{blind_lanes}}`, `lane_selection_reasons`, `hsm_lane_verdict` when the HSM lane ran, `signoff_paths` for every lane file, `goal`, `conversation_id`, `run_id`, `proof_scope`, `grade`, `proof_decision`, `blocking_severities`, empty `blocking_findings`, `residual_findings`, `proof_supplied`, `proof_not_claimed`, `artifact_paths`, `commands_run`, `review_round`, and `reviewed_at`
   * write a `## Verdict` state naming the grade, the proof scope, every lane that signed off, and each residual finding

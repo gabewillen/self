@@ -107,6 +107,11 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 * after the required first context read for a lane, create or require a lane-local goal MDScript when the lane will be monitored, resumed, or handed across agents
 
+* for coordination that is not a monitored lane — a decision, a triage pass, a handoff, a closure — emit a durable MDScript artifact instead of a chat-only note
+  * set `{{artifact_kind}}` to `coordination`
+  * run [Mint MDScript Artifact Path](../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path)
+  * run [Write MDScript Artifact](../self-common/workflows/mdscript-artifact.md#write-mdscript-artifact) with the decision, its evidence, and the next executable step for the owner
+
 * run [Write Goal MDScript](../self-common/workflows/goal-mdscript.md#write-goal-mdscript)
 
 * resolve `{{goal_mdscript}}` from the written goal path

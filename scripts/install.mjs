@@ -872,6 +872,7 @@ const REQUIRED_SKILL_ASSETS = {
   "self-common": [
     "workflows/goal-mdscript.md",
     "workflows/return-script.md",
+    "workflows/mdscript-artifact.md",
     "workflows/model-reasoning-contract.md",
     "workflows/file-task-comments.md",
     "workflows/update-living-skills.md",

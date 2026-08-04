@@ -44,4 +44,22 @@
   * set `{{root_cause}}` to empty
   * [Analyze Root Cause](#analyze-root-cause)
 * set `{{fix_scope}}` to the narrowest change that removes `{{root_cause}}`
+* [Record Root Cause Analysis](#record-root-cause-analysis)
+
+## Record Root Cause Analysis
+
+* set `{{artifact_kind}}` to `rca`
+* set `{{artifact_slug}}` to a slug of `{{symptom}}`
+* set `{{artifact_ordinal}}` to `{{pass_number}}`
+* run [Mint MDScript Artifact Path](../../self-common/workflows/mdscript-artifact.md#mint-mdscript-artifact-path) when `{{rca_mdscript}}` is empty
+* set `{{rca_mdscript}}` to `{{mdscript_artifact}}` when `{{rca_mdscript}}` is empty
+* set `{{mdscript_artifact}}` to `{{rca_mdscript}}`
+* write these states into the artifact: `## Restore Troubleshoot Context`, `## Reproduce This Failure`, `## Root Cause`, `## Verify The Fix`, and `## Open Questions`
+* record under `## Restore Troubleshoot Context` the `{{symptom}}`, `{{failing_surface}}`, `{{suspect_scope}}`, `{{target_environment}}`, and `{{fidelity_gap}}`
+* record under `## Reproduce This Failure` the redacted `{{repro_command}}`, `{{repro_test_path}}`, `{{repro_test_fingerprint}}`, and `{{red_proof_path}}` as the executable step to re-establish red
+* record under `## Root Cause` the causal mechanism, `{{cause_owner}}`, the masking layer when one exists, and the prediction that confirmed it
+* record under `## Verify The Fix` the `{{fix_scope}}` and the rerun step that decides green
+* record under `## Open Questions` every discarded hypothesis with its evidence, so a later pass does not repeat it
+* set the artifact `re_entry` to `/mdscript-exec {{rca_mdscript}}#reproduce-this-failure`
+* run [Write MDScript Artifact](../../self-common/workflows/mdscript-artifact.md#write-mdscript-artifact)
 * [Apply Root Cause Fix](../self-troubleshoot.mdscript.md#apply-root-cause-fix)
