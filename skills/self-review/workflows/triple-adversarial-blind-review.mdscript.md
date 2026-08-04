@@ -33,7 +33,7 @@
   * do not assign `/self-review`, `self-review/SKILL.md`, or this composition workflow as the subagent's role
   * do not ask a lane subagent to spawn further subagents (many harnesses forbid nested fanout)
 * give each subagent only: neutral packet path, authorized paths, `{{proof_scope}}`, `{{goal_text}}` or `{{intended_done_state}}`, `{{conversation_id}}`, `{{review_signoff_dir}}`, `{{review_skill_root}}`, and its own MDScript entrypoint
-* for engineering-rules lanes, also pass `{{reviewer_lane}}` and `{{rules_file}}` only when the thin entrypoint does not set them itself
+* for engineering-rules lanes, also pass `{{reviewer_lane}}` and either `{{rules_pack}}` or `{{rules_file}}` only when the thin entrypoint does not set them itself
 * forbid each subagent from reading the other lanes' sign-offs or each other's prompts before writing its own file
 * set each subagent model to a task-appropriate reviewer model
 * do not reuse a subagent that already saw author fix narration for the same round

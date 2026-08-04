@@ -29,7 +29,7 @@ Mitigations shipped in this pack:
 
 - Resolve `owner_pid` to Cursor.app main / `VSCODE_PID`, not Helper hosts.
 - Longer `max_idle_seconds` on Cursor (12× interval).
-- Stop hooks drain pending spool ticks before learn (`#resume-watch`).
+- Stop hooks drain pending spool ticks for the owning session (`#resume-watch`).
 - SessionStart injects active/pending watch context so a new turn re-attaches the listener.
 
 Manual recovery when stuck:

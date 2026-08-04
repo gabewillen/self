@@ -16,7 +16,6 @@ import {
 } from "./self-lib.ts";
 import {
   claimStopEvent,
-  learnPassRequiredForStop,
   releaseStopEventClaim,
   stopEventClaimFailed,
 } from "../../self-common/hooks/self-lib.ts";
@@ -60,12 +59,6 @@ if (!state) {
 if (shouldSkipGoalHooks(input.dialect, state)) {
   finishHook();
 }
-// self-learn owns priority for a real user turn, including inactive runs that
-// would otherwise reopen themselves before the required learn pass.
-if (learnPassRequiredForStop(input)) {
-  finishHook();
-}
-
 // An inactive run is only legitimate when self-review actually closed it.
 // Without this check, marking the goal complete in its own front matter ends
 // the loop, and the review gate never runs.

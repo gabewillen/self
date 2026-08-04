@@ -137,7 +137,7 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 * read `{{watch_mdscript}}` front matter as the authoritative state
 * if front-matter `watch_active` is not `true`
   * stop and report the watch is inactive; suggest `/self-watch` to start again
-* restore `{{pr_number}}`, `{{pr_url}}`, `{{repo}}`, `{{repo_root}}`, `{{interval}}`, `{{sentinel}}`, `{{owner_pid}}`, `{{ticker_pid}}`, `{{tick_spool}}`, `{{ticker_pid_file}}`, `{{stop_file}}`, `{{skill_root}}`, `{{easy_model}}`, `{{hard_model}}`, and `{{tick_count}}` from that front matter
+* restore every variable from that front matter
 * touch `{{agent_heartbeat}}` so the ticker's idle guard knows this agent is still consuming ticks
 * run [Check Ticker Liveness](#check-ticker-liveness)
 * if `{{ticker_alive}}` is `false` and `{{owner_pid}}` is still running
@@ -156,43 +156,10 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 
 ## Watch Tick
 
-* touch `{{agent_heartbeat}}` at the start of every tick so the ticker's idle guard stays satisfied
-* increment `{{tick_count}}` and set it in `{{watch_mdscript}}` front matter with `last_head_sha`, `last_tick_at`, `last_seen_at`, and `last_processed_seq`
-* run [Refresh PR State](workflows/watch-tick.md#refresh-pr-state), which re-reads checks, review threads, and conversation comments from GitHub on every tick
-* if [Refresh PR State](workflows/watch-tick.md#refresh-pr-state) set `{{blocker}}`
-  * [Report Blocker](#report-blocker)
-* if `{{pr_state}}` is `MERGED` or `CLOSED`
-  * set `{{stop_reason}}` to PR `{{pr_state}}`
-  * run [Stop Watch Loop](../self-unwatch/SKILL.md#stop-watch-loop)
-  * report that the PR ended and the watch stopped
-  * stop
-* run [Sync Branch](workflows/sync-branch.md#sync-branch)
-* if sync sets `{{blocker}}`
-  * [Report Blocker](#report-blocker)
-* run [Repair CI](workflows/repair-ci.md#repair-ci)
-* if CI repair sets a hard `{{blocker}}` that needs human authority
-  * [Report Blocker](#report-blocker)
-* run [Triage Review Comments](workflows/triage-review-comments.md#triage-review-comments)
-* if triage left actionable items in `{{pending_fixes}}`
-  * run [Dispatch Fixes](workflows/fix-with-subagent.md#dispatch-fixes)
-* run [Evaluate Merge Ready](workflows/watch-tick.md#evaluate-merge-ready)
-* if `{{merge_ready}}` is `true`
-  * report merge-ready status for `{{pr_url}}` — keep watching until `/self-unwatch`
-* report the tick as work already done: fixes applied, commits pushed, threads resolved, checks requeued, and what remains outside the grant
-* do not end a tick with a proposal, a permission request, or work deferred to the next tick when the action was inside `{{watch_grant}}`
-* if the tick surfaced an ambiguous call
-  * resolve it through the `self` skill and act
-  * do not park it as a question
-* append one ledger line under `~/.agents/projects/{{project_name}}/lane-ledger.jsonl` with tick, head SHA, CI summary, unresolved thread count, `ticker_pid`, wake path, and that the detached ticker remains armed
-* never kill, reap, or clean up the ticker, its process group, its spool, or its pid file from a tick, a resume, a subagent, a thread-cleanup pass, or an end-of-turn tidy; only `/self-unwatch`, a terminal PR state, or owner-process death may stop it
+* run [Watch Tick](workflows/watch-tick.md#watch-tick) with `{{watch_mdscript}}` set for this watch
 * end the turn without re-arming, without `sleep`, and without a one-shot wake — the detached ticker owns the next tick
 
 ## Report Blocker
 
-* before reporting any blocker, confirm the item is truly in `{{grant_excludes}}` or genuinely undecidable; if the `self` skill and current evidence can decide it, act instead of reporting
-* set front-matter `blocker` on `{{watch_mdscript}}` to the exact human decision needed
-* write a parent-visible note naming `{{blocker}}`, `{{pr_url}}`, current head, `ticker_pid`, and `{{watch_mdscript}}`
-* keep front-matter `watch_active: true` and leave the persistent loop running unless the user runs `/self-unwatch`
-* keep repairing everything else inside the grant while the blocker waits — one blocked item never pauses the whole watch
-* ask the user only the specific decision that is blocked
+* run [Report Blocker](workflows/watch-tick.md#report-blocker) with `{{watch_mdscript}}` set for this watch
 * end the turn without killing the loop and without re-arming

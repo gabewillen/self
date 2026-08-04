@@ -61,6 +61,10 @@
 
 * prefer explicit contracts, typed events, deterministic transforms, reversible paths, and observable boundaries
 
+* when the bug or contract is general (every event schema, every JSON hop, every selection), fix the shared mechanism — never an ad-hoc branch that only makes one name, one stimulus, or one product work
+
+* do not invent conversion helpers or special-case rebuilds that paper over a broken generic path; construct or validate through the type or schema that already owns the contract
+
 * hold every MUST and MUST NOT constraint from selected packs in `{{impl_rule_packs}}` while editing; those packs load the same `self-review/references/engineering-rules/*.rules.md` files the matching `eng-*` review lanes will check later
 
 * if `{{impl_rule_packs}}` is empty and the work is code

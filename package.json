@@ -69,6 +69,10 @@
         "path": "./skills/self-implement"
       },
       {
+        "name": "self-learn",
+        "path": "./skills/self-learn"
+      },
+      {
         "name": "self-orchestrate",
         "path": "./skills/self-orchestrate"
       },
@@ -103,6 +107,10 @@
       {
         "name": "self-implement",
         "path": "./skills/self-implement"
+      },
+      {
+        "name": "self-learn",
+        "path": "./skills/self-learn"
       },
       {
         "name": "self-orchestrate",

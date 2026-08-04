@@ -30,19 +30,19 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 | `self-goal` | Goal loop until real proof + review; prefers harness `/goal` when available |
 | `self-watch` / `self-unwatch` | Interval PR babysit with a standing repair grant |
 | `self-automate` | Design MDScript-backed automations before automation tools |
+| `self-learn` | User-invoked living-skills reflection (`/self-learn`) — never automatic |
 
 **Not skills** (shared / routed MDScripts only):
 
 | Pack | Role |
 |------|------|
-| `self-common/` | Shared MDScripts, templates, learn hooks — linked by other skills |
+| `self-common/` | Shared MDScripts, templates, hook library — linked by other skills |
 | `self-voice/` | Routed MDScript for agent-voice drafts (`/self-voice`) |
 
 Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-unwatch`.
 
 MDScript-only routes (not skills):
 
-- `/self-learn` → `self-common/workflows/self-learn.mdscript.md`
 - `/self-voice` → `self-voice/self-voice.mdscript.md`
 
 Companion skills **`mdscript-exec`** and **`mdscript-write`** live in [gabewillen/mdscript](https://github.com/gabewillen/mdscript). Install pulls them beside this pack so every `<!-- mdscript: … -->` header resolves.
@@ -55,15 +55,17 @@ Companion skills **`mdscript-exec`** and **`mdscript-write`** live in [gabewille
 user turn
   → self routes role
   → role MDScript runs against real repos / trackers / devices
-  → stop hook (Cursor / Claude / Codex / Grok)
-       → /self-learn#reflect-and-learn
-            → user correction? update living skills (project or global)
-            → else stamp nothing-to-learn
-  → turn ends (or stop injects one followup, then ends)
+  → turn ends
+
+user runs /self-learn
+  → self routes the self-learn skill
+       → user correction in this conversation? update living skills (project or global)
+       → else report nothing-to-learn
 ```
 
 **Learn rules**
 
+- Learn is **user-invoked only**. No Stop hook, goal loop, or role may trigger it or hold a turn open for it.
 - Only **direct user** words create durable skill changes—not agent debugging, self-critique, or tool noise.
 - **Project** rules → `<repo>/.agents/` (never promote product facts into the global pack).
 - **Global** rules → edit this pack on the live branch; open a PR into `main`.
@@ -72,11 +74,13 @@ user turn
 
 | Harness events | Skills |
 |----------------|--------|
-| UserPromptSubmit / beforeSubmitPrompt | learn touch, goal touch |
-| Stop | learn, goal, watch (session-scoped; no self-chain on followups) |
+| UserPromptSubmit / beforeSubmitPrompt | goal touch |
+| Stop | goal, watch (session-scoped; no self-chain on followups) |
 | SessionStart | goal / watch context |
 
-Opt out: `SELF_LEARN_SKIP_HOOKS=1`, `SELF_WATCH_SKIP_HOOKS=1`.
+`self-learn` ships **no hooks** — it only runs when the user types `/self-learn`.
+
+Opt out: `SELF_GOAL_SKIP_HOOKS=1`, `SELF_WATCH_SKIP_HOOKS=1`.
 
 ---
 
@@ -180,6 +184,7 @@ skills/
   self-watch/
   self-unwatch/
   self-automate/
+  self-learn/           # user-invoked living-skills reflection (/self-learn)
   self-common/          # shared MDScripts + hooks (NOT a skill)
   self-voice/           # routed voice MDScript (NOT a skill)
 scripts/
@@ -188,7 +193,7 @@ scripts/
 AGENTS.md               # operating model for every harness
 ```
 
-Hook libraries are consistently `hooks/self-lib.ts` inside each hook-bearing skill. Entry scripts stay role-named (`goal-stop.ts`, `learn-stop.ts`, …).
+Hook libraries are consistently `hooks/self-lib.ts` inside each hook-bearing skill. Entry scripts stay role-named (`goal-stop.ts`, `watch-stop.ts`, …).
 
 ---
 

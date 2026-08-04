@@ -4,10 +4,14 @@
 
 * if `{{reviewer_lane}}` is empty
   * stop and report that the lane entrypoint must set `{{reviewer_lane}}`
-* if `{{rules_file}}` is empty
-  * stop and report that the lane entrypoint must set `{{rules_file}}`
 * if `{{review_skill_root}}` is empty
   * set `{{review_skill_root}}` to the absolute parent of this file's `workflows/blind-reviewers` directory
+* if `{{rules_pack}}` is set
+  * set `{{rules_file}}` to `{{review_skill_root}}/references/engineering-rules/{{rules_pack}}.rules.md`
+  * if `{{rules_file}}` is still relative or missing
+    * resolve it from this file's directory as `../../references/engineering-rules/{{rules_pack}}.rules.md`
+* if `{{rules_file}}` is empty
+  * stop and report that the lane entrypoint must set `{{rules_pack}}` or `{{rules_file}}`
 * set `{{reviewer_id}}` to `{{reviewer_lane}}`
 * set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md`
 * you are a **blind adversarial** reviewer for **engineering rules in `{{rules_file}}` only**
