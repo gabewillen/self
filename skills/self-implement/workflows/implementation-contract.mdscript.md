@@ -49,7 +49,8 @@
   * do not accept non-OTEL-only custom telemetry as a substitute for the same signals
   * if the planned edit omits OTEL instrumentation for those paths
     * set `{{blocker}}` to `OTEL telemetry is non-negotiable for code implementation; missing instrumentation on changed paths`
-    * repair the contract and implementation plan before editing further
+    * repair the contract and implementation plan to include OTEL on the changed control paths, failure paths, and external boundaries
+    * [Define Implementation Contract](#define-implementation-contract)
 
 * if the system already knows a fact through structured data, typed state, product contracts, telemetry, or events
   * use deterministic code or product state instead of asking a model to reconstruct it
