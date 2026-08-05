@@ -102,6 +102,11 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 * run [Define Implementation Contract](workflows/implementation-contract.mdscript.md#define-implementation-contract)
 
+* for code work that changes runtime behavior, services, APIs, workers, or external boundaries
+  * require OpenTelemetry (OTEL) telemetry as a non-negotiable implementation contract under CORE-OBS-001
+  * require cardinality analysis for every new or changed OTEL signal under CORE-OBS-002
+  * do not treat OTEL instrumentation or cardinality analysis as optional, deferred, or skippable for that code work
+
 ## Select Implementation Rules
 
 * run [Select Implementation Rules](workflows/select-implementation-rules.mdscript.md#select-implementation-rules)

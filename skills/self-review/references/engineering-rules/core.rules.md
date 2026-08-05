@@ -90,11 +90,30 @@ Performance claims MUST be measured.
 
 Optimization decisions MUST be justified with profiling, benchmarks, or production telemetry.
 
-# CORE-OBS-001 SHOULD Bounded Observability
+# CORE-OBS-001 MUST OpenTelemetry Telemetry
 
-Logging, tracing, metrics, and diagnostics SHOULD be bounded, non-blocking, and cardinality-controlled.
+Telemetry via OpenTelemetry (OTEL) is non-negotiable for code implementation.
+
+Runtime and service code MUST emit telemetry through OpenTelemetry APIs for the changed control paths, failure paths, and external boundaries.
+
+Implementers MUST NOT complete code work without OTEL instrumentation covering those paths, and MUST NOT substitute a non-OTEL-only custom telemetry stack for the same signals when an OTEL API or SDK exists for the language.
+
+Logging, tracing, metrics, and diagnostics MUST be bounded, non-blocking, and cardinality-controlled.
+
+See:
+- [CORE-OBS-002](core.rules.md#core-obs-002-must-analyze-telemetry-cardinality)
 
 Diagnostics MUST NOT change functional behavior.
+
+# CORE-OBS-002 MUST Analyze Telemetry Cardinality
+
+Cardinality MUST be analyzed for every new or changed OpenTelemetry (OTEL) signal.
+
+Implementers and reviewers MUST analyze metric dimensions, span attributes, resource attributes, log attributes, and event labels for each OTEL instrumentation change.
+
+The analysis MUST state whether each label or attribute key is bounded or unbounded, identify high-cardinality or unbounded keys (for example request ids, user ids, free text, raw URLs, or timestamps used as labels), and bound or reject unbounded dimensions before ship.
+
+Missing cardinality analysis for OTEL instrumentation is a release-blocking defect.
 
 # CORE-DOC-001 MUST NOT Keep Change History In Comments And Docs
 

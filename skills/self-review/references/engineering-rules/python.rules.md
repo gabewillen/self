@@ -284,7 +284,7 @@ Secrets MUST NOT be committed, logged, included in exceptions, printed in diagno
 # PY-LOG-001 MUST Keep Library Logging Passive
 
 See:
-- [CORE-OBS-001](core.rules.md#core-obs-001-should-bounded-observability)
+- [CORE-OBS-001](core.rules.md#core-obs-001-must-opentelemetry-telemetry)
 
 Libraries MUST create module loggers with `logging.getLogger(__name__)`.
 

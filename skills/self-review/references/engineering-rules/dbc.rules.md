@@ -237,7 +237,7 @@ Consumer-provider service pairs SHOULD use contract tests when independently dep
 # DBC-OBS-001 MUST Define Contract Failure Observability
 
 See:
-- [CORE-OBS-001](core.rules.md#core-obs-001-should-bounded-observability)
+- [CORE-OBS-001](core.rules.md#core-obs-001-must-opentelemetry-telemetry)
 
 Operationally relevant public contracts MUST define observability for contract failures.
 

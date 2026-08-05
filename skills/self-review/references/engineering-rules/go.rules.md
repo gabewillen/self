@@ -100,7 +100,7 @@ Parsers and protocol boundaries SHOULD include fuzz tests.
 # GO-OBS-001 SHOULD Use Structured Logs
 
 See:
-- [CORE-OBS-001](core.rules.md#core-obs-001-should-bounded-observability)
+- [CORE-OBS-001](core.rules.md#core-obs-001-must-opentelemetry-telemetry)
 
 Production Go services SHOULD use structured logging.
 
