@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Assert self-implement keeps non-negotiable OTEL telemetry requirements and
- * that the OTEL-omit recovery nest re-enters Define Implementation Contract.
+ * Assert self-implement and self-review keep non-negotiable OTEL telemetry
+ * requirements, require cardinality analysis, and re-enter recovery states.
  *
  * Usage:
  *   node scripts/test-otel-implement-requirement.mjs
@@ -27,8 +27,18 @@ const reviewCore = join(
 const skill = join(root, "SKILL.md");
 const contract = join(root, "workflows", "implementation-contract.mdscript.md");
 const verify = join(root, "workflows", "verify-real-proof.mdscript.md");
+const engCore = join(
+  pkgRoot,
+  "skills",
+  "self-review",
+  "workflows",
+  "blind-reviewers",
+  "eng-core.mdscript.md",
+);
 
-const missing = [skill, contract, verify, reviewCore].filter((p) => !existsSync(p));
+const missing = [skill, contract, verify, reviewCore, engCore].filter(
+  (p) => !existsSync(p),
+);
 if (missing.length) {
   console.error("[test-otel-implement-requirement] missing files:");
   for (const m of missing) console.error("  -", m);
@@ -44,9 +54,14 @@ const skillText = readFileSync(skill, "utf8");
 const contractText = readFileSync(contract, "utf8");
 const verifyText = readFileSync(verify, "utf8");
 const coreText = readFileSync(reviewCore, "utf8");
+const engCoreText = readFileSync(engCore, "utf8");
 
 if (!/OpenTelemetry \(OTEL\).*non-negotiable|non-negotiable.*OpenTelemetry \(OTEL\)/s.test(skillText)) {
   fail("SKILL.md must require OpenTelemetry (OTEL) as non-negotiable");
+}
+
+if (!/cardinality analysis/.test(skillText)) {
+  fail("self-implement SKILL.md must require OTEL cardinality analysis");
 }
 
 if (!/non-negotiable.*`\{\{contract_postconditions\}\}`|non-negotiable `\{\{contract_postconditions\}\}`/.test(contractText)
@@ -54,16 +69,44 @@ if (!/non-negotiable.*`\{\{contract_postconditions\}\}`|non-negotiable `\{\{cont
   fail("implementation-contract must mark OTEL as non-negotiable contract postcondition/invariant");
 }
 
+if (!/require cardinality analysis for every new or changed OTEL/.test(contractText)) {
+  fail("implementation-contract must require cardinality analysis for OTEL signals");
+}
+
 if (!/emit telemetry through OpenTelemetry \(OTEL\)/.test(contractText)) {
   fail("Implement Narrowly must require emit telemetry through OpenTelemetry (OTEL)");
+}
+
+if (!/analyze cardinality of every new or changed OTEL/.test(contractText)) {
+  fail("Implement Narrowly must analyze OTEL cardinality");
 }
 
 if (!/verify OpenTelemetry \(OTEL\) instrumentation/.test(verifyText)) {
   fail("verify-real-proof must verify OpenTelemetry (OTEL) instrumentation");
 }
 
+if (!/verify cardinality was analyzed for every new or changed OTEL/.test(verifyText)) {
+  fail("verify-real-proof must verify OTEL cardinality analysis");
+}
+
 if (!/# CORE-OBS-001 MUST OpenTelemetry Telemetry/.test(coreText)) {
   fail("core.rules.md must define CORE-OBS-001 MUST OpenTelemetry Telemetry");
+}
+
+if (!/# CORE-OBS-002 MUST Analyze Telemetry Cardinality/.test(coreText)) {
+  fail("core.rules.md must define CORE-OBS-002 MUST Analyze Telemetry Cardinality");
+}
+
+if (!/Cardinality MUST be analyzed/.test(coreText)) {
+  fail("CORE-OBS-002 must require cardinality analysis");
+}
+
+if (!/attack missing or incomplete cardinality analysis under CORE-OBS-002/.test(engCoreText)) {
+  fail("eng-core blind review must attack missing OTEL cardinality analysis");
+}
+
+if (!/treat unanalyzed cardinality or unbounded high-cardinality keys left unbound as a release-blocking finding/.test(engCoreText)) {
+  fail("eng-core must treat unanalyzed OTEL cardinality as release-blocking");
 }
 
 // OTEL-omit recovery: set blocker → repair → re-enter Define Implementation Contract
@@ -94,6 +137,27 @@ if (!/\[Verify Real Proof\]\(#verify-real-proof\)/.test(missWindow)) {
   fail("OTEL-missing verify branch must re-enter via [Verify Real Proof](#verify-real-proof)");
 }
 
+// cardinality recovery re-enters
+const cardIdx = contractText.indexOf("if the planned OTEL instrumentation lacks cardinality analysis");
+if (cardIdx < 0) {
+  fail("implementation-contract missing OTEL cardinality-analysis recovery condition");
+}
+const cardWindow = contractText.slice(cardIdx, cardIdx + 500);
+if (!/\[Define Implementation Contract\]\(#define-implementation-contract\)/.test(cardWindow)) {
+  fail(
+    "cardinality-analysis recovery must re-enter via [Define Implementation Contract](#define-implementation-contract)",
+  );
+}
+
+const vcardIdx = verifyText.indexOf("if cardinality analysis is missing");
+if (vcardIdx < 0) {
+  fail("verify-real-proof missing cardinality-analysis recovery condition");
+}
+const vcardWindow = verifyText.slice(vcardIdx, vcardIdx + 400);
+if (!/\[Verify Real Proof\]\(#verify-real-proof\)/.test(vcardWindow)) {
+  fail("cardinality-analysis verify recovery must re-enter via [Verify Real Proof](#verify-real-proof)");
+}
+
 console.log(
-  `[test-otel-implement-requirement] ok ${root} (OTEL non-negotiable + recovery re-entry)`,
+  `[test-otel-implement-requirement] ok ${root} (OTEL non-negotiable + cardinality analysis + recovery re-entry)`,
 );

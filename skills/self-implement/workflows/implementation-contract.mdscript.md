@@ -47,9 +47,15 @@
   * set OTEL telemetry on the changed control paths, failure paths, and external boundaries as a non-negotiable `{{contract_postconditions}}` and `{{contract_invariants}}` requirement
   * require OpenTelemetry (OTEL) APIs or SDK for those signals when the language has one
   * do not accept non-OTEL-only custom telemetry as a substitute for the same signals
+  * require cardinality analysis for every new or changed OTEL metric dimension, span attribute, resource attribute, log attribute, and event label under CORE-OBS-002
+  * record whether each OTEL label or attribute key is bounded or unbounded as part of the contract evidence
   * if the planned edit omits OTEL instrumentation for those paths
     * set `{{blocker}}` to `OTEL telemetry is non-negotiable for code implementation; missing instrumentation on changed paths`
     * repair the contract and implementation plan to include OTEL on the changed control paths, failure paths, and external boundaries
+    * [Define Implementation Contract](#define-implementation-contract)
+  * if the planned OTEL instrumentation lacks cardinality analysis
+    * set `{{blocker}}` to `OTEL cardinality analysis is required; missing analysis of label and attribute keys`
+    * repair the contract to include cardinality analysis for each new or changed OTEL signal
     * [Define Implementation Contract](#define-implementation-contract)
 
 * if the system already knows a fact through structured data, typed state, product contracts, telemetry, or events
@@ -91,7 +97,9 @@
 
 * for code work that changes runtime behavior, services, APIs, workers, or external boundaries
   * emit telemetry through OpenTelemetry (OTEL) on the changed control paths, failure paths, and external boundaries
-  * treat missing OTEL instrumentation as a release-blocking construction defect, not a deferred nicety
+  * analyze cardinality of every new or changed OTEL metric dimension, span attribute, resource attribute, log attribute, and event label before completing the edit
+  * bound or reject unbounded high-cardinality label and attribute keys before ship
+  * treat missing OTEL instrumentation or missing cardinality analysis as a release-blocking construction defect, not a deferred nicety
 
 * when the bug or contract is general (every event schema, every JSON hop, every selection), fix the shared mechanism — never an ad-hoc branch that only makes one name, one stimulus, or one product work
 
