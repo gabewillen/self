@@ -138,9 +138,11 @@
   * write it as executable MDScript: YAML front matter first, then the exact execution header, then the states below
   * set front matter to `reviewer_skill: "self-review"`, `multi_lane_blind: true`, `lanes` set to `{{blind_lanes}}`, `lane_selection_reasons`, `hsm_lane_verdict` when the HSM lane ran, `signoff_paths` for every lane file, `goal`, `conversation_id`, `run_id`, `proof_scope`, `grade`, `proof_decision`, `blocking_severities`, empty `blocking_findings`, `residual_findings`, `proof_supplied`, `proof_not_claimed`, `artifact_paths`, `commands_run`, `review_round`, and `reviewed_at`
   * write a `## Verdict` state naming the grade, the proof scope, every lane that signed off, and each residual finding
+  * if `{{skills_root}}` is empty and `{{review_skill_root}}` is set
+    * set `{{skills_root}}` to the parent of `{{review_skill_root}}`
   * write a `## Resume From Verdict` state that dispatches on `grade`:
-    * when `grade` starts with `Proven for` and `blocking_findings` is empty, continue at the caller's completion entry, defaulting to `/mdscript-exec ~/.agents/skills/self-goal/SKILL.md#complete-goal` on a goal run
-    * when `grade` starts with `Not ready for`, fix every `blocking_findings` entry and continue at the caller's repair entry, defaulting to `/mdscript-exec ~/.agents/skills/self-goal/SKILL.md#pursue-goal` on a goal run
-    * when `grade` starts with `Blocked for`, continue at the caller's stop entry, defaulting to `/mdscript-exec ~/.agents/skills/self-goal/SKILL.md#manual-stop` on a goal run
+    * when `grade` starts with `Proven for` and `blocking_findings` is empty, continue at the caller's completion entry, defaulting to `/mdscript-exec {{skills_root}}/self-goal/SKILL.md#complete-goal` on a goal run
+    * when `grade` starts with `Not ready for`, fix every `blocking_findings` entry and continue at the caller's repair entry, defaulting to `/mdscript-exec {{skills_root}}/self-goal/SKILL.md#pursue-goal` on a goal run
+    * when `grade` starts with `Blocked for`, continue at the caller's stop entry, defaulting to `/mdscript-exec {{skills_root}}/self-goal/SKILL.md#manual-stop` on a goal run
   * run [Restore Artifact Dir](#restore-artifact-dir)
   * return complete to the caller

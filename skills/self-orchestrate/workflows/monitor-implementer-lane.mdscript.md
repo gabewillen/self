@@ -15,7 +15,7 @@
 * if the implementer created or owns an MR/PR
   * verify the implementer created or maintains a monitoring goal MDScript until merge or explicit close
   * if the implementer monitor goal is missing
-    * send the implementer `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`
+    * send the implementer `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`
     * stop after directing the implementer to create the monitor goal
 * verify implementer reports include MR/PR link, referenced tickets, agent identities, current head, check state, default-branch merge blocker state, `{{claim_scope}}`, contract fields, proof path, local resource path, proof supplied, proof not claimed, next proof, and scoped status
 * if required report fields are missing
@@ -50,7 +50,7 @@
 * when this orchestrator owns management state for active worker or child-orchestrator lanes
   * write or refresh the orchestrator goal MDScript while any lane is active, blocked, waiting, or carrying an open handoff
   * resolve `{{goal_mdscript}}` from the refreshed orchestrator goal path
-* if an implementer message includes a `/mdscript-exec {{repo_root}}/skills/self-orchestrate/` jump
+* if an implementer message includes a `/mdscript-exec {{skills_root}}/self-orchestrate/` jump
   * run [Handle Worker Exec Jump](handle-worker-exec-jump.mdscript.md#handle-worker-exec-jump)
 * if an implementer gives this orchestrator an MR/PR link
   * run [Create MR Comment Watcher](mr-comment-watcher.mdscript.md#create-mr-comment-watcher)
@@ -76,14 +76,14 @@
   * verify the worker reported the repo-local stack, bootstrap, preflight, dev server, fixture target, compose profile, or safe local resource path attempted or ruled out
   * if the local resource path report is missing
     * set `{{blocker}}` to `missing local resource path on infrastructure block`
-    * send the worker back to `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`
+    * send the worker back to `/mdscript-exec {{skills_root}}/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`
     * stop after redirecting the worker
 * if an available local resource path was skipped
-  * send the worker back to `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`
+  * send the worker back to `/mdscript-exec {{skills_root}}/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`
   * stop after redirecting the worker
 * confirm the implementer created or requested a blocker watcher goal
 * if the blocker needs monitored goal state and no blocker watcher exists
-  * send the implementer `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
+  * send the implementer `/mdscript-exec {{skills_root}}/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
   * stop after directing the blocker watcher
 * if authority or judgment is needed from the user or a repository owner
   * run [Prepare Prompt Return Script](../../self-common/workflows/return-script.mdscript.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this workflow and `{{return_resume_heading}}` set to `monitor-implementer-lane`
@@ -93,6 +93,6 @@
 
 ## Steer Implementer Lane
 
-* include an exact implementer continuation jump such as `/mdscript-exec {{repo_root}}/skills/self-implement/SKILL.md#inspect-current-state`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/recursive-blind-review-loop.mdscript.md#use-multi-lane-review`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
+* include an exact implementer continuation jump such as `/mdscript-exec {{skills_root}}/self-implement/SKILL.md#inspect-current-state`, `/mdscript-exec {{skills_root}}/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`, `/mdscript-exec {{skills_root}}/self-implement/workflows/recursive-blind-review-loop.mdscript.md#use-multi-lane-review`, `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`, or `/mdscript-exec {{skills_root}}/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
 * update the lane ledger with the steering action and next owner
 * run [Report Status](../../self-common/workflows/report-boundary.mdscript.md#report-status)

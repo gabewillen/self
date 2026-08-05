@@ -50,13 +50,13 @@
 ## Check Event Executions
 
 * inspect whether cross-thread `DISPOSITION_READY`, `TARGET_DRIFT`, `HANDOFF_UNACKED`, and `STALE_MR` events are reported as exact MDScript executions in `{{event_exec}}`
-* if `DISPOSITION_READY` is reported as a bare label or treated as watcher context instead of executing `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
+* if `DISPOSITION_READY` is reported as a bare label or treated as watcher context instead of executing `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
   * add a coordinator-control finding with consequence and evidence pointer
-* if `TARGET_DRIFT` is reported as a bare label or does not execute `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
+* if `TARGET_DRIFT` is reported as a bare label or does not execute `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
   * add a coordinator-control finding with consequence and evidence pointer
-* if `HANDOFF_UNACKED` is reported as a bare label or remains silent after one watcher cycle instead of executing `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
+* if `HANDOFF_UNACKED` is reported as a bare label or remains silent after one watcher cycle instead of executing `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
   * add a coordinator-control finding with consequence and evidence pointer
-* if `STALE_MR` is reported as a bare label or repeats old-head proof after target-consume instructions without executing `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
+* if `STALE_MR` is reported as a bare label or repeats old-head proof after target-consume instructions without executing `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
   * add a coordinator-control finding with consequence and evidence pointer
 * if the coordinator cannot name every active lane's owner, parent agent, state, blocker, next proof, next check, and reporting path from durable state
   * set `{{grade}}` to `Not ready`

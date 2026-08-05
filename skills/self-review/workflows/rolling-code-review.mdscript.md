@@ -11,9 +11,14 @@
 * if `{{review_key}}` is empty
   * set `{{review_key}}` to the normalized source repository basename
 
-* create `{{artifact_dir}}/review-baselines` when it does not exist
-
-* set `{{review_baseline_file}}` to `{{artifact_dir}}/review-baselines/{{review_key}}.mdscript.md`
+* if `{{project_home}}` is empty
+  * run [Resolve Agent Home](../../self-common/workflows/agent-home.mdscript.md#resolve-agent-home) when `{{repo_root}}` or `{{source_repo_root}}` is set
+* if `{{review_baseline_dir}}` is empty and `{{project_home}}` is set
+  * set `{{review_baseline_dir}}` to `{{project_home}}/artifacts/review-baselines`
+* if `{{review_baseline_dir}}` is empty and `{{artifact_dir}}` is set
+  * set `{{review_baseline_dir}}` to `{{artifact_dir}}/review-baselines`
+* create `{{review_baseline_dir}}` when it does not exist
+* set `{{review_baseline_file}}` to `{{review_baseline_dir}}/{{review_key}}.mdscript.md`
 
 * resolve `{{source_worktree_root}}` from the canonical Git top-level path for `{{source_repo_root}}`
 
@@ -23,7 +28,11 @@
 
 * set `{{source_repository_identity}}` to `{{source_worktree_root}}|{{source_git_directory}}|{{source_git_common_directory}}`
 
-* run `{{repo_root}}/skills/self-review/scripts/review-snapshot` from `{{source_repo_root}}`
+* if `{{review_skill_root}}` is empty and `{{skills_root}}` is set
+  * set `{{review_skill_root}}` to `{{skills_root}}/self-review`
+* if `{{review_skill_root}}` is empty
+  * set `{{review_skill_root}}` to this skill's absolute directory
+* run `{{review_skill_root}}/scripts/review-snapshot` from `{{source_repo_root}}`
   * if it fails, set `{{blocker}}` to the snapshot command and [Snapshot Failed](#snapshot-failed)
 
 * set `{{current_review_tree}}` to the returned tree SHA
@@ -127,7 +136,7 @@
 
 * record `{{project_name}}`, `{{task_id}}`, `{{proof_scope}}`, `{{source_worktree_root}}` as `reviewed_source_repo_root`, `{{source_repository_identity}}` as `reviewed_repository_identity`, `{{review_key}}`, `{{review_round}}`, `{{review_mode}}`, `{{blocking_severities}}`, `{{residual_findings}}`, `{{merge_target}}`, `{{merge_base}}`, `{{current_review_tree}}` as `reviewed_tree`, reviewer identity, `{{required_model}}`, `{{required_reasoning}}`, `{{model_selection_basis}}`, scoped proof decision, and completion time
 
-* under `## Resume`, point to `/mdscript-exec {{repo_root}}/skills/self-review/workflows/rolling-code-review.mdscript.md#resolve-review-baseline`
+* under `## Resume`, point to `/mdscript-exec {{review_skill_root}}/workflows/rolling-code-review.mdscript.md#resolve-review-baseline`
 
 * if the baseline write fails
   * set `{{blocker}}` to the failed baseline file and write operation

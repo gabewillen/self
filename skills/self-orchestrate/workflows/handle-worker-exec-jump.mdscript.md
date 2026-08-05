@@ -23,7 +23,7 @@
 * if `{{event_type}}` is set but `{{event_exec}}` is missing
   * run [Handle Thread Event Contracts](../../self-common/workflows/thread-event-contracts.mdscript.md#handle-thread-event-contracts)
 * if a worker reports blocked proof for missing infrastructure but does not report a local resource path attempted or ruled out
-  * redirect the worker to `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`
+  * redirect the worker to `/mdscript-exec {{skills_root}}/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`
   * do not create a blocker watcher yet
   * stop after the redirect
 * [Route Known Jump Targets](#route-known-jump-targets)
@@ -40,10 +40,10 @@
   * run [Monitor Implementer Lane](monitor-implementer-lane.mdscript.md#monitor-implementer-lane)
   * stop after the monitor route returns
 * if the implementer is blocked and needs a blocking issue watched
-  * send the implementer `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher` with the blocking issue, unblock condition, and reporting path
+  * send the implementer `/mdscript-exec {{skills_root}}/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher` with the blocking issue, unblock condition, and reporting path
   * stop after directing the blocker watcher
 * when directing work back to the implementer
-  * include an exact jump such as `/mdscript-exec {{repo_root}}/skills/self-implement/SKILL.md#inspect-current-state` or a workflow-file jump
+  * include an exact jump such as `/mdscript-exec {{skills_root}}/self-implement/SKILL.md#inspect-current-state` or a workflow-file jump
 * run [Report Status](../../self-common/workflows/report-boundary.mdscript.md#report-status)
 
 ## Stop On Unsafe Jump

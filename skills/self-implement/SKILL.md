@@ -12,7 +12,9 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
   * set `{{blocker}}` to `implement skill requires a parent orchestrator reporting path`
   * stop and report that a parentless agent must use orchestrate, not implement
 
-* read this skill and `{{repo_root}}/skills/self-review/SKILL.md` before implementation
+* if `{{skills_root}}` is empty
+  * set `{{skills_root}}` to this skill's parent skills directory when present
+* read this skill and `{{skills_root}}/self-review/SKILL.md` before implementation when that path exists
 
 * run [Select Configured Model And Reasoning](../self-common/workflows/model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning) with `{{self_role}}` set to `implementer`
 

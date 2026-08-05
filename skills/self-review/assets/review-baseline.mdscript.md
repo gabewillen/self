@@ -52,7 +52,7 @@ completed_at: "{{completed_at}}"
 
 * set `{{merge_target}}` to the recorded `reviewed_merge_target`
 
-* execute `/mdscript-exec {{repo_root}}/skills/self-review/workflows/rolling-code-review.mdscript.md#resolve-review-baseline`
+* execute `/mdscript-exec {{review_skill_root}}/workflows/rolling-code-review.mdscript.md#resolve-review-baseline`
 
 ## Recovery
 

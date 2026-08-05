@@ -32,12 +32,13 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 * if `{{repo_root}}` is empty after asking
   * set `{{blocker}}` to missing local checkout for `{{repo}}`
   * [Report Blocker](#report-blocker)
-* set `{{skill_root}}` to this skill's absolute directory (`~/.agents/skills/self-watch` unless overridden)
+* set `{{skill_root}}` to this skill's absolute directory
+* set `{{skills_root}}` to the parent of `{{skill_root}}`
 * set `{{project_name}}` from `{{repo}}`
 * run [Resolve Agent Home](../self-common/workflows/agent-home.mdscript.md#resolve-agent-home)
 * set `{{watch_mdscript}}` to `{{project_home}}/goals/self-watch-{{pr_number}}.mdscript.md`
-* create `~/.agents/projects/{{project_name}}/goals` when missing
-* if a legacy `~/.agents/projects/{{project_name}}/self-watch/pr-{{pr_number}}.json` exists and `{{watch_mdscript}}` does not
+* create `{{project_home}}/goals` when missing
+* if a legacy `{{project_home}}/self-watch/pr-{{pr_number}}.json` exists and `{{watch_mdscript}}` does not
   * read that legacy state once to recover `loop_pid`, `sentinel`, and contract fields
 * write `{{watch_mdscript}}` from [watch.mdscript.md](assets/watch.mdscript.md)
 * set `{{owner_conversation_id}}` to this chat's harness session id when known (Cursor `conversation_id`, Claude/Codex `session_id`, Grok `sessionId` / `GROK_SESSION_ID`); leave empty only when the harness gives no session id
@@ -68,7 +69,7 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 
 * convert `{{interval}}` to `{{interval_seconds}}`
 * set `{{sentinel}}` to `AGENT_LOOP_TICK_self_watch_{{pr_number}}`
-* set `{{watch_dir}}` to `~/.agents/projects/{{project_name}}/self-watch`
+* set `{{watch_dir}}` to `{{project_home}}/self-watch`
 * set `{{tick_spool}}` to `{{watch_dir}}/tick-{{pr_number}}.jsonl`
 * set `{{ticker_pid_file}}` to `{{watch_dir}}/tick-{{pr_number}}.pid`
 * set `{{ticker_heartbeat}}` to `{{watch_dir}}/tick-{{pr_number}}.ticker-hb`
@@ -111,7 +112,10 @@ description: "ALWAYS use this skill when the user runs /self-watch or wants inte
 * a finding inside `{{watch_grant}}` is work to perform this tick, never a proposal to raise
 * only an item in `{{grant_excludes}}`, a genuine product-judgment question, or a reviewer disagreement may become a question for the user
 * when in doubt about scope, authority, or the right call
-  * run `/mdscript-exec {{repo_root}}/skills/self/SKILL.md` when present, otherwise `/mdscript-exec ~/.agents/skills/self/SKILL.md`
+  * if `{{skills_root}}` is empty
+    * set `{{skills_root}}` to `{{repo_root}}/skills` when that directory exists
+    * otherwise set `{{skills_root}}` to the parent of `{{skill_root}}` when `{{skill_root}}` is set
+  * run `/mdscript-exec {{skills_root}}/self/SKILL.md`
   * decide what the user would do from current evidence
 * asking the user is the last resort after the `self` skill, the repo, and the PR evidence still leave the call genuinely undecidable
 

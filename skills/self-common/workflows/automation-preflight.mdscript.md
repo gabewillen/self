@@ -24,13 +24,13 @@
 ## Load Automate Skill
 
 * if `self-automate` is present in the active skill list
-  * run `/mdscript-exec {{repo_root}}/skills/self-automate/SKILL.md`
-  * run `/mdscript-exec {{repo_root}}/skills/self-automate/SKILL.md#load-automation-context`
+  * run `/mdscript-exec {{skills_root}}/self-automate/SKILL.md`
+  * run `/mdscript-exec {{skills_root}}/self-automate/SKILL.md#load-automation-context`
   * return to [Require Automate Skill](#require-automate-skill)
-* load `self-automate` by absolute path from `{{repo_root}}/skills/self-automate/SKILL.md`
+* load `self-automate` by absolute path from `{{skills_root}}/self-automate/SKILL.md`
   * if the skill cannot be loaded, [Block Automation Preflight](#block-automation-preflight)
-* run `/mdscript-exec {{repo_root}}/skills/self-automate/SKILL.md`
-* run `/mdscript-exec {{repo_root}}/skills/self-automate/SKILL.md#load-automation-context`
+* run `/mdscript-exec {{skills_root}}/self-automate/SKILL.md`
+* run `/mdscript-exec {{skills_root}}/self-automate/SKILL.md#load-automation-context`
 * return to [Require Automate Skill](#require-automate-skill)
 
 ## Block Automation Preflight

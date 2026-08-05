@@ -6,7 +6,8 @@
 * set `{{implement_skill_root}}` to this skill's absolute directory when empty
 * set `{{skills_root}}` to the parent of `{{implement_skill_root}}` when empty
 * set `{{review_skill_root}}` to `{{skills_root}}/self-review` when that directory exists
-* otherwise set `{{review_skill_root}}` to `~/.agents/skills/self-review` when that directory exists
+* if `{{review_skill_root}}` is empty
+  * set `{{review_skill_root}}` to `{{implement_skill_root}}/../self-review` when that directory exists
 * if `{{review_skill_root}}` is still empty or missing
   * set `{{blocker}}` to `self-review skill root missing; cannot load engineering-rules packs`
   * stop and report that self-implement requires self-review's vendored engineering-rules

@@ -7,7 +7,7 @@
 
 ## Verify Disposition Preconditions
 
-* verify the input event execution is `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
+* verify the input event execution is `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
 * if the disposition-ready event is absent or incomplete
   * record why root is explicitly denying disposition
   * stop after recording the denial

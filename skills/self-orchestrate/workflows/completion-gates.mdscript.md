@@ -45,7 +45,7 @@
 * if any disposition precondition fails
   * set `{{blocker}}` to the failed disposition precondition
   * [Reject Completion Gate](#reject-completion-gate)
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
 * run [Handle Merge Or Close Decision](merge-or-close-decision.mdscript.md#handle-merge-or-close-decision)
 * if disposition is denied by root
   * record the root's explicit denial with the exact authority, policy, or proof reason

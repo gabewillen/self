@@ -45,7 +45,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * preserve broader proof gaps as `{{proof_not_claimed}}` or `{{remaining_blockers}}`
 
 * if broader judgment, delegation, permission, or coordination is needed
-  * run `/mdscript-exec {{repo_root}}/skills/self/SKILL.md`
+  * run `/mdscript-exec {{skills_root}}/self/SKILL.md`
 
 * if the current request is a durable **user** correction about how reviewers must judge, falsify, or grade
   * set `{{correction_source}}` to a quote of the user's words only
@@ -184,7 +184,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
     * ask the smallest useful question, such as whether the current proof, contract, ownership, failure path, or user-visible behavior really satisfies the claim
     * keep the question honest: do not soften a blocker, hide the scoped grade, omit the remediation entrypoint, or imply the user personally asked the question unless they did
   * when a finding maps to implementer work
-    * tell the implementer the exact remediation entrypoint, such as `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/implementation-contract.mdscript.md#define-implementation-contract`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/implementation-contract.mdscript.md#implement-narrowly`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
+    * tell the implementer the exact remediation entrypoint, such as `/mdscript-exec {{skills_root}}/self-implement/workflows/implementation-contract.mdscript.md#define-implementation-contract`, `/mdscript-exec {{skills_root}}/self-implement/workflows/implementation-contract.mdscript.md#implement-narrowly`, `/mdscript-exec {{skills_root}}/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`, `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`, or `/mdscript-exec {{skills_root}}/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
   * include open questions for missing evidence, authority, or source truth
   * before asking the user, a repository owner, or another authority surface for input instead of only recording reviewer findings, run [Prepare Prompt Return Script](../self-common/workflows/return-script.mdscript.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-verdict`
   * report `Decision: {{proof_decision}}` and `Verdict: {{grade}}` with `{{proof_scope}}`, `{{blocking_severities}}`, `{{blocking_findings}}`, `{{residual_findings}}`, `{{contract_preconditions}}`, `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{proof_supplied}}`, `{{proof_not_claimed}}`, and the narrow reason
@@ -200,7 +200,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * if broader final proof remains outside the claim
     * say `This does not claim {{proof_not_claimed}}.`
   * if the implementer should continue at a specific proof-decision step
-    * include `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/prepare-mr-or-pr.mdscript.md#prepare-mr-or-pr`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator`
+    * include `/mdscript-exec {{skills_root}}/self-implement/workflows/prepare-mr-or-pr.mdscript.md#prepare-mr-or-pr`, `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`, or `/mdscript-exec {{skills_root}}/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator`
   * name remaining residual risk or evidence gaps
   * set `{{stop_reason}}` to `review-complete`
   * report the stop reason, final scoped grade, `proof_not_claimed`, and exact `cleanup_status=...` or cleanup blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before the reviewer is closed

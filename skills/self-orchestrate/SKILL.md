@@ -12,6 +12,8 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
   * stop and report that subagents use implement (or one blind-lane MDScript), not orchestrate
 * only child orchestrators report to a parent; a parentless main agent is the root orchestrator
 
+* if `{{skills_root}}` is empty
+  * set `{{skills_root}}` to this skill's parent skills directory when present
 * run [Load Operating Context](../self-common/workflows/load-operating-context.mdscript.md#load-operating-context)
 
 * if the current user message is a durable **user** correction about how agents must write, edit, review, route, or coordinate

@@ -56,7 +56,7 @@ owner_dialect: "{{owner_dialect}}"
 * act on `{{watch_grant}}` without asking again: a finding inside the grant is work for this tick, not a proposal; only `{{grant_excludes}}` reaches the user
 
 * when a call is unclear
-  * run `/mdscript-exec ~/.agents/skills/self/SKILL.md`
+  * run `/mdscript-exec {{skill_root}}/../self/SKILL.md`
   * decide from current evidence without pausing the watch to ask
 
 * stop only on `/self-unwatch` or PR `MERGED` / `CLOSED`; merge-ready is reported without stopping
@@ -117,7 +117,7 @@ owner_dialect: "{{owner_dialect}}"
 
 ## Stop Watch
 
-* run `mdscript-exec ~/.agents/skills/self-unwatch/SKILL.md#stop-watch-loop`
+* run `mdscript-exec {{skill_root}}/../self-unwatch/SKILL.md#stop-watch-loop`
 
 * set front-matter `watch_active: false`, `status` to the terminal state, `stopped_at`, and `stop_reason`
 

@@ -17,7 +17,11 @@
 * if a failure is a test, fixture, snapshot, or aggregator config the PR diff must update
   * treat it as in-scope fix work, not as a workflow-definition edit
 * if scope is unclear for a failure
-  * run `/mdscript-exec ~/.agents/skills/self/SKILL.md`
+  * if `{{skills_root}}` is empty and `{{skill_root}}` is set
+    * set `{{skills_root}}` to the parent of `{{skill_root}}`
+  * if `{{skills_root}}` is empty
+    * set `{{skills_root}}` to `{{repo_root}}/skills` when that directory exists
+  * run `/mdscript-exec {{skills_root}}/self/SKILL.md`
   * decide from the diff and the failure evidence
 * if a failure is clearly unrelated to this PR and the branch is still behind
   * run [Sync Branch](sync-branch.mdscript.md#sync-branch) once more

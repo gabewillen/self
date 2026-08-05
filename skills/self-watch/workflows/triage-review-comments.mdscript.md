@@ -27,7 +27,12 @@
     * reply on the thread with a short evidence-based explanation
     * do not mark resolved unless the platform requires an explicit resolve after a documented decline and the user granted that behavior
     * continue to the next thread
-* if a thread's classification is unclear, run `/mdscript-exec ~/.agents/skills/self/SKILL.md` and decide from current code and PR evidence rather than escalating to the user
+* if a thread's classification is unclear
+  * if `{{skills_root}}` is empty and `{{skill_root}}` is set
+    * set `{{skills_root}}` to the parent of `{{skill_root}}`
+  * if `{{skills_root}}` is empty
+    * set `{{skills_root}}` to `{{repo_root}}/skills` when that directory exists
+  * run `/mdscript-exec {{skills_root}}/self/SKILL.md` and decide from current code and PR evidence rather than escalating to the user
 * for `question` threads that need genuine human product judgment
   * reply with the blocking question
   * leave unresolved

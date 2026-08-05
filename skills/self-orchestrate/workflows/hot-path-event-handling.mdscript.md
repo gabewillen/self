@@ -32,7 +32,7 @@
 
 ## Handle Target Drift
 
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
 * execute `{{event_exec}}`
 * interrupt old-target proof
 * send the owner to refresh, rebase, or merge the target within one goal cycle, or report the exact blocker
@@ -46,7 +46,7 @@
 
 ## Handle Stale Mr
 
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
 * execute `{{event_exec}}`
 * stop accepting repeated old-head proof
 * require the owner to report blocker path, dirty state, conflict, failed command, missing authority, or thread failure
@@ -58,7 +58,7 @@
 
 ## Handle Handoff Unacked
 
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
 * execute `{{event_exec}}`
 * escalate to parent/root
 * reissue the handoff with a deadline, reassign owner, or record an explicit wait reason
@@ -72,7 +72,7 @@
 
 ## Handle Disposition Ready
 
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
 * verify current target, exact-head CI green, one fresh current-target `Proven` review, and no unresolved discussions
 * if any disposition precondition fails
   * set `{{blocker}}` to the failed disposition precondition

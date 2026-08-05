@@ -43,7 +43,7 @@ For MDScript, instruction, documentation, plan, task, comment, publication, or o
 
 ## Baseline persistence
 
-Persist review baselines only under `~/.agents/projects/{{project_name}}/artifacts/review-baselines/`.
+Persist review baselines only under `{{project_home}}/artifacts/review-baselines/` (agent-home project root, never the product worktree).
 
 Do not put review control state in the source repository.
 

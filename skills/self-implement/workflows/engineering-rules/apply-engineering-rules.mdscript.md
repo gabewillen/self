@@ -10,8 +10,8 @@
   * set `{{skills_root}}` to the parent of `{{implement_skill_root}}`
 * if `{{review_skill_root}}` is empty and `{{skills_root}}/self-review` exists
   * set `{{review_skill_root}}` to `{{skills_root}}/self-review`
-* if `{{review_skill_root}}` is empty and `~/.agents/skills/self-review` exists
-  * set `{{review_skill_root}}` to `~/.agents/skills/self-review`
+* if `{{review_skill_root}}` is empty
+  * set `{{review_skill_root}}` to `{{implement_skill_root}}/../self-review` when that directory exists
 * set `{{rules_file}}` to `{{review_skill_root}}/references/engineering-rules/{{rules_basename}}` when `{{rules_file}}` is empty and `{{rules_basename}}` is set and `{{review_skill_root}}` is set
 * if `{{rules_file}}` is empty or missing and `{{rules_basename}}` is set
   * resolve `{{rules_file}}` from this file's directory as `../../../self-review/references/engineering-rules/{{rules_basename}}`

@@ -26,8 +26,7 @@
 * set `{{hsm_pack}}` to the self-review internal HSM pack
   * prefer `{{review_skill_root}}/hsm/hsm.mdscript.md` when `{{review_skill_root}}` is set
   * otherwise the `hsm/hsm.mdscript.md` sibling two directories above this lane MDScript (`../../hsm/hsm.mdscript.md`)
-  * otherwise `~/.agents/skills/self-review/hsm/hsm.mdscript.md`
-  * otherwise `{{repo_root}}/skills/self-review/hsm/hsm.mdscript.md` when present
+  * otherwise `{{skills_root}}/self-review/hsm/hsm.mdscript.md` when that path exists
 * if `{{hsm_pack}}` is missing
   * keep `signed_off: false`
   * set `remaining_gaps` to the exact missing `self-review/hsm` pack path
