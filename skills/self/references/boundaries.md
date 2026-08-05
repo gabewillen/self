@@ -23,7 +23,7 @@ executable flow lives in the skills themselves.
 
 * preserve the signal-scope boundary: watcher reactions, Slack replies, CI scores, review labels, dashboard fields, metrics, telemetry labels, eval samples, and automation outputs must state the exact signal they carry, the terminal owner record or numerator and denominator they count, the unit of observation or behavior path they can actually represent, what priority or condition blocks, and which owner surface can turn that signal into approval, mutation, merge, closure, or live-proof authority
 
-* preserve the OTEL-telemetry boundary: code implementation that changes runtime behavior, services, APIs, workers, or external boundaries must emit telemetry through OpenTelemetry (OTEL); the requirement is non-negotiable and must not be skipped, deferred, or replaced by a non-OTEL-only custom stack when an OTEL API or SDK exists for the language
+* preserve the OTEL-telemetry boundary: code implementation that changes runtime behavior, services, APIs, workers, or external boundaries must emit telemetry through OpenTelemetry (OTEL); the requirement is non-negotiable and must not be skipped, deferred, or replaced by a non-OTEL custom telemetry stack when an OTEL API or SDK exists for the language
 
 * preserve the OTEL-cardinality boundary: implementers and reviewers must analyze cardinality for every new or changed OTEL metric dimension, span attribute, resource attribute, log attribute, and event label; missing cardinality analysis or unbound high-cardinality keys is release-blocking
 

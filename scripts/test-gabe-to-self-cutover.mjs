@@ -67,21 +67,18 @@ function plant() {
   hooks.hooks.stop = Array.isArray(hooks.hooks.stop) ? hooks.hooks.stop : [];
   hooks.hooks.stop.push({
     id: "gabe-learn-stop",
-    command:
-      "/Users/gabrielwillen/.bun/bin/bun /tmp/skills/gabe-common/hooks/learn-stop.ts",
+    command: "bun /tmp/skills/gabe-common/hooks/learn-stop.ts",
   });
   // Previously installed self-era learn Stop hook: learn is now the user-invoked
   // /self-learn skill, so upgrading must remove this too.
   hooks.hooks.stop.push({
     id: "self-agents:self-common:self-learn-stop",
-    command:
-      "/Users/gabrielwillen/.bun/bin/bun /tmp/skills/self-common/hooks/learn-stop.ts",
+    command: "bun /tmp/skills/self-common/hooks/learn-stop.ts",
   });
   hooks.hooks.beforeSubmitPrompt = [
     {
       id: "self-agents:self-common:self-learn-session-touch",
-      command:
-        "/Users/gabrielwillen/.bun/bin/bun /tmp/skills/self-common/hooks/learn-session-touch.ts",
+      command: "bun /tmp/skills/self-common/hooks/learn-session-touch.ts",
     },
   ];
   hooks.metadata = hooks.metadata || {};

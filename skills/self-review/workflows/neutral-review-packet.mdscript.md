@@ -22,7 +22,11 @@
 * set `{{neutral_sources}}` to the current task file, relevant unresolved comments, and lane ledger entries
 * exclude previous reviewer verdicts from the blind-review frame unless reconciling visible disagreement
 * exclude the author's preferred verdict, intended fix narrative, curated explanation, and other reviewers' findings from the initial frame unless reconciling visible disagreement
-* set `{{review_baseline_dir}}` to `~/.agents/projects/{{project_name}}/artifacts/review-baselines/`
+* if `{{project_home}}` is empty and `{{agents_home}}` is set
+  * set `{{project_home}}` to `{{agents_home}}/projects/{{project_name}}`
+* if `{{project_home}}` is empty
+  * set `{{project_home}}` to `$AGENTS_HOME/projects/{{project_name}}` when `$AGENTS_HOME` is set, otherwise leave empty until Resolve Agent Home runs
+* set `{{review_baseline_dir}}` to `{{project_home}}/artifacts/review-baselines/` when `{{project_home}}` is set
 * [Set Review Mode](#set-review-mode)
 
 ## Set Review Mode
@@ -84,7 +88,9 @@
 
 ## Run Inline HSM Lens
 
-* run `/mdscript-exec {{review_skill_root}}/hsm/hsm.mdscript.md#triage` with `{{review_scope}}` from the in-scope paths when `{{review_skill_root}}` is set, otherwise `/mdscript-exec ~/.agents/skills/self-review/hsm/hsm.mdscript.md#triage`
+* if `{{review_skill_root}}` is empty
+  * set `{{review_skill_root}}` to this skill's absolute directory
+* run `/mdscript-exec {{review_skill_root}}/hsm/hsm.mdscript.md#triage` with `{{review_scope}}` from the in-scope paths
 * fold the HSM `stands` findings into this round's findings with their rule ids and severities
 * mark the inline HSM pass as lead-reviewer lens only, not the blind HSM lane
 * [Route Terminal Or Intermediate](#route-terminal-or-intermediate)

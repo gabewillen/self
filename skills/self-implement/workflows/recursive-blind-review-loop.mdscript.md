@@ -53,7 +53,14 @@
 * if `{{review_cycle}}` is `single-non-code`
   * set `{{blocking_severities}}` to `all findings`
 * set `{{review_subagent_ids}}` to empty
-* set `{{review_skill_root}}` to `{{repo_root}}/skills/self-review` when that path exists, otherwise `~/.agents/skills/self-review`
+* if `{{skills_root}}` is empty and `{{repo_root}}/skills` exists
+  * set `{{skills_root}}` to `{{repo_root}}/skills`
+* if `{{skills_root}}` is empty and `{{implement_skill_root}}` is set
+  * set `{{skills_root}}` to the parent of `{{implement_skill_root}}`
+* set `{{review_skill_root}}` to `{{skills_root}}/self-review` when that path exists
+* if `{{review_skill_root}}` is empty
+  * set `{{blocker}}` to `self-review skill root missing; cannot compose multi-lane review`
+  * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 * run [Select Configured Model And Reasoning](../../self-common/workflows/model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning) with `{{self_role}}` set to `reviewer` before spawning lane reviewers
 * confirm every lane reviewer from earlier rounds is closed, deleted, or archived
 * if any prior lane reviewer is still open

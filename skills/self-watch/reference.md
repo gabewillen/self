@@ -232,10 +232,10 @@ the user named off-limits for this watch.
 ```text
 /self-watch 5m https://github.com/org/repo/pull/123
 /self-unwatch 123
-/mdscript-exec ~/.agents/skills/self-watch/SKILL.md#setup-watch
-/mdscript-exec ~/.agents/skills/self-watch/SKILL.md#resume-watch
-/mdscript-exec ~/.agents/projects/<project>/goals/self-watch-<N>.mdscript.md#resume-watch
-/mdscript-exec ~/.agents/skills/self-unwatch/SKILL.md#unwatch
+/mdscript-exec {{skills_root}}/self-watch/SKILL.md#setup-watch
+/mdscript-exec {{skills_root}}/self-watch/SKILL.md#resume-watch
+/mdscript-exec {{project_home}}/goals/self-watch-<N>.mdscript.md#resume-watch
+/mdscript-exec {{skills_root}}/self-unwatch/SKILL.md#unwatch
 ```
 
 ## Relation to other pack skills

@@ -7,9 +7,9 @@
 * confirm `{{run_dir}}/artifacts/manifest.json` exists and on-disk proof matches `{{proof_kind}}` and `{{live_proof}}`
   * if proof is incomplete, stop this workflow and return incomplete to the caller
 * set `{{review_skill}}` to the installed `self-review` skill path
-  * prefer `{{skill_root}}/../self-review/SKILL.md`
-  * otherwise `~/.agents/skills/self-review/SKILL.md`
-  * otherwise `{{repo_root}}/skills/self-review/SKILL.md` when present
+  * prefer `{{skill_root}}/../self-review/SKILL.md` when `{{skill_root}}` is set
+  * otherwise `{{skills_root}}/self-review/SKILL.md` when `{{skills_root}}` is set
+  * otherwise `{{repo_root}}/skills/self-review/SKILL.md` when that path exists
 * if `{{review_skill}}` is missing
   * append `review_blocked` with missing self-review skill path
   * return incomplete to the caller

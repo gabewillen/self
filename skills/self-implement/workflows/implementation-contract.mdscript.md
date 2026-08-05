@@ -46,7 +46,7 @@
 * for code work that changes runtime behavior, services, APIs, workers, or external boundaries
   * set OTEL telemetry on the changed control paths, failure paths, and external boundaries as a non-negotiable `{{contract_postconditions}}` and `{{contract_invariants}}` requirement
   * require OpenTelemetry (OTEL) APIs or SDK for those signals when the language has one
-  * do not accept non-OTEL-only custom telemetry as a substitute for the same signals
+  * do not accept a non-OTEL custom telemetry stack as a substitute for the same signals
   * require cardinality analysis for every new or changed OTEL metric dimension, span attribute, resource attribute, log attribute, and event label under CORE-OBS-002
   * record whether each OTEL label or attribute key is bounded or unbounded as part of the contract evidence
   * if the planned edit omits OTEL instrumentation for those paths
@@ -72,8 +72,11 @@
 * set `{{troubleshoot_pass_active}}` to `true`
 * if `{{skills_root}}` is empty and `{{implement_skill_root}}` is set
   * set `{{skills_root}}` to the parent of `{{implement_skill_root}}`
+* if `{{skills_root}}` is empty and `{{repo_root}}/skills` exists
+  * set `{{skills_root}}` to `{{repo_root}}/skills`
 * if `{{skills_root}}` is empty
-  * set `{{skills_root}}` to `~/.agents/skills`
+  * set `{{blocker}}` to `skills_root unresolved; cannot run self-troubleshoot`
+  * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 * run `/mdscript-exec {{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md#troubleshoot-reported-issue` to obtain a red reproduction before editing any fix
 * do not fix a failure this lane has not reproduced
 
