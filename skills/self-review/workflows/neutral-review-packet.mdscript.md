@@ -4,7 +4,7 @@
 
 * if `{{merge_target}}` is unknown
   * set `{{merge_target}}` from the PR base, MR target, default branch, or `main` only when no more specific target exists
-* if reviewing code, PR, MR, or branch readiness
+* if the reviewed object is a change in a Git worktree — code, docs, MDScript, config, PR, MR, or branch readiness
   * [Resolve Code Review Baseline](#resolve-code-review-baseline)
 * [Assemble Neutral Sources](#assemble-neutral-sources)
 
@@ -12,6 +12,7 @@
 
 * run [Resolve Review Baseline](rolling-code-review.mdscript.md#resolve-review-baseline)
 * set the primary review object to `{{review_diff}}` for `{{review_diff_scope}}`
+* decide whether code changed from the `{{review_diff}}` path list, not from the request narrative, so the artifact classes and lane set come from the diff
 * [Assemble Neutral Sources](#assemble-neutral-sources)
 
 ## Assemble Neutral Sources

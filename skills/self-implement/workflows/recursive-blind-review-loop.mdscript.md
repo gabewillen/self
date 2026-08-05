@@ -13,9 +13,12 @@
 * never spawn a subagent whose job is `/self-review` or `mdscript-exec …/self-review/SKILL.md` as a whole skill
 * the only review subagents allowed are **per-lane** blind reviewers that execute one lane MDScript under `self-review/workflows/blind-reviewers/`
 * run [Resolve File Task Root](../../self-common/workflows/file-task-comments.mdscript.md#resolve-file-task-root)
+* if the reviewed work is a change in a Git worktree
+  * set `{{merge_target}}` from the PR base, MR target, default branch, or `main` when unknown
+  * run [Resolve Review Baseline](../../self-review/workflows/rolling-code-review.mdscript.md#resolve-review-baseline)
+  * decide `code changed` from the changed-path list in `{{review_diff}}`, not from the task narrative or memory of what this lane edited
 * if code changed
   * set `{{review_cycle}}` to `recursive-code`
-  * run [Resolve Review Baseline](../../self-review/workflows/rolling-code-review.mdscript.md#resolve-review-baseline)
   * set `{{review_object}}` to `{{review_diff}}`
   * set `{{review_object_scope}}` to `{{review_diff_scope}}`
 * if no code changed

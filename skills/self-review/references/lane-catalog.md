@@ -2,6 +2,8 @@
 
 Lane selection lives in [select-review-lanes.mdscript.md](../workflows/select-review-lanes.mdscript.md). This catalog is the durable map of lane id → entrypoint → rule source → when to add.
 
+Lanes are selected from the actual diff, never from the request narrative. Before any lane is added, the composing agent resolves `{{review_diff}}` against `{{merge_target}}` (PR base, MR target, default branch, or `main`) via [rolling-code-review.mdscript.md#resolve-review-baseline](../workflows/rolling-code-review.mdscript.md) and takes `{{in_scope_paths}}` from that diff's changed-path list. The only exception is a review object that is not a Git-tracked change (a live claim, an external publication, a runtime artifact), which must record that reason in `{{lane_selection_reasons}}`.
+
 ## Always-on terminal lanes
 
 | Lane id | Entrypoint | Rules / attack surface |

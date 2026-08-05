@@ -22,6 +22,9 @@
 * set `{{proof_path}}` from `artifacts/manifest.json` reproduce commands, preferring live-tier entries
 * set `{{proof_supplied}}` to on-disk artifact paths in the manifest
 * set `{{local_resource_path}}` from stack/bootstrap commands needed by those reproduce paths
+* set `{{merge_target}}` from the PR base, MR target, default branch, or `main` when unknown
+* run `mdscript-exec {{review_skill_root}}/workflows/rolling-code-review.mdscript.md#resolve-review-baseline` in **this** process to build `{{review_diff}}` against `{{merge_target}}` before any lane is chosen
+* take the in-scope changed paths from the `{{review_diff}}` path list, not from the goal text, worker notes, or the manifest
 * set `{{blocking_severities}}` to `all findings` on the first goal-completion review round for code changes
 * set `{{run_dir}}` / `{{review_signoff_dir}}` to the active goal run directory
 * set `{{review_round}}` to `1` when empty, otherwise to `{{review_round}}` plus `1`
@@ -29,7 +32,8 @@
 * write this round's neutral packet at the minted `{{review_packet}}` path, never a fixed name that overwrites an earlier round, containing only:
   * exact goal / conversation_id / run_id / goal_mdscript
   * `proof_kind`, `live_proof`, `primary_user_action`, `proof_scope`
-  * in-scope changed paths
+  * `{{review_diff}}`, `{{review_diff_scope}}`, `{{merge_target}}`, and `{{merge_base}}`
+  * in-scope changed paths from that diff
   * full `artifacts/manifest.json`
   * full `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` when present (or note absent)
   * paths to applicable rules including Cursor (`.cursor/rules/**`), VS Code (`.vscode/**` instructions), and Windsurf (`.windsurf/rules/**`) when those trees exist

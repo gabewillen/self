@@ -6,9 +6,35 @@
 * set `{{review_skill_root}}` to this skill's absolute directory when empty
 * set `{{engineering_rules_root}}` to `{{review_skill_root}}/references/engineering-rules`
 * set `{{blind_reviewers_root}}` to `{{review_skill_root}}/workflows/blind-reviewers`
-* set `{{in_scope_paths}}` from the neutral packet, `{{review_diff}}` path list, authorized paths, or current changed files
-* set `{{blind_lanes}}` to an empty ordered list
 * set `{{lane_selection_reasons}}` to an empty list
+* [Resolve Diff Before Selection](#resolve-diff-before-selection)
+
+## Resolve Diff Before Selection
+
+* never select a lane from the request narrative, the author's summary, a task title, or memory of an earlier round; lanes are selected from the actual diff
+* if `{{review_diff}}` is already set for this review round
+  * [Set In Scope Paths](#set-in-scope-paths)
+* set `{{source_repo_root}}` to the repository root holding the reviewed artifact when empty
+* if the reviewed object is not a change in a Git worktree (a live claim, an external publication, a runtime artifact, or a path outside any repository)
+  * append `diff skipped: reviewed object is not a Git-tracked change` to `{{lane_selection_reasons}}`
+  * [Set In Scope Paths](#set-in-scope-paths)
+* if `{{merge_target}}` is unknown
+  * set `{{merge_target}}` from the PR base, MR target, default branch, or `main` only when no more specific target exists
+* run [Resolve Review Baseline](rolling-code-review.mdscript.md#resolve-review-baseline)
+* append `diff resolved against {{merge_target}} at {{merge_base}} for {{review_diff_scope}} before lane selection` to `{{lane_selection_reasons}}`
+* [Set In Scope Paths](#set-in-scope-paths)
+
+## Set In Scope Paths
+
+* if `{{review_diff}}` is set
+  * set `{{in_scope_paths}}` to the changed-path list parsed from `{{review_diff}}`
+* if `{{review_diff}}` is empty
+  * set `{{in_scope_paths}}` from the neutral packet or authorized paths
+  * append `in-scope paths taken from the packet because no diff exists` to `{{lane_selection_reasons}}`
+* if `{{in_scope_paths}}` is empty
+  * set `{{blocker}}` to `no in-scope paths for lane selection`
+  * stop and report that lane selection has no scope
+* set `{{blind_lanes}}` to an empty ordered list
 * set `{{lane_entrypoints}}` to an empty map from lane id to absolute `path#heading` entry
 * [Classify Review Artifact](#classify-review-artifact)
 
