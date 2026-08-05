@@ -32,33 +32,33 @@
 
 * do not reread or narrate full skill-pack, event, watcher, and ledger context unless `{{goal_mdscript}}` is missing or stale
 
-* when the goal reports lane state, include `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator` as the re-entry command
+* when the goal reports lane state, include `/mdscript-exec {{skills_root}}/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator` as the re-entry command
 
-* when the goal detects a merged MR/PR with referenced tickets, include `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision` so the orchestrator can close eligible tracker items
+* when the goal detects a merged MR/PR with referenced tickets, include `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision` so the orchestrator can close eligible tracker items
 
 * check CI/CD failures, review comments, unresolved threads, stale base drift, merge conflicts, draft state, mergeability, required proof status, merge state, and referenced tickets
 
 * run [Handle Thread Event Contracts](../../self-common/workflows/thread-event-contracts.mdscript.md#handle-thread-event-contracts) when monitor state implies `DISPOSITION_READY`, `TARGET_DRIFT`, `HANDOFF_UNACKED`, or `STALE_MR`
 
 * if the MR/PR is on the current target, exact-head CI is green, one fresh current-target `Proven` review exists, and no unresolved discussions remain
-  * execute `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
-  * set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision`
+  * execute `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
+  * set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision`
   * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 
 * if the MR/PR base or tested target differs from the current integration target
-  * execute `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
+  * execute `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
   * refresh onto the current target within one watcher cycle
   * if refresh fails
     * set `{{blocker}}` to the exact blocker, dirty state, conflict, missing authority, or thread failure
     * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 
 * if no head movement follows an explicit target-consume, rebase, merge-target refresh, or source-refresh instruction
-  * execute `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
+  * execute `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
   * set `{{blocker}}` to the blocker path, dirty state, conflict, failed command, missing authority, or thread failure
   * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 
 * if a priority instruction has no acknowledgment, output, or blocker after one watcher cycle
-  * execute `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
+  * execute `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
   * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 
 * treat CI/CD and check failures as monitored state and repair input for the current head
@@ -72,7 +72,7 @@
 * keep the orchestrator updated with MR/PR link, referenced tickets, agent identities for comment watching, current head, target head, event execution and event type when present, check state, default-branch merge blocker state, next proof, and ready, watching, or blocked status
 
 * when handing an MR/PR to the orchestrator
-  * tell the orchestrator to create or confirm `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/mr-comment-watcher.mdscript.md#create-mr-comment-watcher`
+  * tell the orchestrator to create or confirm `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/mr-comment-watcher.mdscript.md#create-mr-comment-watcher`
 
 * after merge, report merged MR/PR, referenced tickets, likely closure status, and keep-open evidence to the orchestrator
 

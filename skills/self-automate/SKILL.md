@@ -9,10 +9,13 @@ description: "ALWAYS use this skill before calling automation_update or creating
 
 * read this skill before creating, updating, or reviewing an automation for agent-shaped work
 
+* if `{{skills_root}}` is empty
+  * set `{{skills_root}}` to this skill's parent skills directory when present
+
 * use this skill before any `automation_update` call or any available automation creation or update tool for agent-shaped work
 
 * if this skill is not present in the active skill list
-  * load it by absolute path from `{{repo_root}}/skills/self-automate/SKILL.md`
+  * load it by absolute path from `{{skills_root}}/self-automate/SKILL.md`
 
 * infer `{{automation_goal}}`, `{{owner_role}}`, `{{lane_id}}`, `{{thread_id}}`, `{{issue_or_mr}}`, `{{watched_target}}`, `{{cadence}}`, `{{stop_condition}}`, `{{task_mdscript}}`, `{{mdscript_reentry}}`, and `{{reporting_path}}`
 
@@ -21,7 +24,7 @@ description: "ALWAYS use this skill before calling automation_update or creating
 * run [Read File Task Packet](../self-common/workflows/file-task-comments.mdscript.md#read-file-task-packet) when the automation belongs to a file task
 
 * if the automation belongs to a role lane
-  * read the relevant role skill: `{{repo_root}}/skills/self-orchestrate/SKILL.md`, `{{repo_root}}/skills/self-implement/SKILL.md`, or `{{repo_root}}/skills/self-review/SKILL.md`
+  * read the relevant role skill: `{{skills_root}}/self-orchestrate/SKILL.md`, `{{skills_root}}/self-implement/SKILL.md`, or `{{skills_root}}/self-review/SKILL.md`
 
 * if the automation is for a GitLab issue, MR, PR, comment watcher, blocker watcher, or lane-management wakeup
   * require a stable MDScript heading entry point before creating it
@@ -78,14 +81,14 @@ description: "ALWAYS use this skill before calling automation_update or creating
 * prefer workflow-file entry points over broad role `SKILL.md` entry points when the workflow file owns the continuation
 
 * common orchestrator re-entry points include:
-  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/mr-comment-watcher.mdscript.md#create-mr-comment-watcher`
-  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
-  * `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/mr-comment-watcher.mdscript.md#create-mr-comment-watcher`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision`
 
 * common implementer re-entry points include:
-  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`
-  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
-  * `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator`
+  * `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`
+  * `/mdscript-exec {{skills_root}}/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
+  * `/mdscript-exec {{skills_root}}/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator`
 
 * if another agent must continue at a specific point after the automation fires
   * include that exact `/mdscript-exec` jump in the automation report body

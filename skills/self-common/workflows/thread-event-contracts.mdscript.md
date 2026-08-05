@@ -31,7 +31,7 @@
 ## Event DISPOSITION READY
 
 * set `{{event_type}}` to `DISPOSITION_READY`
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
 * verify the MR/PR is on the current integration target
   * if not, stop and report the target mismatch
 * verify exact-head CI is green
@@ -51,7 +51,7 @@
 ## Event TARGET DRIFT
 
 * set `{{event_type}}` to `TARGET_DRIFT`
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
 * verify the MR/PR base, tested target, or proof target no longer equals the current integration target
   * if targets still match, stop and report that target drift is not present
 * refresh onto the current target within one watcher cycle
@@ -65,7 +65,7 @@
 ## Event HANDOFF UNACKED
 
 * set `{{event_type}}` to `HANDOFF_UNACKED`
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
 * verify a priority instruction has no acknowledgment, output, or blocker after one watcher cycle
   * if an ack, output, or blocker exists, stop and report that the handoff is no longer unacked
 * escalate to the parent immediately
@@ -77,7 +77,7 @@
 ## Event STALE MR
 
 * set `{{event_type}}` to `STALE_MR`
-* set `{{event_exec}}` to `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
+* set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
 * verify no head movement after an explicit target-consume, rebase, merge-target refresh, or source-refresh instruction
   * if the head has moved, stop and report the new head
 * report the blocker path, dirty state, conflict, missing authority, failed command, or thread failure

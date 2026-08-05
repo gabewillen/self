@@ -64,7 +64,7 @@
 
 ## Write Child Handoff Contract
 
-* instruct the child coordinator to use `/mdscript-exec {{repo_root}}/skills/self-orchestrate/SKILL.md#load-operating-context`
+* instruct the child coordinator to use `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#load-operating-context`
 * give the child systems or repositories, tracker scope, parent issue, file task id, file comment path, subticket inventory, authority boundaries, lane cap, required ledger fields, proof expectations, implementer-owned review expectations, watcher expectations, reporting cadence, parent agent, parent reporting path, escalation path, and no-default-branch-merge limits
 * include `model: {{required_model}}`, `reasoning: {{required_reasoning}}`, and `model_selection_basis: {{model_selection_basis}}` in the handoff
 * require the child to report back to this parent before stopping for any reason

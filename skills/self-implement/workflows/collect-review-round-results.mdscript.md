@@ -18,7 +18,7 @@
 
 * require every reviewer handoff to include `{{stop_reason}}` and to be visible to this implementer before the reviewer stops
 
-* if a reviewer includes an exact `/mdscript-exec {{repo_root}}/skills/self-implement/` remediation jump
+* if a reviewer includes an exact `/mdscript-exec {{skills_root}}/self-implement/` remediation jump
   * verify the jump targets this skill or an implementer workflow file and fits `{{granted_permissions}}`
   * record it as `{{review_remediation_jump}}`
 

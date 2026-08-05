@@ -26,14 +26,14 @@
 * on routine wakeup, execute only the changed hot-path action
 
 * when the blocker clears
-  * continue with `/mdscript-exec {{repo_root}}/skills/self-implement/SKILL.md#inspect-current-state`
-  * message the orchestrator with `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
+  * continue with `/mdscript-exec {{skills_root}}/self-implement/SKILL.md#inspect-current-state`
+  * message the orchestrator with `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
 
 * when the blocker changes but does not clear
-  * update the orchestrator with the new state, the next watcher check time, and any useful jump such as `/mdscript-exec {{repo_root}}/skills/self-orchestrate/SKILL.md#monitor-implementer-lane`
+  * update the orchestrator with the new state, the next watcher check time, and any useful jump such as `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#monitor-implementer-lane`
 
 * when the blocker needs a coordinator decision
-  * message the orchestrator with `/mdscript-exec {{repo_root}}/skills/self-orchestrate/workflows/handle-worker-exec-jump.mdscript.md#handle-worker-exec-jump`
+  * message the orchestrator with `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/handle-worker-exec-jump.mdscript.md#handle-worker-exec-jump`
 
 * before the blocker watcher stops for cleared, paused, obsolete, blocked, interrupted, tool-failed, authority-boundary, or watcher-terminal state
   * set `{{stop_reason}}` to the exact reason

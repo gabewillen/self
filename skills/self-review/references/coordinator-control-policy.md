@@ -61,10 +61,10 @@ Cross-thread `DISPOSITION_READY`, `TARGET_DRIFT`, `HANDOFF_UNACKED`, and `STALE_
 
 | Event | Required execution | Finding when violated |
 | --- | --- | --- |
-| `DISPOSITION_READY` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready` (start disposition or receive explicit root denial) | reported as bare label or treated as watcher context only |
-| `TARGET_DRIFT` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift` (interrupt old-target proof; force current-target refresh or exact blocker within one watcher cycle) | reported as bare label or missing that execution |
-| `HANDOFF_UNACKED` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked` and escalate to parent/root | reported as bare label or silent after one watcher cycle |
-| `STALE_MR` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr` (head movement or exact blocker path) | reported as bare label or repeats old-head proof after target-consume without that execution |
+| `DISPOSITION_READY` | `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready` (start disposition or receive explicit root denial) | reported as bare label or treated as watcher context only |
+| `TARGET_DRIFT` | `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift` (interrupt old-target proof; force current-target refresh or exact blocker within one watcher cycle) | reported as bare label or missing that execution |
+| `HANDOFF_UNACKED` | `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked` and escalate to parent/root | reported as bare label or silent after one watcher cycle |
+| `STALE_MR` | `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr` (head movement or exact blocker path) | reported as bare label or repeats old-head proof after target-consume without that execution |
 
 ## Coordinator naming bar
 

@@ -9,7 +9,7 @@
 * set `{{review_skill}}` to the installed `self-review` skill path
   * prefer `{{skill_root}}/../self-review/SKILL.md` when `{{skill_root}}` is set
   * otherwise `{{skills_root}}/self-review/SKILL.md` when `{{skills_root}}` is set
-  * otherwise `{{repo_root}}/skills/self-review/SKILL.md` when that path exists
+  * otherwise `{{skills_root}}/self-review/SKILL.md` when that path exists
 * if `{{review_skill}}` is missing
   * append `review_blocked` with missing self-review skill path
   * return incomplete to the caller

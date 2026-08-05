@@ -50,12 +50,12 @@
 * run [Add File Comment](../../self-common/workflows/file-task-comments.mdscript.md#add-file-comment) on the parent task with the implementer handoff contract
 * if durable worker thread tooling is unavailable and the work is local, bounded, and authorized
   * run [Use Single Process Fallback](../../self-common/workflows/file-task-comments.mdscript.md#use-single-process-fallback)
-  * continue into `/mdscript-exec {{repo_root}}/skills/self-implement/SKILL.md#load-worker-context` for the implementer task in the same process
+  * continue into `/mdscript-exec {{skills_root}}/self-implement/SKILL.md#load-worker-context` for the implementer task in the same process
 * [Write Implementer Handoff Contract](#write-implementer-handoff-contract)
 
 ## Write Implementer Handoff Contract
 
-* instruct the worker to use `/mdscript-exec {{repo_root}}/skills/self-implement/SKILL.md#load-worker-context`
+* instruct the worker to use `/mdscript-exec {{skills_root}}/self-implement/SKILL.md#load-worker-context`
 * include title, objective, repository or surface, tracker, file task id, file comment path, goal MDScript path, granted permissions, forbidden actions, and required evidence
 * include `{{claim_scope}}`, contract preconditions, postconditions, invariants, proof path, proof boundary, expected local resource path when infrastructure or services are involved, expected tests, and expected real-resource artifacts when claimed
 * include implementer-owned review gate (required only before PR/MR create or merge), MR/PR goal requirement, no execution subdelegation, no portfolio chat management, attribution, parent agent, and reporting path back to this orchestrator
@@ -69,7 +69,7 @@
 * include the GitLab sudo alias requirement for `-implementor` and `-reviewer` public writes and project control-plane comment MDScripts before mirrored public GitLab writes
 * make clear that the implementer owns execution and, only before PR/MR create or merge, self-review composition (including per-lane blind fanout), while this orchestrator owns coordination, lane state, permission boundaries, final decision reporting, and orchestrator-owned goals
 * forbid the implementer from re-delegating the full `/self-review` skill to a nested subagent; lane MDScripts only
-* tell the implementer that reports may include direct jumps such as `/mdscript-exec {{repo_root}}/skills/self-orchestrate/SKILL.md#monitor-implementer-lane`
+* tell the implementer that reports may include direct jumps such as `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#monitor-implementer-lane`
 * tell the implementer to execute and report matching `{{event_exec}}` for `TARGET_DRIFT`, `HANDOFF_UNACKED`, `STALE_MR`, and `DISPOSITION_READY` when those contracts apply
 * if this is a project control-plane workflow and the current process has authority to execute the implementer task
   * preserve the role boundary in comments
