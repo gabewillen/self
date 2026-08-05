@@ -10,10 +10,10 @@ and `blocker` when one exists.
 
 | Event type | Canonical `event_exec` |
 | --- | --- |
-| `DISPOSITION_READY` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.md#event-disposition-ready` |
-| `TARGET_DRIFT` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.md#event-target-drift` |
-| `HANDOFF_UNACKED` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.md#event-handoff-unacked` |
-| `STALE_MR` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.md#event-stale-mr` |
+| `DISPOSITION_READY` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready` |
+| `TARGET_DRIFT` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift` |
+| `HANDOFF_UNACKED` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked` |
+| `STALE_MR` | `/mdscript-exec {{repo_root}}/skills/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr` |
 
 ## Priority when multiple events apply
 

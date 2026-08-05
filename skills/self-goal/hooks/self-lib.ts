@@ -4,7 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
-  unlinkSync,
+  renameSync,
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve as resolvePath } from "node:path";
@@ -29,6 +29,8 @@ export interface GoalState {
   live_proof?: "required" | "optional";
   /** End-to-end user/runtime path required when live proof is on. */
   primary_user_action?: string;
+  /** Review round this run is currently on; sign-offs must state the same one. */
+  review_round?: number | string;
   /** Durable MDScript tracking file for this run (relative or absolute). */
   goal_mdscript?: string;
   /** Heading slug the stop hook / resume should enter next. */
@@ -64,6 +66,10 @@ export interface GoalSignoff {
   conversation_id: string;
   signed_off: boolean;
   reviewer_id?: GoalReviewerId;
+  /** The lane this sign-off speaks for; `reviewer_id` is the legacy spelling. */
+  reviewer_lane?: string;
+  /** The round this sign-off was written for; a stale round must not count. */
+  review_round?: number | string;
   verifier_summary?: string;
   signed_off_at?: string;
   evidence?: string[];
@@ -147,6 +153,15 @@ export interface GoalReviewVerdict {
 
 export const MIN_SUMMARY_LENGTH = 40;
 /** Blind-lane sign-offs and verdicts are re-enterable MDScript only. */
+/** Upper bound on retained superseded sign-offs, so the search is provably finite. */
+const SUPERSEDE_LIMIT = 100;
+
+/** Every sign-off, minted or legacy, ends with this. */
+const SIGNOFF_SUFFIX = "-signoff.mdscript.md";
+
+/** Every minted review verdict ends with this. */
+const VERDICT_SUFFIX = "-review-verdict.mdscript.md";
+
 export const SIGNOFF_RULES_MDSCRIPT = "signoff-reviewer-rules.mdscript.md";
 export const SIGNOFF_SECURITY_MDSCRIPT = "signoff-reviewer-security.mdscript.md";
 export const SIGNOFF_COMPLETENESS_MDSCRIPT = "signoff-reviewer-completeness.mdscript.md";
@@ -156,7 +171,7 @@ export const ARTIFACTS_MANIFEST_FILE = "manifest.json";
 export const SESSION_LOG_FILE = "session-log.jsonl";
 export const PROGRESS_LOG_FILE = "progress.jsonl";
 export const GOAL_MDSCRIPT_FILE = "goal.mdscript.md";
-export const REVIEW_PACKET_FILE = "review-packet.md";
+export const REVIEW_PACKET_FILE = "review-packet.mdscript.md";
 export const RUNS_DIR_NAME = "runs";
 export const DEFAULT_RESUME_HEADING = "pursue-goal";
 export const MDSCRIPT_EXEC_HEADER =
@@ -389,7 +404,7 @@ export function loadMdscriptRecord<T>(mdscriptPath: string): T | null {
     return null;
   }
   try {
-    const fm = parseMdscriptFrontMatter(readFileSync(mdscriptPath));
+    const fm = parseMdscriptFrontMatter(readFileSync(mdscriptPath, "utf-8"));
     return fm ? (fm as T) : null;
   } catch {
     return null;
@@ -563,6 +578,10 @@ export function goalStateFromFrontMatter(
     goal_mdscript:
       typeof fm.goal_mdscript === "string" ? fm.goal_mdscript : undefined,
     status: typeof fm.status === "string" ? fm.status : undefined,
+    review_round:
+      typeof fm.review_round === "number" || typeof fm.review_round === "string"
+        ? fm.review_round
+        : undefined,
     resume_heading:
       typeof fm.resume_heading === "string" ? fm.resume_heading : undefined,
     iteration:
@@ -810,13 +829,19 @@ export function countPFindings(
   }).length;
 }
 
-export function isValidSignoff(
-  signoff: GoalSignoff,
-  goal: string,
-  conversationId: string,
-  expectedReviewerId?: GoalReviewerId,
-  root?: string,
-): boolean {
+export function isValidSignoff({
+  signoff,
+  goal,
+  conversationId,
+  expectedReviewerId,
+  root,
+}: {
+  signoff: GoalSignoff;
+  goal: string;
+  conversationId: string;
+  expectedReviewerId?: GoalReviewerId;
+  root?: string;
+}): boolean {
   if (!signoff.signed_off) {
     return false;
   }
@@ -1041,6 +1066,7 @@ goal_mdscript: ${yamlScalar(scriptRelative)}
 status: ${yamlScalar(status)}
 active: ${yamlScalar(Boolean(state.active))}
 iteration: ${yamlScalar(iteration)}
+review_round: ${yamlScalar(state.review_round ?? 1)}
 resume_heading: ${yamlScalar(resumeHeading)}
 proof_kind: ${yamlScalar(proofKind)}
 live_proof: ${yamlScalar(state.live_proof ?? liveProof)}
@@ -1463,14 +1489,21 @@ export function validateArtifactsManifest(
   return { complete: reasons.length === 0, reasons };
 }
 
-export function signoffRejectionReason(
-  signoff: GoalSignoff | null,
-  goal: string,
-  conversationId: string,
-  signoffPath: string,
-  expectedReviewerId?: GoalReviewerId,
-  root?: string,
-): string {
+export function signoffRejectionReason({
+  signoff,
+  goal,
+  conversationId,
+  signoffPath,
+  expectedReviewerId,
+  root,
+}: {
+  signoff: GoalSignoff | null;
+  goal: string;
+  conversationId: string;
+  signoffPath: string;
+  expectedReviewerId?: GoalReviewerId;
+  root?: string;
+}): string {
   const label = expectedReviewerId
     ? `Reviewer ${expectedReviewerId.toUpperCase()}`
     : "Verifier";
@@ -1536,17 +1569,50 @@ export function signoffRejectionReason(
   return `${label} sign-off rejected: invalid or incomplete response.`;
 }
 
+/**
+ * Retire this round's sign-offs without destroying them. A sign-off is review
+ * evidence: the next round must not count it, but deleting it erases why the
+ * round failed. Each file is moved aside to a superseded name instead.
+ */
 export function invalidateReviewerSignoffs(paths: GoalSessionPaths): void {
+  const runDirectoryPath = dirname(paths.signoffReviewerRulesMdscript);
+  // Retire EVERY sign-off still live in the run directory, not just the one
+  // discovery would return: leaving siblings behind lets the next discovery
+  // pick a survivor and re-complete the gate without a fresh review.
+  const liveSignoffs: string[] = [];
+  if (existsSync(runDirectoryPath)) {
+    try {
+      for (const name of readdirSync(runDirectoryPath)) {
+        if (!name.endsWith(".mdscript.md")) continue;
+        if (name.includes(".superseded")) continue;
+        const isMinted = name.endsWith(SIGNOFF_SUFFIX);
+        const isLegacy = name.startsWith("signoff-reviewer-");
+        if (isMinted || isLegacy) liveSignoffs.push(join(runDirectoryPath, name));
+      }
+    } catch {
+      // fall back to the known paths below
+    }
+  }
   for (const file of [
+    ...liveSignoffs,
     paths.signoffReviewerRulesMdscript,
     paths.signoffReviewerSecurityMdscript,
     paths.signoffReviewerCompletenessMdscript,
     paths.signoffReviewerHsmMdscript,
     paths.reviewVerdictMdscript,
   ]) {
-    if (existsSync(file)) {
-      unlinkSync(file);
+    if (!existsSync(file)) continue;
+    const stem = file.replace(/\.mdscript\.md$/, "");
+    let aside = `${stem}.superseded.mdscript.md`;
+    for (let n = 2; existsSync(aside); n += 1) {
+      if (n > SUPERSEDE_LIMIT) {
+        throw new Error(
+          `cannot supersede ${file}: ${SUPERSEDE_LIMIT} superseded copies already exist`,
+        );
+      }
+      aside = `${stem}.superseded-${n}.mdscript.md`;
     }
+    renameSync(file, aside);
   }
 }
 
@@ -1657,40 +1723,201 @@ export function selfReviewRejectionReason(
 }
 
 
-export function validateTripleBlindSignoffs(
-  root: string,
-  paths: GoalSessionPaths,
-  goal: string,
-  conversationId: string,
-): GoalCompletionStatus {
+/**
+ * Find this run's sign-off for a lane.
+ *
+ * The lane is confirmed from the record's own `reviewer_lane`, because a lane
+ * id may contain a hyphen (`eng-hsm` ends with `hsm`) and a filename proves
+ * nothing. Records are ordered by the round they state, then by filename, so a
+ * high-sorting name cannot outrank a genuine later round. `.superseded` copies
+ * are retained evidence and never count.
+ *
+ * This authenticates NOTHING about authorship: `reviewer_lane` is a claim, and
+ * anyone who can write the run directory can make it. The run directory is the
+ * trust boundary. Prefer an explicitly supplied path when the composer has one.
+ */
+export function findLaneSignoffPath({
+  runDirectoryPath,
+  laneId,
+  fallbackPath,
+}: {
+  runDirectoryPath: string;
+  laneId: string;
+  fallbackPath: string;
+}): string {
+  if (!existsSync(runDirectoryPath)) return fallbackPath;
+  let names: string[] = [];
+  try {
+    names = readdirSync(runDirectoryPath);
+  } catch {
+    return fallbackPath;
+  }
+  const claimsLane = (candidatePath: string): boolean => {
+    const record = loadMdscriptRecord<GoalSignoff>(candidatePath);
+    if (!record) return false;
+    const claimed = record.reviewer_lane ?? record.reviewer_id;
+    return typeof claimed === "string" && claimed === laneId;
+  };
+  const roundOf = (candidatePath: string): number => {
+    const record = loadMdscriptRecord<GoalSignoff>(candidatePath);
+    const stated = Number(record?.review_round);
+    return Number.isFinite(stated) ? stated : -1;
+  };
+  const minted = names
+    .filter((name) => name.endsWith(SIGNOFF_SUFFIX))
+    .filter((name) => !name.includes(".superseded"))
+    .map((name) => join(runDirectoryPath, name))
+    .filter((candidatePath) => claimsLane(candidatePath))
+    .sort((left, right) => roundOf(left) - roundOf(right) || left.localeCompare(right));
+  const newest = minted[minted.length - 1];
+  if (newest) return newest;
+  const legacyPath = join(runDirectoryPath, `signoff-reviewer-${laneId}.mdscript.md`);
+  if (existsSync(legacyPath) && claimsLane(legacyPath)) return legacyPath;
+  return fallbackPath;
+}
+
+/**
+ * Find this run's review verdict. Rounds mint a lexicographic name, so the
+ * newest stated round wins; the fixed legacy name remains a fallback. Sign-offs
+ * got discovery when they started being minted and the verdict did not, which
+ * left a goal run writing its verdict where its own reader could not see it.
+ */
+export function findReviewVerdictPath({
+  runDirectoryPath,
+  fallbackPath,
+}: {
+  runDirectoryPath: string;
+  fallbackPath: string;
+}): string {
+  if (!existsSync(runDirectoryPath)) return fallbackPath;
+  let names: string[] = [];
+  try {
+    names = readdirSync(runDirectoryPath);
+  } catch {
+    return fallbackPath;
+  }
+  const roundOf = (candidatePath: string): number => {
+    const record = loadMdscriptRecord<GoalReviewVerdict>(candidatePath);
+    const stated = Number(record?.review_round);
+    return Number.isFinite(stated) ? stated : -1;
+  };
+  const minted = names
+    .filter((name) => name.endsWith(VERDICT_SUFFIX))
+    .filter((name) => !name.includes(".superseded"))
+    .map((name) => join(runDirectoryPath, name))
+    .filter((candidatePath) => loadMdscriptRecord<GoalReviewVerdict>(candidatePath) !== null)
+    .sort((left, right) => roundOf(left) - roundOf(right) || left.localeCompare(right));
+  const newest = minted[minted.length - 1];
+  if (newest) return newest;
+  return fallbackPath;
+}
+
+export function validateTripleBlindSignoffs({
+  root,
+  paths,
+  goal,
+  conversationId,
+  currentReviewRound,
+}: {
+  root: string;
+  paths: GoalSessionPaths;
+  goal: string;
+  conversationId: string;
+  currentReviewRound?: number | string;
+}): GoalCompletionStatus {
+  const runDirectoryPath = dirname(paths.signoffReviewerRulesMdscript);
   const lanes: Array<{ id: GoalReviewerId; path: string }> = [
-    { id: "rules", path: paths.signoffReviewerRulesMdscript },
-    { id: "security", path: paths.signoffReviewerSecurityMdscript },
-    { id: "completeness", path: paths.signoffReviewerCompletenessMdscript },
+    {
+      id: "rules",
+      path: findLaneSignoffPath({
+      runDirectoryPath,
+      laneId: "rules",
+      fallbackPath: paths.signoffReviewerRulesMdscript,
+    }),
+    },
+    {
+      id: "security",
+      path: findLaneSignoffPath({
+      runDirectoryPath,
+      laneId: "security",
+      fallbackPath: paths.signoffReviewerSecurityMdscript,
+    }),
+    },
+    {
+      id: "completeness",
+      path: findLaneSignoffPath({
+      runDirectoryPath,
+      laneId: "completeness",
+      fallbackPath: paths.signoffReviewerCompletenessMdscript,
+    }),
+    },
   ];
   const reasons: string[] = [];
   const signoffs: GoalSignoff[] = [];
+  const rounds = new Set<string>();
 
   for (const lane of lanes) {
     const signoff = loadMdscriptRecord<GoalSignoff>(lane.path);
-    if (!signoff || !isValidSignoff(signoff)) {
+    if (
+      !signoff ||
+      !isValidSignoff({
+        signoff,
+        goal,
+        conversationId,
+        expectedReviewerId: lane.id,
+        root,
+      })
+    ) {
       reasons.push(
-        signoffRejectionReason(
+        signoffRejectionReason({
           signoff,
           goal,
           conversationId,
-          relativePath(root, lane.path),
-          lane.id,
+          signoffPath: relativePath(root, lane.path),
+          expectedReviewerId: lane.id,
           root,
-        ),
+        }),
       );
       continue;
     }
+    rounds.add(String(signoff.review_round ?? "unstated"));
     signoffs.push(signoff);
   }
 
   if (reasons.length > 0) {
     return { complete: false, reasons };
+  }
+
+  // Every lane must be reviewing the same round. Without this, a lane that
+  // failed to write silently contributes its previous round's sign-off.
+  if (rounds.size > 1) {
+    return {
+      complete: false,
+      reasons: [
+        `Blind lane sign-offs span more than one review round (${[...rounds].sort().join(", ")}) — re-run the lanes that are behind.`,
+      ],
+    };
+  }
+  // Consistency among lanes is not enough: a whole stale set agrees with
+  // itself. When the run states its round, every lane must match it.
+  if (currentReviewRound !== undefined && currentReviewRound !== null) {
+    const expected = String(currentReviewRound);
+    if (!rounds.has(expected) || rounds.size !== 1) {
+      return {
+        complete: false,
+        reasons: [
+          `Blind lane sign-offs state round ${[...rounds].sort().join(", ")}, but this run is on round ${expected} — re-run the lanes.`,
+        ],
+      };
+    }
+  }
+  if (rounds.has("unstated")) {
+    return {
+      complete: false,
+      reasons: [
+        "A blind lane sign-off does not state review_round, so it cannot be dated to this round.",
+      ],
+    };
   }
 
   if (signoffs.length === 3) {
@@ -1704,7 +1931,7 @@ export function validateTripleBlindSignoffs(
       return {
         complete: false,
         reasons: [
-          "Two or more blind lane summaries are identical — rules/security/completeness reviewers must scrutinize independently. Cleared sign-offs; re-run multi-lane adversarial blind self-review.",
+          "Two or more blind lane summaries are identical — rules/security/completeness reviewers must scrutinize independently. Superseded this round's sign-offs (kept as .superseded); re-run multi-lane adversarial blind self-review.",
         ],
       };
     }
@@ -1736,13 +1963,23 @@ export function evaluateGoalCompletion(
     reasons.push(...artifactsStatus.reasons);
   }
 
-  const triple = validateTripleBlindSignoffs(root, paths, goal, conversationId);
+  const triple = validateTripleBlindSignoffs({
+    root,
+    paths,
+    goal,
+    conversationId,
+    currentReviewRound: state.review_round,
+  });
   if (!triple.complete) {
     reasons.push(...triple.reasons);
   }
 
-  const verdict = loadMdscriptRecord<GoalReviewVerdict>(paths.reviewVerdictMdscript);
-  if (!verdict || !isValidSelfReviewVerdict(verdict)) {
+  const verdictPath = findReviewVerdictPath({
+    runDirectoryPath: dirname(paths.reviewVerdictMdscript),
+    fallbackPath: paths.reviewVerdictMdscript,
+  });
+  const verdict = loadMdscriptRecord<GoalReviewVerdict>(verdictPath);
+  if (!verdict || !isValidSelfReviewVerdict(verdict, goal, conversationId)) {
     reasons.push(
       selfReviewRejectionReason(
         verdict,

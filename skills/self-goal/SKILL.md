@@ -36,7 +36,7 @@ description: "ALWAYS use this skill when running a goal loop (/goal or /self-goa
 
 ## Parse Goal
 
-* run [Resolve Agent Home](../self-common/workflows/agent-home.md#resolve-agent-home)
+* run [Resolve Agent Home](../self-common/workflows/agent-home.mdscript.md#resolve-agent-home)
 * set `{{repo_root}}` to the working repository root when present, otherwise the current workspace root
 * set `{{goal_text}}` from `/self-goal …`, `/goal …`, or the natural-language goal in the user request
 * if `{{goal_text}}` is empty
@@ -52,7 +52,7 @@ description: "ALWAYS use this skill when running a goal loop (/goal or /self-goa
     * run the harness `goal` skill for the same `{{goal_text}}` only as the continuation driver if the harness requires that entry
     * require the harness goal body to follow this skill's MDScript workflow (parse → start → pursue → capture → compose multi-lane review → complete)
   * do not arm, await, or depend on self-goal stop/session hooks for this run
-* run [Clarify Goal](workflows/clarify-goal.md#clarify-goal)
+* run [Clarify Goal](workflows/clarify-goal.mdscript.md#clarify-goal)
 
 ## Start Or Resume
 
@@ -63,7 +63,7 @@ description: "ALWAYS use this skill when running a goal loop (/goal or /self-goa
   * set `{{goal_mdscript}}` to the newest `{{run_dir}}/goal.mdscript.md` whose front matter has `active: true`
   * execute `mdscript-exec {{goal_mdscript}}#resume-goal`
 * else
-  * run [Start Goal Run](workflows/start-goal-run.md#start-goal-run)
+  * run [Start Goal Run](workflows/start-goal-run.mdscript.md#start-goal-run)
   * tell the user `{{goal_text}}`, `{{proof_kind}}`, `{{live_proof}}`, `{{run_id}}`, `{{run_dir}}`, `{{goal_mdscript}}`, `{{loop_driver}}`, and whether hooks are skipped
   * [Pursue Goal](#pursue-goal)
 
@@ -78,12 +78,12 @@ description: "ALWAYS use this skill when running a goal loop (/goal or /self-goa
   * keep `{{goal_mdscript}}` as the stop-hook resume target
 * set front-matter `resume_heading` to `pursue-goal` while implementing/proofing, `complete-goal` only when ready to finish, or `manual-stop` when blocked
 * set front-matter `skip_hooks` to `{{skip_goal_hooks}}` and `loop_driver` to `{{loop_driver}}` whenever the run MDScript is refreshed
-* run [Pursue Iteration](workflows/pursue-iteration.md#pursue-iteration)
-* run [Capture Artifacts](workflows/capture-artifacts.md#capture-artifacts)
+* run [Pursue Iteration](workflows/pursue-iteration.mdscript.md#pursue-iteration)
+* run [Capture Artifacts](workflows/capture-artifacts.mdscript.md#capture-artifacts)
 * if artifacts or `{{primary_user_action}}` proof are incomplete
   * refresh `{{goal_mdscript}}` completion_gate notes from the current gaps
   * [Pursue Goal](#pursue-goal)
-* run [Compose Multi-Lane Review](workflows/compose-multi-lane-review.md#compose-multi-lane-review) which execs multi-lane review adversarial blind (always-on rules + security + completeness, selected eng-* language/framework lanes from vendored gabewillen/rules, plus deep hsm when a state machine is in scope)
+* run [Compose Multi-Lane Review](workflows/compose-multi-lane-review.mdscript.md#compose-multi-lane-review) which execs multi-lane review adversarial blind (always-on rules + security + completeness, selected eng-* language/framework lanes from vendored gabewillen/rules, plus deep hsm when a state machine is in scope)
 * if any blind lane fails, self-review returns `Not ready for …`, or blocking findings remain
   * fix every blocking finding
   * refresh artifacts and `artifacts/manifest.json` when proof changed

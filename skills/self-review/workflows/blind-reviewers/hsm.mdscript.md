@@ -5,7 +5,16 @@
 * set `{{reviewer_lane}}` to `hsm`
 * set `{{reviewer_id}}` to `hsm`
 * set `{{review_skill_root}}` to the installed self-review skill root
-* set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-hsm.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-hsm.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-hsm.mdscript.md`
+* if the caller supplied `{{signoff_path}}`
+  * set `{{signoff_boundary}}` to `{{review_signoff_dir}}` when set, otherwise `{{run_dir}}` when set, otherwise `{{artifact_dir}}`
+  * if `{{signoff_boundary}}` is empty
+    * set `{{blocker}}` to `no sign-off directory to contain the caller-supplied path` and stop
+  * confirm it ends in `.mdscript.md` and resolves inside `{{signoff_boundary}}`
+  * if it does not, set `{{blocker}}` to the out-of-scope sign-off path and stop
+  * create it now, failing when it already exists, so this lane cannot overwrite another lane's or another round's sign-off
+  * write only that path and do not recompute it
+* otherwise set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-hsm.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-hsm.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-hsm.mdscript.md`
+* this lane writes one sign-off and is exempt from the running-log contract; the composing process keeps the round's log
 * you are a **blind adversarial** reviewer for **hierarchical state machine / statechart semantics** only
 * read only the neutral review packet and paths it authorizes — do not read other reviewers' sign-offs, prompts, verdicts, chat repair narratives, or preferred grades before writing your own
 * default to `signed_off: false`
@@ -50,8 +59,8 @@
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`
 * every HSM rule blocks — severity orders the report and never excuses a finding
 * do not waive a rule this lane discovered; only packet-carried waivers count, and each one goes in `remaining_gaps` when it hides a `stands` finding
-* write only `{{signoff_path}}` as executable MDScript: the exact execution header, YAML front matter, then the states below
-* set front matter to `reviewer_id: "hsm"`, `reviewer_lane: "hsm"`, `goal` and `conversation_id` from the packet when present, `signed_off`, `lane_applicable`, `hsm_verdict`, `gate_stopped`, `machines_reviewed`, `graph_confidence`, `ownership_verdict`, `findings_path`, `waived_rule_ids`, `verifier_summary` (≥40 chars covering attacks + machines and gates checked), `evidence` (≥2), `commands_run`, `attack_attempts` (≥2), `p_findings`, `rules_reviewed`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
+* write only `{{signoff_path}}` as executable MDScript: YAML front matter first, then the exact execution header, then the states below
+* set front matter to `reviewer_id: "hsm"`, `reviewer_lane: "hsm"`, `review_round` from the packet, `goal` and `conversation_id` from the packet when present, `signed_off`, `lane_applicable`, `hsm_verdict`, `gate_stopped`, `machines_reviewed`, `graph_confidence`, `ownership_verdict`, `findings_path`, `waived_rule_ids`, `verifier_summary` (≥40 chars covering attacks + machines and gates checked), `evidence` (≥2), `commands_run`, `attack_attempts` (≥2), `p_findings`, `rules_reviewed`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
 * write a `## Signoff` state that names the lane verdict, the gate that stopped it, and one bullet per `p_findings` entry with its rule id, location, and remediation
 * write a `## Resume From Signoff` state that continues at `/mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs` (or the path resolved from this skill's install directory) when `signed_off` is `true`
 * in that same state, when `signed_off` is `false`, name `repair_resume_command` as the next jump and require a fresh blind reviewer after repair — never re-enter this lane's own review from the sign-off

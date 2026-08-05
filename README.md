@@ -12,8 +12,9 @@ Install once; agents route through `self`, execute workflows, learn at stop, and
 
 1. **Always enter through `self`.** Every request routes by agent position (orchestrator / implementer / review / watch / goal / …).
 2. **Skills are executable MDScript.** `SKILL.md` and linked workflows are the procedure—not prose you skim once.
-3. **Work leaves durable records.** Goals, tasks, comments, ledgers live under `~/.agents/projects/<project>/` as MDScript, outside product repos unless `--local`.
-4. **The pack stays alive.** User corrections become living skill updates. Stop hooks force a learn pass. Global edits go on a live branch + PR; project rules go in `<repo>/.agents/`.
+3. **MDScript is the running log.** Not a summary written at the end — started at the first context read and updated at every transition, with `## Done So Far` beside `## Next Steps`. When a context is compacted or lost, the work resumes from disk instead of from memory. Lexicographically named, append-only apart from an explicit secret purge, last state carries the `/mdscript-exec` re-entry. Review rounds, RCA records, implementation reports, and coordination decisions are all workflows a later agent can run, not notes.
+4. **Work leaves durable records.** Goals, tasks, comments, ledgers live under `~/.agents/projects/<project>/` as MDScript, outside product repos unless `--local`.
+5. **The pack stays alive.** User corrections become living skill updates. Learn is user-invoked only: `/self-learn`, never a hook. Global edits go on a live branch + PR; project rules go in `<repo>/.agents/`.
 
 If a rule is only true for this product, it does **not** belong in this pack. Prefer project scope over global.
 
@@ -31,19 +32,18 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 | `self-watch` / `self-unwatch` | Interval PR babysit with a standing repair grant |
 | `self-automate` | Design MDScript-backed automations before automation tools |
 | `self-learn` | User-invoked living-skills reflection (`/self-learn`) — never automatic |
+| `self-troubleshoot` | Red repro → root cause → fix → rerun, until the reproduction goes green (`/self-troubleshoot`) |
+| `self-voice` | Agent-voice drafts for Slack, review comments, public writing (`/self-voice`) |
 
 **Not skills** (shared / routed MDScripts only):
 
 | Pack | Role |
 |------|------|
 | `self-common/` | Shared MDScripts, templates, hook library — linked by other skills |
-| `self-voice/` | Routed MDScript for agent-voice drafts (`/self-voice`) |
 
-Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-unwatch`.
+Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-troubleshoot`, `/self-unwatch`.
 
-MDScript-only routes (not skills):
-
-- `/self-voice` → `self-voice/self-voice.mdscript.md`
+Both `self-voice` and `self-troubleshoot` keep their body in a linked `*.mdscript.md`; `SKILL.md` is the entry the harness lists.
 
 Companion skills **`mdscript-exec`** and **`mdscript-write`** live in [gabewillen/mdscript](https://github.com/gabewillen/mdscript). Install pulls them beside this pack so every `<!-- mdscript: … -->` header resolves.
 
@@ -186,7 +186,8 @@ skills/
   self-automate/
   self-learn/           # user-invoked living-skills reflection (/self-learn)
   self-common/          # shared MDScripts + hooks (NOT a skill)
-  self-voice/           # routed voice MDScript (NOT a skill)
+  self-voice/           # agent-voice skill; body in self-voice.mdscript.md
+  self-troubleshoot/    # troubleshooting skill; body in self-troubleshoot.mdscript.md
 scripts/
   install.mjs           # living install, hooks, cutover, integrity
   agent-home.mjs

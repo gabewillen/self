@@ -1,6 +1,6 @@
 ---
 name: self
-description: "ALWAYS use this skill for EVERY request first, before planning or answering, so it can route the role: main agents that are not subagents are orchestrate; subagents are implement (or one blind-lane MDScript); explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, and /self-voice still route first (/self-learn is a user-invoked skill and never runs from a hook; /self-voice is an MDScript only, not a skill; self-common is shared MDScripts/hooks, not a skill); HSM is a review blind lane not a separate skill; review composition stays on the composing process with per-lane fanout only."
+description: "ALWAYS use this skill for EVERY request first, before planning or answering, so it can route the role: main agents that are not subagents are orchestrate; subagents are implement (or one blind-lane MDScript); explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, /self-troubleshoot, and /self-voice still route first (/self-learn is a user-invoked skill and never runs from a hook; /self-voice and /self-troubleshoot are skills whose bodies live in a linked MDScript; self-common is shared MDScripts/hooks, not a skill); HSM is a review blind lane not a separate skill; review composition stays on the composing process with per-lane fanout only."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -28,10 +28,10 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * ask "What would the user do?" from the current request, active local instructions, current evidence, and this installed skill family
 
 * if the installed skills do not carry the needed context, appear stale, or are contradicted by a new user correction
-  * run [Load Operating Context](../self-common/workflows/load-operating-context.md#load-operating-context)
+  * run [Load Operating Context](../self-common/workflows/load-operating-context.mdscript.md#load-operating-context)
   * if the user stated a durable correction in their own words
     * set `{{correction_source}}` to that user quote only
-    * run [Update Living Skills](../self-common/workflows/update-living-skills.md#update-living-skills)
+    * run [Update Living Skills](../self-common/workflows/update-living-skills.mdscript.md#update-living-skills)
 
 * if the request is a standalone interval PR watch that repairs review comments and CI with selected fixer models (`/self-watch`, interval+PR babysit, merge-ready watch loop)
   * set `{{self_role}}` to `self-watch`
@@ -49,7 +49,16 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * if the request is `/self-voice`, agent-voice drafting, Slack mention reply voice, or public-writing voice check
   * set `{{voice_mdscript}}` to `{{skills_root}}/self-voice/self-voice.mdscript.md`
   * run `/mdscript-exec {{voice_mdscript}}#draft-or-check-agent-voice`
-  * stop after that MDScript returns — do not route a skill role for voice
+  * stop after that MDScript returns — voice is its own skill, so do not also route an orchestrate or implement role for it
+
+* if `{{agent_position}}` is `main` and the request is `/self-troubleshoot`, or `{{agent_position}}` is `main` and the request reports a bug, failure, regression, outage, flake, or "why is this broken" to diagnose
+  * set `{{troubleshoot_mdscript}}` to `{{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md`
+  * run `/mdscript-exec {{troubleshoot_mdscript}}#troubleshoot-reported-issue`
+  * stop after that MDScript returns — troubleshooting is its own skill, and its fix step delegates to `self-implement` from inside it
+
+* if `{{agent_position}}` is `subagent` and the request names troubleshooting
+  * keep the delegated worker or blind-lane contract: set `{{self_role}}` to `self-implement`, which holds the reproduce-before-fix gate and enters the troubleshoot MDScript itself when the delegation carries no reproduction
+  * [Execute Routed Role](#execute-routed-role)
 
 * if the request is HSM/SML hard-rule review, hierarchical state machine audit, or `/self-hsm-review`
   * set `{{self_role}}` to `self-review`
@@ -101,7 +110,7 @@ description: "ALWAYS use this skill for EVERY request first, before planning or 
 * carry `{{self_role}}`, `{{agent_position}}`, `{{is_root_orchestrator}}`, `{{parent_agent}}`, `{{parent_reporting_path}}`, and `{{can_spawn_subagents}}` into the routed skill
 
 * if `{{self_role}}` is `self-orchestrate`
-  * run `/mdscript-exec {{skills_root}}/self-common/workflows/goal-mdscript.md#write-goal-mdscript` before claiming ongoing monitoring, resumed coordination, or watcher ownership
+  * run `/mdscript-exec {{skills_root}}/self-common/workflows/goal-mdscript.mdscript.md#write-goal-mdscript` before claiming ongoing monitoring, resumed coordination, or watcher ownership
   * do not claim the lane is resumable until that goal names the exact re-entry point and validation fields
 
 * stop after the routed skill returns

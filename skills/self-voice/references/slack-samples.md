@@ -1,6 +1,6 @@
 # Slack style samples for agent voice
 
-Reference material for [slack-style.md](../workflows/slack-style.md) and
+Reference material for [slack-style.mdscript.md](../workflows/slack-style.mdscript.md) and
 [self-voice/self-voice.mdscript.md](../self-voice.mdscript.md). Not executable
 MDScript. Load when drafting
 or verifying an agent-shaped Slack reply so the workflow can stay rewrite/verify

@@ -13,11 +13,11 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * set `{{blocker}}` to `review skill requires a parent implementer or orchestrator reporting path`
   * stop and report that a parentless agent must use orchestrate (and compose review from there or from implement), not run review as the root role alone
 
-* run [Select Configured Model And Reasoning](../self-common/workflows/model-reasoning-contract.md#select-configured-model-and-reasoning) with `{{self_role}}` set to `reviewer`
+* run [Select Configured Model And Reasoning](../self-common/workflows/model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning) with `{{self_role}}` set to `reviewer`
 
-* run [Resolve File Task Root](../self-common/workflows/file-task-comments.md#resolve-file-task-root)
+* run [Resolve File Task Root](../self-common/workflows/file-task-comments.mdscript.md#resolve-file-task-root)
 
-* run [Read File Task Packet](../self-common/workflows/file-task-comments.md#read-file-task-packet) when the reviewed artifact has a file task
+* run [Read File Task Packet](../self-common/workflows/file-task-comments.mdscript.md#read-file-task-packet) when the reviewed artifact has a file task
 
 * infer `{{parent_agent}}` and `{{parent_reporting_path}}`; report the scoped grade or blocker to the spawning implementer or orchestrator before stopping, closing, deleting, archiving, or going silent
 
@@ -49,7 +49,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
 
 * if the current request is a durable **user** correction about how reviewers must judge, falsify, or grade
   * set `{{correction_source}}` to a quote of the user's words only
-  * run [Update Living Skills](../self-common/workflows/update-living-skills.md#update-living-skills)
+  * run [Update Living Skills](../self-common/workflows/update-living-skills.mdscript.md#update-living-skills)
 
 * use this skill to falsify readiness, not to rubber-stamp the author's narrative
 
@@ -79,19 +79,19 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
 
 ## Build Neutral Review Packet
 
-* run [Build Neutral Review Packet](workflows/neutral-review-packet.md#build-neutral-review-packet)
+* run [Build Neutral Review Packet](workflows/neutral-review-packet.mdscript.md#build-neutral-review-packet)
 
 ## Check Goal And Contract
 
-* run [Check Goal And Contract](checks/goal-and-contract.md#check-goal-and-contract)
+* run [Check Goal And Contract](checks/goal-and-contract.mdscript.md#check-goal-and-contract)
 
 ## Check Evidence Boundary
 
-* run [Check Evidence Boundary](checks/evidence-boundary.md#check-evidence-boundary)
+* run [Check Evidence Boundary](checks/evidence-boundary.mdscript.md#check-evidence-boundary)
 
 ## Check UI And Product Surface
 
-* run [Check UI And Product Surface](checks/evidence-boundary.md#check-ui-and-product-surface)
+* run [Check UI And Product Surface](checks/evidence-boundary.mdscript.md#check-ui-and-product-surface)
 
 ## Check Indirection
 
@@ -99,19 +99,19 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
 
 ## Check Ownership And Permission
 
-* run [Check Ownership And Permission](checks/ownership-permission.md#check-ownership-and-permission)
+* run [Check Ownership And Permission](checks/ownership-permission.mdscript.md#check-ownership-and-permission)
 
 ## Check Review And Watcher Gates
 
-* run [Check Review And Watcher Gates](checks/review-watcher-gates.md#check-review-and-watcher-gates)
+* run [Check Review And Watcher Gates](checks/review-watcher-gates.mdscript.md#check-review-and-watcher-gates)
 
 ## Check Coordinator Control
 
-* run [Check Coordinator Control](checks/coordinator-control.md#check-coordinator-control)
+* run [Check Coordinator Control](checks/coordinator-control.mdscript.md#check-coordinator-control)
 
 ## Check Publication Hygiene
 
-* run [Check Publication Hygiene](checks/publication-hygiene.md#check-publication-hygiene)
+* run [Check Publication Hygiene](checks/publication-hygiene.mdscript.md#check-publication-hygiene)
 
 ## Determine Grade
 
@@ -148,7 +148,7 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
   * [Report Verdict](#report-verdict)
 
 * if this is a terminal readiness gate and `{{blind_lanes}}` is empty
-  * run [Select Review Lanes](workflows/select-review-lanes.md#select-review-lanes)
+  * run [Select Review Lanes](workflows/select-review-lanes.mdscript.md#select-review-lanes)
 
 * if this is a terminal readiness gate and blind sign-offs are missing or incomplete for any lane in `{{blind_lanes}}`
   * set `{{grade}}` to `Not ready for {{proof_scope}}`
@@ -174,9 +174,9 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
 ## Report Verdict
 
 * if findings exist
-  * run [Add File Comment](../self-common/workflows/file-task-comments.md#add-file-comment) with the findings, scoped grade, questions, evidence, and stop report before any external tracker note
-  * before posting findings to a GitLab issue, review, or comment, run [Resolve GitLab Sudo Alias](../self-common/workflows/gitlab-sudo-alias.md#resolve-gitlab-sudo-alias) with `{{self_role}}` set to `reviewer`
-  * run [Use GitLab Sudo Alias Before Public Write](../self-common/workflows/gitlab-sudo-alias.md#use-gitlab-sudo-alias-before-public-write)
+  * run [Add File Comment](../self-common/workflows/file-task-comments.mdscript.md#add-file-comment) with the findings, scoped grade, questions, evidence, and stop report before any external tracker note
+  * before posting findings to a GitLab issue, review, or comment, run [Resolve GitLab Sudo Alias](../self-common/workflows/gitlab-sudo-alias.mdscript.md#resolve-gitlab-sudo-alias) with `{{self_role}}` set to `reviewer`
+  * run [Use GitLab Sudo Alias Before Public Write](../self-common/workflows/gitlab-sudo-alias.mdscript.md#use-gitlab-sudo-alias-before-public-write)
   * lead with findings ordered by consequence
   * include file and line, PR/MR/issue, command, route, screenshot, trace, metric, log, or artifact pointers when available
   * when posting inline review comments on GitHub or GitLab
@@ -184,23 +184,23 @@ description: "ALWAYS use this skill when reviewing any change or claim — code,
     * ask the smallest useful question, such as whether the current proof, contract, ownership, failure path, or user-visible behavior really satisfies the claim
     * keep the question honest: do not soften a blocker, hide the scoped grade, omit the remediation entrypoint, or imply the user personally asked the question unless they did
   * when a finding maps to implementer work
-    * tell the implementer the exact remediation entrypoint, such as `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/implementation-contract.md#define-implementation-contract`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/implementation-contract.md#implement-narrowly`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/verify-real-proof.md#verify-real-proof`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.md#create-blocker-watcher`
+    * tell the implementer the exact remediation entrypoint, such as `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/implementation-contract.mdscript.md#define-implementation-contract`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/implementation-contract.mdscript.md#implement-narrowly`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
   * include open questions for missing evidence, authority, or source truth
-  * before asking the user, a repository owner, or another authority surface for input instead of only recording reviewer findings, run [Prepare Prompt Return Script](../self-common/workflows/return-script.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-verdict`
+  * before asking the user, a repository owner, or another authority surface for input instead of only recording reviewer findings, run [Prepare Prompt Return Script](../self-common/workflows/return-script.mdscript.md#prepare-prompt-return-script) with `{{return_source_workflow}}` set to this skill and `{{return_resume_heading}}` set to `report-verdict`
   * report `Decision: {{proof_decision}}` and `Verdict: {{grade}}` with `{{proof_scope}}`, `{{blocking_severities}}`, `{{blocking_findings}}`, `{{residual_findings}}`, `{{contract_preconditions}}`, `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{proof_supplied}}`, `{{proof_not_claimed}}`, and the narrow reason
   * set `{{stop_reason}}` to `blocked` or `review-complete`
   * report the stop reason, final scoped grade, `proof_not_claimed`, and exact `cleanup_status=...` or cleanup blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before the reviewer is closed
   * include the reviewer thread or subagent cleanup status expected from the parent as the literal `cleanup_status` field
 
 * if no findings exist
-  * run [Add File Comment](../self-common/workflows/file-task-comments.md#add-file-comment) with the scoped proven grade, evidence, residual risk, and stop report before any external tracker note
-  * before posting the ready verdict to a GitLab issue, review, or comment, run [Resolve GitLab Sudo Alias](../self-common/workflows/gitlab-sudo-alias.md#resolve-gitlab-sudo-alias) with `{{self_role}}` set to `reviewer`
-  * run [Use GitLab Sudo Alias Before Public Write](../self-common/workflows/gitlab-sudo-alias.md#use-gitlab-sudo-alias-before-public-write)
+  * run [Add File Comment](../self-common/workflows/file-task-comments.mdscript.md#add-file-comment) with the scoped proven grade, evidence, residual risk, and stop report before any external tracker note
+  * before posting the ready verdict to a GitLab issue, review, or comment, run [Resolve GitLab Sudo Alias](../self-common/workflows/gitlab-sudo-alias.mdscript.md#resolve-gitlab-sudo-alias) with `{{self_role}}` set to `reviewer`
+  * run [Use GitLab Sudo Alias Before Public Write](../self-common/workflows/gitlab-sudo-alias.mdscript.md#use-gitlab-sudo-alias-before-public-write)
   * say `No review findings for {{proof_scope}} at {{blocking_severities}} threshold. Decision: Proven for {{proof_scope}}.`
   * if broader final proof remains outside the claim
     * say `This does not claim {{proof_not_claimed}}.`
   * if the implementer should continue at a specific proof-decision step
-    * include `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/prepare-mr-or-pr.md#prepare-mr-or-pr`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/report-to-orchestrator.md#report-to-orchestrator`
+    * include `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/prepare-mr-or-pr.mdscript.md#prepare-mr-or-pr`, `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`, or `/mdscript-exec {{repo_root}}/skills/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator`
   * name remaining residual risk or evidence gaps
   * set `{{stop_reason}}` to `review-complete`
   * report the stop reason, final scoped grade, `proof_not_claimed`, and exact `cleanup_status=...` or cleanup blocker to `{{parent_agent}}` or `{{parent_reporting_path}}` before the reviewer is closed

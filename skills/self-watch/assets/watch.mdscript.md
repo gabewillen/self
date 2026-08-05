@@ -84,14 +84,14 @@ owner_dialect: "{{owner_dialect}}"
 * touch `{{agent_heartbeat}}` so the ticker's idle guard knows this agent is still consuming ticks
 
 * if `{{ticker_pid}}` is dead or its command line no longer contains `{{sentinel}}`
-  * run `mdscript-exec {{skill_root}}/workflows/ticker-process.md#check-ticker-liveness`
+  * run `mdscript-exec {{skill_root}}/workflows/ticker-process.mdscript.md#check-ticker-liveness`
   * if `{{owner_pid}}` is still alive
     * re-arm once through `mdscript-exec {{skill_root}}/SKILL.md#arm-persistent-interval-loop`
   * if `{{owner_pid}}` is gone
     * [Stop Watch](#stop-watch)
 
 * if no tick listener is attached
-  * run `mdscript-exec {{skill_root}}/workflows/ticker-process.md#reattach-tick-listener`
+  * run `mdscript-exec {{skill_root}}/workflows/ticker-process.mdscript.md#reattach-tick-listener`
 
 * do not start a second ticker while one is alive
 
@@ -99,7 +99,7 @@ owner_dialect: "{{owner_dialect}}"
 
 ## Watch Tick
 
-* run `mdscript-exec {{skill_root}}/workflows/watch-tick.md#watch-tick`
+* run `mdscript-exec {{skill_root}}/workflows/watch-tick.mdscript.md#watch-tick`
 
 * set front-matter `tick_count`, `last_head_sha`, `last_tick_at`, and `last_processed_seq` from that tick
 
@@ -109,7 +109,7 @@ owner_dialect: "{{owner_dialect}}"
 
 ## Report Blocker
 
-* run `mdscript-exec {{skill_root}}/workflows/watch-tick.md#report-blocker`
+* run `mdscript-exec {{skill_root}}/workflows/watch-tick.mdscript.md#report-blocker`
 
 * set front-matter `blocker` to the exact human decision needed
 

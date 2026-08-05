@@ -3,14 +3,14 @@
 ## Triage
 
 * if `{{repo_root}}` is missing, set `{{return_resume_heading}}` to `triage`
-* if `{{repo_root}}` is missing, run [Prepare Prompt Return Script](../../../self-common/workflows/return-script.md#prepare-prompt-return-script)
+* if `{{repo_root}}` is missing, run [Prepare Prompt Return Script](../../../self-common/workflows/return-script.mdscript.md#prepare-prompt-return-script)
 * if `{{repo_root}}` is missing, write `{{return_script}}` as executable MDScript with the exact header and a `## Resume` entrypoint
 * if `{{repo_root}}` is missing, prompt for the existing absolute repository path and end with `{{return_resume_command}}`
 * if `{{repo_root}}` is missing, stop while waiting for the answer
 * resolve `{{repo_root}}` to an existing absolute path
 * expand `{{review_scope}}` into concrete paths under `{{repo_root}}`
 * set `{{run_id}}` to a new timestamp id
-* run [Resolve Agent Home](../../../self-common/workflows/agent-home.md#resolve-agent-home)
+* run [Resolve Agent Home](../../../self-common/workflows/agent-home.mdscript.md#resolve-agent-home)
 * set `{{out_dir}}` to `{{project_home}}/hsm-review/{{run_id}}`
 * create `{{out_dir}}` and set `{{findings_log}}` to `{{out_dir}}/findings.jsonl`
 * set `{{findings}}` to an empty list

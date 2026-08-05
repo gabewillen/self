@@ -18,8 +18,8 @@ const root = resolve(process.argv[2] || defaultRoot);
 
 const required = [
   "SKILL.md",
-  "workflows/select-review-lanes.md",
-  "workflows/select-language-framework-lanes.md",
+  "workflows/select-review-lanes.mdscript.md",
+  "workflows/select-language-framework-lanes.mdscript.md",
   "workflows/triple-adversarial-blind-review.mdscript.md",
   "workflows/blind-reviewers/engineering-rules.mdscript.md",
 "workflows/blind-reviewers/hsm.mdscript.md",

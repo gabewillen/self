@@ -3,7 +3,7 @@
 Portable reference for the MDScript `self-goal` skill.
 
 `<project_home>` is `~/.agents/projects/<project>` (or `$AGENTS_HOME`), resolved by
-[Resolve Agent Home](../../self-common/workflows/agent-home.md#resolve-agent-home).
+[Resolve Agent Home](../../self-common/workflows/agent-home.mdscript.md#resolve-agent-home).
 Run state stays out of the working repository unless the pack was installed with
 `--local` or `SELF_LOCAL=1`, in which case it lives under `<repo>/.agents`.
 
@@ -20,13 +20,13 @@ Run state stays out of the working repository unless the pack was installed with
 | `runs/<run_id>/progress.jsonl` | Append-only iteration log |
 | `runs/<run_id>/artifacts/**` | New timestamped files only |
 | `runs/<run_id>/artifacts/manifest.json` | Reproduce map |
-| `runs/<run_id>/review-packet.md` | Neutral packet for self-review |
+| `runs/<run_id>/review-packet.mdscript.md` | Neutral packet for self-review |
 | `runs/<run_id>/review-verdict.mdscript.md` | Durable self-review verdict (front matter) + `Resume From Verdict` dispatch |
-| `runs/<run_id>/signoff-reviewer-rules.mdscript.md` | Blind rules lane |
-| `runs/<run_id>/signoff-reviewer-security.mdscript.md` | Blind security lane |
-| `runs/<run_id>/signoff-reviewer-completeness.mdscript.md` | Blind completeness lane |
-| `runs/<run_id>/signoff-reviewer-hsm.mdscript.md` | Blind HSM lane when selected |
-| `runs/<run_id>/signoff-reviewer-eng-*.mdscript.md` | Selected engineering-rules lanes |
+| `runs/<run_id>/<stamp>-<round>-<subject>-rules-signoff.mdscript.md` | Blind rules lane |
+| `runs/<run_id>/<stamp>-<round>-<subject>-security-signoff.mdscript.md` | Blind security lane |
+| `runs/<run_id>/<stamp>-<round>-<subject>-completeness-signoff.mdscript.md` | Blind completeness lane |
+| `runs/<run_id>/<stamp>-<round>-<subject>-hsm-signoff.mdscript.md` | Blind HSM lane when selected |
+| `runs/<run_id>/<stamp>-<round>-<subject>-eng-*-signoff.mdscript.md` | Selected engineering-rules lanes |
 
 ## goal.mdscript.md front matter (authoritative run state)
 

@@ -1,6 +1,8 @@
 # Review blind lane catalog
 
-Lane selection lives in [select-review-lanes.md](../workflows/select-review-lanes.md). This catalog is the durable map of lane id → entrypoint → rule source → when to add.
+Lane selection lives in [select-review-lanes.mdscript.md](../workflows/select-review-lanes.mdscript.md). This catalog is the durable map of lane id → entrypoint → rule source → when to add.
+
+Lanes are selected from the actual diff, never from the request narrative. Before any lane is added, the composing agent resolves `{{review_diff}}` against `{{merge_target}}` (PR base, MR target, default branch, or `main`) via [rolling-code-review.mdscript.md#resolve-review-baseline](../workflows/rolling-code-review.mdscript.md) and takes `{{in_scope_paths}}` from that diff's changed-path list. The only exception is a review object that is not a Git-tracked change (a live claim, an external publication, a runtime artifact), which must record that reason in `{{lane_selection_reasons}}`.
 
 ## Always-on terminal lanes
 
@@ -9,6 +11,14 @@ Lane selection lives in [select-review-lanes.md](../workflows/select-review-lane
 | `rules` | `workflows/blind-reviewers/rules.mdscript.md#rules-blind-review` | Repo/agent instruction files (AGENTS, Cursor, VS Code, Windsurf) — **not** gabewillen/rules |
 | `security` | `workflows/blind-reviewers/security.mdscript.md#security-blind-review` | Penetration and security attack surface |
 | `completeness` | `workflows/blind-reviewers/completeness.mdscript.md#completeness-blind-review` | Goal-literal completeness |
+
+## Content-selected lanes
+
+| Lane id | Entrypoint | Select when |
+| --- | --- | --- |
+| `mdscript` | `workflows/blind-reviewers/mdscript.mdscript.md#mdscript-blind-review` | Any `SKILL.md` body, `*.mdscript.md`, or linked MDScript workflow/check/template in scope — runs the `/mdscript-review` gates plus execution-path attacks |
+
+Lanes are selected from what is in scope, never by habit: `eng-*` lanes need executable source in scope (a manifest- or data-only code change takes `eng-core` alone), and MDScript heading-and-link control flow alone does not select the HSM lanes. Every selected lane must name the in-scope path or packet signal that selected it, and skipped candidates are recorded with the reason.
 
 ## Engineering-rules lanes (from [engineering-rules/](engineering-rules/))
 

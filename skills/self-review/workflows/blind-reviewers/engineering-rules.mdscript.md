@@ -13,7 +13,16 @@
 * if `{{rules_file}}` is empty
   * stop and report that the lane entrypoint must set `{{rules_pack}}` or `{{rules_file}}`
 * set `{{reviewer_id}}` to `{{reviewer_lane}}`
-* set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md`
+* if the caller supplied `{{signoff_path}}`
+  * set `{{signoff_boundary}}` to `{{review_signoff_dir}}` when set, otherwise `{{run_dir}}` when set, otherwise `{{artifact_dir}}`
+  * if `{{signoff_boundary}}` is empty
+    * set `{{blocker}}` to `no sign-off directory to contain the caller-supplied path` and stop
+  * confirm it ends in `.mdscript.md` and resolves inside `{{signoff_boundary}}`
+  * if it does not, set `{{blocker}}` to the out-of-scope sign-off path and stop
+  * create it now, failing when it already exists, so this lane cannot overwrite another lane's or another round's sign-off
+  * write only that path and do not recompute it
+* otherwise set `{{signoff_path}}` to `{{review_signoff_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md` when `{{review_signoff_dir}}` is set, otherwise `{{run_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md` when `{{run_dir}}` is set, otherwise `{{artifact_dir}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md`
+* this lane writes one sign-off and is exempt from the running-log contract; the composing process keeps the round's log
 * you are a **blind adversarial** reviewer for **engineering rules in `{{rules_file}}` only**
 * read only the neutral review packet, packet-authorized paths, and `{{rules_file}}` — do not read other reviewers' sign-offs, prompts, verdicts, chat repair narratives, or preferred grades before writing your own
 * default to `signed_off: false`
@@ -28,6 +37,9 @@
   * set `remaining_gaps` to the exact missing rules path
   * [Sign-off Decision](#sign-off-decision)
 * read `{{rules_file}}` end-to-end
+* read every file named in `{{extra_rules_files}}` from the same directory end-to-end, and attack against those rules too
+* if a file named in `{{extra_rules_files}}` is missing
+  * set `{{blocker}}` to the missing rules path and stop without signing off
 * parse every top-level `# <RULE-ID> <RFC-2119-KEYWORD> <Title>` heading as a rule under review
 * follow Markdown See-links to related rules only when needed to interpret an in-scope rule; do not expand into an unbounded walk of the whole rules repo
 * set `rules_reviewed` to `{{rules_file}}` plus any linked rule files actually opened
@@ -59,8 +71,8 @@
   * never sign off n/a from an unsearched scope or the author's claim alone
 * otherwise allow `signed_off: true` only when every serious rules attack fails, `p_findings` is `[]`, and `remaining_gaps` is `[]`
 * otherwise keep `signed_off: false` with non-empty `p_findings` and/or `remaining_gaps`
-* write only `{{signoff_path}}` as executable MDScript: the exact execution header, YAML front matter, then the states below
-* set front matter to `reviewer_id`, `reviewer_lane`, `rules_file`, `lane_applicable`, `goal` and `conversation_id` from the packet when present, `signed_off`, `verifier_summary` (≥40 chars covering attacks + rules reviewed), `evidence` (≥2), `commands_run`, `attack_attempts` (≥2), `p_findings`, `rules_reviewed`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
+* write only `{{signoff_path}}` as executable MDScript: YAML front matter first, then the exact execution header, then the states below
+* set front matter to `reviewer_id`, `reviewer_lane`, `rules_file`, `lane_applicable`, `review_round` from the packet, `goal` and `conversation_id` from the packet when present, `signed_off`, `verifier_summary` (≥40 chars covering attacks + rules reviewed), `evidence` (≥2), `commands_run`, `attack_attempts` (≥2), `p_findings`, `rules_reviewed`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` when the packet supplies one
 * write a `## Signoff` state that names the lane verdict, the rules file, and one bullet per `p_findings` entry with rule id, location, and remediation
 * write a `## Resume From Signoff` state that continues at `/mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs` (or the path resolved from this skill's install directory) when `signed_off` is `true`
 * in that same state, when `signed_off` is `false`, name `repair_resume_command` as the next jump and require a fresh blind reviewer after repair — never re-enter this lane's own review from the sign-off
