@@ -90,9 +90,15 @@ Performance claims MUST be measured.
 
 Optimization decisions MUST be justified with profiling, benchmarks, or production telemetry.
 
-# CORE-OBS-001 SHOULD Bounded Observability
+# CORE-OBS-001 MUST OpenTelemetry Telemetry
 
-Logging, tracing, metrics, and diagnostics SHOULD be bounded, non-blocking, and cardinality-controlled.
+Telemetry via OpenTelemetry (OTEL) is non-negotiable for code implementation.
+
+Runtime and service code MUST emit telemetry through OpenTelemetry APIs for the changed control paths, failure paths, and external boundaries.
+
+Implementers MUST NOT complete code work without OTEL instrumentation covering those paths, and MUST NOT substitute a non-OTEL-only custom telemetry stack for the same signals when an OTEL API or SDK exists for the language.
+
+Logging, tracing, metrics, and diagnostics MUST be bounded, non-blocking, and cardinality-controlled.
 
 Diagnostics MUST NOT change functional behavior.
 

@@ -27,6 +27,13 @@
 * if the work changes or claims a UI, frontend, dashboard, widget, or visible product surface
   * capture and inspect a current visual snapshot for each changed or claimed feature from the real browser or device target
 
+* if the work is code that changes runtime behavior, services, APIs, workers, or external boundaries
+  * verify OpenTelemetry (OTEL) instrumentation covers the changed control paths, failure paths, and external boundaries
+  * if OTEL telemetry is missing, non-OTEL-only, or not exercised by the proof path
+    * set `{{blocker}}` to `OTEL telemetry is non-negotiable; missing or unproven instrumentation on changed paths`
+    * repair the instrumentation or proof path
+    * [Verify Real Proof](#verify-real-proof)
+
 * if `{{proof_path}}` is available but fails, is stale, exceeds a declared invariant such as CI budget, or does not match `{{contract_postconditions}}`
   * repair the proof path or implementation
   * [Verify Real Proof](#verify-real-proof)
