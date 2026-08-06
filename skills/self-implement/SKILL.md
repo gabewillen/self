@@ -140,7 +140,7 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 * if `{{self_review_required}}` is `false`
   * skip multi-lane self-review for this completion
   * record `review_gate=not-required-until-pr-or-merge` in the task evidence
-  * continue with [Prepare MR Or PR](#prepare-mr-or-pr) without starting review rounds
+  * continue with [Commit Atomically](#commit-atomically) without starting review rounds
 * if `{{self_review_required}}` is `true`
   * run [Use Multi-Lane Review](workflows/recursive-blind-review-loop.mdscript.md#use-multi-lane-review)
   * [Start Review Round](#start-review-round)
@@ -148,19 +148,19 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 ## Start Review Round
 
 * if `{{self_review_required}}` is not `true`
-  * continue with [Prepare MR Or PR](#prepare-mr-or-pr)
+  * continue with [Commit Atomically](#commit-atomically)
 * run [Start Review Round](workflows/recursive-blind-review-loop.mdscript.md#start-review-round)
 
 ## Collect Review Round Results
 
 * if `{{self_review_required}}` is not `true`
-  * continue with [Prepare MR Or PR](#prepare-mr-or-pr)
+  * continue with [Commit Atomically](#commit-atomically)
 * run [Collect Review Round Results](workflows/recursive-blind-review-loop.mdscript.md#collect-review-round-results)
 
 ## Close Review Subagents
 
 * if `{{self_review_required}}` is not `true`
-  * continue with [Prepare MR Or PR](#prepare-mr-or-pr)
+  * continue with [Commit Atomically](#commit-atomically)
 * run [Close Review Subagents](workflows/recursive-blind-review-loop.mdscript.md#close-review-subagents)
 
 ## Cleanup Created Threads
@@ -170,8 +170,12 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 ## Decide Review Loop
 
 * if `{{self_review_required}}` is not `true`
-  * continue with [Prepare MR Or PR](#prepare-mr-or-pr)
+  * continue with [Commit Atomically](#commit-atomically)
 * run [Decide Review Loop](workflows/recursive-blind-review-loop.mdscript.md#decide-review-loop)
+
+## Commit Atomically
+
+* run [Commit Atomically](workflows/commit-atomically.mdscript.md#commit-atomically) before any push, PR/MR create or update, or handoff that carries commits
 
 ## Prepare MR Or PR
 

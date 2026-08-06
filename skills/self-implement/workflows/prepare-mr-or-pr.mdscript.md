@@ -12,6 +12,8 @@
 
 * run [Use GitLab Sudo Alias Before Public Write](../../self-common/workflows/gitlab-sudo-alias.mdscript.md#use-gitlab-sudo-alias-before-public-write) before writing any GitLab issue text, review response, or comment from this worker role
 
+* run [Commit Atomically](commit-atomically.mdscript.md#commit-atomically) before pushing the head this MR/PR will carry
+
 * keep MR/PR title, description, commits, evidence links, review status, and residual risk current
 
 * do not leave an MR/PR in draft once ready unless an explicit blocker, missing proof, user instruction, or repository rule requires draft

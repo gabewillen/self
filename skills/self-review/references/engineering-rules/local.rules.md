@@ -36,3 +36,24 @@ A staged migration, dual-write window, or retained old path is allowed only when
 The change MUST name that consumer and the condition that retires the old path; an unnamed or hypothetical future consumer does not justify keeping it.
 
 Deprecated, legacy, or unreferenced code left behind by a pre-1.0 or predeployment cutover is a release-blocking defect.
+
+# LOCAL-GIT-001 MUST Atomic Commits
+
+Each commit MUST contain exactly one logical change, and its subject MUST state that change.
+
+A commit MUST be self-contained: the tree at that commit MUST build and MUST pass the checks that governed the change, so history stays bisectable and any single commit can be reverted on its own.
+
+Unrelated work MUST NOT ride along. Formatting sweeps, drive-by refactors, dependency bumps, and unrelated fixes MUST be committed separately from the change they were noticed beside.
+
+Independent logical changes MUST NOT be batched into one commit, even when they were written in the same working session.
+
+Staging MUST be deliberate. Committing every dirty path with `git add -A`, `git add .`, or `git commit -a` is forbidden when the working tree holds changes outside the logical change being committed; stage the paths or hunks the change owns.
+
+Checkpoint commits such as `wip`, `fixup`, `oops`, `address review`, and `fix typo` MUST NOT survive into a pushed branch; squash or amend them into the commit they belong to before pushing.
+
+A commit message MUST describe the change and its reason, not the process that produced it.
+
+See:
+- [CORE-DOC-001](core.rules.md#core-doc-001-must-not-keep-change-history-in-comments-and-docs)
+
+Rewriting already-pushed history to satisfy this rule is forbidden on a shared branch; correct it going forward instead.

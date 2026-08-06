@@ -14,4 +14,10 @@
   * search the diff and the repository for deprecated shims, compatibility aliases, legacy fallbacks, version-suffixed duplicates, gating flags, and files the change left unreferenced
   * require the diff to name a released or deployed consumer, and the condition that retires the old path, for each retained path
   * treat deprecated, legacy, or unreferenced code left behind without such a named consumer as a release-blocking finding
+* when the review scope carries commits rather than a squashed working tree
+  * read each commit in the range with `git log --stat` and `git show` before any sign-off
+  * attack any commit that carries more than one logical change under LOCAL-GIT-001
+  * attack formatting sweeps, drive-by refactors, dependency bumps, and unrelated fixes that ride along inside another change's commit
+  * attack checkpoint messages such as `wip`, `fixup`, `oops`, `address review`, and `fix typo` surviving in the pushed range
+  * treat a commit that cannot build or pass its governing checks on its own as a finding against bisectability
 * run [Engineering Rules Blind Review](engineering-rules.mdscript.md#engineering-rules-blind-review)
