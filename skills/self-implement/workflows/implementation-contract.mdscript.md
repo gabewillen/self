@@ -58,6 +58,15 @@
     * repair the contract to include cardinality analysis for each new or changed OTEL signal
     * [Define Implementation Contract](#define-implementation-contract)
 
+* for work that replaces, renames, or migrates code that is pre-1.0 and not deployed to a production or user-facing environment
+  * set removal of the replaced path, its tests, its configuration, and its documentation in the same change as a `{{contract_postconditions}}` requirement under LOCAL-CUT-001
+  * treat a retained old path as allowed only when a released or deployed consumer depends on it today
+  * record that consumer and the condition that retires the old path as contract evidence when a path is retained
+  * if the planned edit keeps a deprecated shim, compatibility alias, legacy fallback, version-suffixed duplicate, gating flag, or unreferenced file without a named released or deployed consumer
+    * set `{{blocker}}` to `pre-1.0 and undeployed code requires a hard cutover; planned edit leaves deprecated or unused legacy code`
+    * repair the contract and implementation plan to delete the replaced path in the same change
+    * [Define Implementation Contract](#define-implementation-contract)
+
 * if the system already knows a fact through structured data, typed state, product contracts, telemetry, or events
   * use deterministic code or product state instead of asking a model to reconstruct it
 
@@ -103,6 +112,13 @@
   * analyze cardinality of every new or changed OTEL metric dimension, span attribute, resource attribute, log attribute, and event label before completing the edit
   * bound or reject unbounded high-cardinality label and attribute keys before ship
   * treat missing OTEL instrumentation or missing cardinality analysis as a release-blocking construction defect, not a deferred nicety
+
+* for work that replaces, renames, or migrates code that is pre-1.0 and not deployed to a production or user-facing environment
+  * move every call site to the replacement in this same change
+  * delete the replaced path in this same change
+  * delete the replaced path's tests, configuration, documentation, and now-unreferenced files with it
+  * do not introduce `@deprecated`, `DEPRECATED`, `legacy`, `old`, or backwards-compatibility markers for that code
+  * treat deprecated, legacy, or unreferenced code left behind as a release-blocking construction defect, not a deferred cleanup
 
 * when the bug or contract is general (every event schema, every JSON hop, every selection), fix the shared mechanism — never an ad-hoc branch that only makes one name, one stimulus, or one product work
 

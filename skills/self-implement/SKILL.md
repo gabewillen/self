@@ -109,6 +109,10 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
   * require cardinality analysis for every new or changed OTEL signal under CORE-OBS-002
   * do not treat OTEL instrumentation or cardinality analysis as optional, deferred, or skippable for that code work
 
+* for work that replaces, renames, or migrates code that is pre-1.0 and not deployed to a production or user-facing environment
+  * require a hard cutover in the same change under LOCAL-CUT-001
+  * do not leave deprecated shims, compatibility aliases, legacy fallbacks, version-suffixed duplicates, or unreferenced files behind
+
 ## Select Implementation Rules
 
 * run [Select Implementation Rules](workflows/select-implementation-rules.mdscript.md#select-implementation-rules)

@@ -39,6 +39,13 @@
     * repair the instrumentation or record the cardinality analysis
     * [Verify Real Proof](#verify-real-proof)
 
+* if the work replaced, renamed, or migrated code that is pre-1.0 and not deployed to a production or user-facing environment
+  * search the diff and the repository for the replaced symbols, files, flags, and documentation to prove the old path is gone
+  * if a deprecated shim, compatibility alias, legacy fallback, version-suffixed duplicate, gating flag, or unreferenced file survives without a named released or deployed consumer
+    * set `{{blocker}}` to `pre-1.0 and undeployed code requires a hard cutover; deprecated or unused legacy code survives the change`
+    * delete the surviving legacy path
+    * [Verify Real Proof](#verify-real-proof)
+
 * if `{{proof_path}}` is available but fails, is stale, exceeds a declared invariant such as CI budget, or does not match `{{contract_postconditions}}`
   * repair the proof path or implementation
   * [Verify Real Proof](#verify-real-proof)

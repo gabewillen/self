@@ -17,3 +17,22 @@ A signature the change does not own — a language builtin, a framework entrypoi
 Positional arguments remain acceptable for a single unambiguous argument that is not a boolean, number, or bare enum, in any language.
 
 A bare boolean, magic number, or bare enum at a call site is forbidden in every case; the exemption above changes how it is named, never whether it is.
+
+# LOCAL-CUT-001 MUST Hard Cutover Before Release
+
+Code that has not reached a 1.0 release and has not been deployed to a production or user-facing environment carries no external compatibility obligation, so every replacement, rename, or migration in it MUST be a hard cutover.
+
+The same change MUST move every call site to the replacement and MUST delete the replaced code path, its tests, its configuration, and its documentation.
+
+Deprecated shims, compatibility aliases, legacy fallbacks, re-export bridges, dual code paths kept in case the new one fails, version-suffixed duplicates such as `fooV2` beside `foo`, flags that gate the old path, and orphaned files left unreferenced MUST NOT survive the change.
+
+Deprecation markers such as `@deprecated`, `DEPRECATED`, `legacy`, `old`, or "kept for backwards compatibility" MUST NOT be introduced for pre-1.0 or undeployed code; deletion is the only allowed disposition, because version control preserves the replaced code.
+
+See:
+- [CORE-DOC-001](core.rules.md#core-doc-001-must-not-keep-change-history-in-comments-and-docs)
+
+A staged migration, dual-write window, or retained old path is allowed only when a released or deployed consumer depends on the old path today.
+
+The change MUST name that consumer and the condition that retires the old path; an unnamed or hypothetical future consumer does not justify keeping it.
+
+Deprecated, legacy, or unreferenced code left behind by a pre-1.0 or predeployment cutover is a release-blocking defect.
