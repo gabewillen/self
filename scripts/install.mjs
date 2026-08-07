@@ -2224,21 +2224,39 @@ function installInto(targetRoot, units, skillsRoot) {
   return installed;
 }
 
+const KNOWN_AGENT_HOMES = [
+  ".claude",
+  ".cursor",
+  ".codex",
+  ".grok",
+  ".copilot",
+  ".qwen",
+];
+
 function detectAgentSkillRoots() {
   const home = homedir();
-  const candidates = [
-    join(home, ".agents", "skills"),
-    join(home, ".claude", "skills"),
-    join(home, ".cursor", "skills"),
-    join(home, ".codex", "skills"),
-    join(home, ".grok", "skills"),
-    join(home, ".copilot", "skills"),
-    join(home, ".qwen", "skills"),
-  ];
   const roots = [join(home, ".agents", "skills")];
-  for (const c of candidates.slice(1)) {
-    const agentHome = dirname(c);
-    if (existsSync(agentHome)) roots.push(c);
+  for (const name of KNOWN_AGENT_HOMES) {
+    const agentHome = join(home, name);
+    if (existsSync(agentHome)) roots.push(join(agentHome, "skills"));
+  }
+  // Flexible discovery: any other hidden home dir that already owns a
+  // skills/ directory is treated as an agent harness target too, so new
+  // harnesses (e.g. ~/.bb) are picked up without editing this list.
+  const skip = new Set([".agents", ...KNOWN_AGENT_HOMES]);
+  let entries = [];
+  try {
+    entries = readdirSync(home, { withFileTypes: true });
+  } catch {
+    entries = [];
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.startsWith(".")) continue;
+    if (skip.has(entry.name)) continue;
+    const skillsDir = join(home, entry.name, "skills");
+    if (existsSync(skillsDir) && statSync(skillsDir).isDirectory()) {
+      roots.push(skillsDir);
+    }
   }
   return [...new Set(roots)];
 }
