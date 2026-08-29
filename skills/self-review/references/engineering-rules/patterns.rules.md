@@ -86,6 +86,16 @@ Events crossing actor, machine, process, or transport boundaries MUST be typed o
 
 Event payload ownership and lifetime MUST be explicit.
 
+# PAT-EVENT-002 MUST Prefer Event-Driven Updates Over Polling
+
+See:
+- [PAT-EVENT-001](#pat-event-001-must-typed-event-boundaries)
+- [CORE-STATE-001](core.rules.md#core-state-001-must-single-source-of-truth)
+
+Behavior MUST be driven by events that carry the change, not by polling shared state on a timer or through a shared reference.
+
+Polling shared state on a timer is allowed only when an event-driven path is not possible, and the design MUST state why the event path is not possible.
+
 # PAT-ASYNC-001 MUST Async Work Return Events
 
 See:
