@@ -1,0 +1,112 @@
+{
+  "ship_feature": {
+    "goal": "Ship a feature branch to staging, composing shared checks + deploy.",
+    "world": {
+      "inputs": {
+        "branch": "feature/checkout"
+      },
+      "command_results": {
+        "npm run typecheck": "pass",
+        "npm run test -- --coverage": "pass, coverage 88%",
+        "npm run build": "pass",
+        "deploy": "success",
+        "health_check": [
+          "pass"
+        ]
+      },
+      "user_answers": {}
+    },
+    "checks": [
+      {
+        "check": "event",
+        "event": "ENTER_SUBWORKFLOW",
+        "contains": [
+          "check"
+        ],
+        "desc": "follows into the shared checks component"
+      },
+      {
+        "check": "event",
+        "event": "RUN_COMMAND",
+        "contains": [
+          "typecheck"
+        ],
+        "desc": "runs typecheck (from the shared checks component)"
+      },
+      {
+        "check": "event",
+        "event": "ENTER_SUBWORKFLOW",
+        "contains": [
+          "deploy"
+        ],
+        "desc": "follows into the shared deploy component"
+      },
+      {
+        "check": "event",
+        "event": "HEALTH_CHECK",
+        "desc": "runs the health check (from the shared deploy component)"
+      },
+      {
+        "check": "event",
+        "event": "COMPLETE",
+        "desc": "completes end-to-end across components"
+      }
+    ]
+  },
+  "hotfix": {
+    "goal": "Ship a hotfix to production, composing shared checks + deploy.",
+    "world": {
+      "inputs": {
+        "branch": "hotfix/urgent"
+      },
+      "command_results": {
+        "npm run typecheck": "pass",
+        "npm run test -- --coverage": "pass, coverage 91%",
+        "npm run build": "pass",
+        "deploy": "success",
+        "health_check": [
+          "pass"
+        ]
+      },
+      "user_answers": {
+        "confirm": "yes"
+      }
+    },
+    "checks": [
+      {
+        "check": "event",
+        "event": "REQUEST_CONFIRMATION",
+        "desc": "confirms the production hotfix"
+      },
+      {
+        "check": "event",
+        "event": "ENTER_SUBWORKFLOW",
+        "contains": [
+          "check"
+        ],
+        "desc": "follows into the shared checks component"
+      },
+      {
+        "check": "event",
+        "event": "ENTER_SUBWORKFLOW",
+        "contains": [
+          "deploy"
+        ],
+        "desc": "follows into the shared deploy component"
+      },
+      {
+        "check": "output",
+        "key": "environment",
+        "contains": [
+          "production"
+        ],
+        "desc": "deploys to production"
+      },
+      {
+        "check": "event",
+        "event": "COMPLETE",
+        "desc": "completes end-to-end across components"
+      }
+    ]
+  }
+}

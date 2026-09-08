@@ -1,0 +1,23 @@
+# Reusable deploy + verify step (shared module).
+# Expects state with `artifact`, `environment`, `deploy_url`.
+import lmql
+
+
+@lmql.query
+async def deploy(state):
+    '''lmql
+    if (await tool.deploy(state["artifact"], state["environment"])).failed:
+        await tool.rollback()
+        await tool.notify_team("deploy failed, rolled back")
+        state["result"] = "deploy failed"
+        return state
+    await tool.notify_team(f"deployed {state['artifact']} to {state['environment']}")
+    for _ in range(3):
+        if (await tool.health(f"{state['deploy_url']}/health")).ok:
+            state["result"] = "deploy complete"
+            return state
+    await tool.rollback()
+    await tool.notify_team("health checks failed, rolled back")
+    state["result"] = "rolled back after failed health checks"
+    return state
+    '''

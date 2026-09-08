@@ -1,0 +1,951 @@
+{
+  "mode": "skill",
+  "summary": [
+    {
+      "system": "mdscript",
+      "mode": "skill",
+      "checklist_pct": 97.7,
+      "checklist_sd": 8.9,
+      "judge_mean": 8.69,
+      "n": 32
+    }
+  ],
+  "perCase": [
+    {
+      "k": "deploy_branch::mdscript",
+      "pct": 100
+    },
+    {
+      "k": "release_notes::mdscript",
+      "pct": 95.8
+    },
+    {
+      "k": "onboard_service::mdscript",
+      "pct": 96
+    }
+  ],
+  "disagreements": [
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "health_exhausted_then_recovers",
+      "repeat": 2,
+      "checklist": 100,
+      "judge": 6
+    }
+  ],
+  "rows": [
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "happy_path",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 6,
+      "checklist_total": 6,
+      "checklist_detail": [
+        {
+          "desc": "runs typecheck",
+          "pass": true
+        },
+        {
+          "desc": "runs build",
+          "pass": true
+        },
+        {
+          "desc": "notifies team on success",
+          "pass": true
+        },
+        {
+          "desc": "marks deploy complete",
+          "pass": true
+        },
+        {
+          "desc": "no confirmation prompts when nothing risky",
+          "pass": true
+        },
+        {
+          "desc": "no rollback on a clean deploy",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly executes the full happy-path scenario: branch selection, both check commands (typecheck + test with coverage), artifact build, deploy to staging, Slack notification, health check on attempt 1 of 3, and a success completion event. All outputs are populated and internally consistent. The only minor flaw is that the artifact path retains an unresolved {{timestamp}} placeholder rather than a concrete value, which is a template rendering gap but does not affect workflow logic or branch correctness. All scenario conditions \u2014 checks pass, deploy succeeds, health passes first try \u2014 are handled correctly."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "happy_path",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 6,
+      "checklist_total": 6,
+      "checklist_detail": [
+        {
+          "desc": "runs typecheck",
+          "pass": true
+        },
+        {
+          "desc": "runs build",
+          "pass": true
+        },
+        {
+          "desc": "notifies team on success",
+          "pass": true
+        },
+        {
+          "desc": "marks deploy complete",
+          "pass": true
+        },
+        {
+          "desc": "no confirmation prompts when nothing risky",
+          "pass": true
+        },
+        {
+          "desc": "no rollback on a clean deploy",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly executes all required states in order: branch selection, checks (typecheck + test both passing), build, deploy (success), and health verification passing on the first attempt \u2014 matching the scenario's happy-path intent exactly. Outputs are consistent with events. The only minor issue is the unresolved {{timestamp}} placeholder in the artifact name, which suggests the templating was not fully evaluated, but this does not affect workflow correctness. The Slack notification is a sensible addition. No missing states, no wrong branches taken."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "missing_branch",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "asks for the missing branch",
+          "pass": true
+        },
+        {
+          "desc": "uses the branch the user supplied",
+          "pass": true
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The workflow correctly handles the key scenario requirement: when the branch is empty, it enters \"Select Branch\" state and immediately asks the user which branch to deploy before proceeding with any other work. After receiving user input, it re-checks the branch selection, then proceeds through the full happy path: running checks (typecheck + test with coverage), building the artifact, deploying to staging with a Slack notification, and verifying health. All outputs are coherent (branch, environment, deploy URL, artifact, health check status). The conditional branch behavior (ask for branch when empty) is properly exercised. A minor deduction for only running 1/3 health check attempts rather than showing the full retry logic, and not explicitly showing what environment was selected (though outputs confirm staging). Overall the trace is complete and correct for the scenario."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "missing_branch",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "asks for the missing branch",
+          "pass": true
+        },
+        {
+          "desc": "uses the branch the user supplied",
+          "pass": true
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles the core scenario requirement: when the branch field is empty, the workflow immediately enters a \"Select Branch\" state and asks the user \"Which branch do you want to deploy?\" before taking any other action. No checks, builds, or deployments were attempted prematurely. After receiving the branch (feature/login), the workflow proceeds through the complete happy-path sequence \u2014 typecheck, test with coverage, build, deploy with Slack notification, and health verification. All outputs are populated and internally consistent. The only minor gap is that there is no explicit USER_RESPONSE event showing the user providing the branch value (the trace jumps from ASK_USER directly to ENTER_STATE: Run Checks), which makes the interaction slightly implicit, but the outputs confirm the branch was obtained correctly. Everything the scenario is designed to exercise is present and correct."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "main_declined",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 4,
+      "checklist_total": 4,
+      "checklist_detail": [
+        {
+          "desc": "asks for confirmation before deploying main",
+          "pass": true
+        },
+        {
+          "desc": "stops because approval was declined",
+          "pass": true
+        },
+        {
+          "desc": "never builds when not approved",
+          "pass": true
+        },
+        {
+          "desc": "nothing to roll back",
+          "pass": true
+        }
+      ],
+      "judge": 8,
+      "judge_notes": "The trace correctly handles the core scenario requirement: when the branch is main and the user declines approval, the workflow aborts before running any checks or deploying. The three events show the correct sequence \u2014 enter branch selection state, request confirmation, then abort on decline. No checks were run and no deploy was attempted.\n\nMinor issues that prevent a perfect score:\n1. The `final_state` in outputs is \"Select Branch\" which is slightly odd \u2014 after aborting, the final state should arguably be something like \"Aborted\" rather than \"Select Branch\", which implies the workflow is still at the branch selection stage rather than having cleanly terminated.\n2. The `deploy_url` being populated (\"https://prod.example.test\") in the outputs is unexpected for an aborted workflow \u2014 this value should not be present or should be null/empty since no deployment occurred. This is a minor data hygiene issue but suggests the output schema wasn't properly cleaned up for the abort path.\n\nThe critical behavior (stop before checks or deploy when main branch approval is declined) is correctly implemented, so the score is high but not perfect due to the output inconsistencies."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "main_declined",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 4,
+      "checklist_total": 4,
+      "checklist_detail": [
+        {
+          "desc": "asks for confirmation before deploying main",
+          "pass": true
+        },
+        {
+          "desc": "stops because approval was declined",
+          "pass": true
+        },
+        {
+          "desc": "never builds when not approved",
+          "pass": true
+        },
+        {
+          "desc": "nothing to roll back",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles the scenario. When the branch is main, the workflow enters a confirmation step and requests approval before proceeding. Upon user declining, it immediately aborts with a clear reason \u2014 \"User declined approval to deploy main branch to production.\" No checks were run and no deploy occurred, which is exactly what the scenario requires. The events are minimal and correct: SELECT_BRANCH, REQUEST_CONFIRMATION, ABORT. The outputs confirm approval_status as \"declined\" and document that the workflow stopped at the confirmation step. The only minor issue is that deploy_url is populated in outputs (\"https://prod.example.test\") even though no deploy occurred \u2014 this is a slight inconsistency, as a truly clean abort would either omit or nullify that field. However, the core behavior (stop before checks and deploy upon declined approval for main) is correctly implemented."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "low_coverage_proceed",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "proceeds to build after user agrees",
+          "pass": true
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles all branches of the scenario: coverage detected below threshold (72% vs 80%), user confirmation requested and recorded as proceeding, build and deploy executed successfully, Slack notification sent, health check passed, and deployment verified. The only minor issue is the unresolved `{{timestamp}}` literal in the artifact name, suggesting a template substitution that was not performed, but this does not affect the logical correctness of the workflow path. All scenario-critical events are present and in the correct order."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "low_coverage_proceed",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "proceeds to build after user agrees",
+          "pass": true
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly exercises all branches of the scenario: coverage detected below 80% threshold (72%), user prompted and confirms to proceed, build and deploy execute successfully, Slack notification sent, and health check passes on first attempt. Outputs accurately reflect the conditional state with coverage_check_passed=false and user_proceeded_low_coverage=true. The only minor gap is the Slack notification appearing before the health check rather than after full verification, which is a minor sequencing ambiguity but does not materially affect correctness. All required scenario branches are handled correctly and completely."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "low_coverage_declined",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "cancels when user declines",
+          "pass": true
+        },
+        {
+          "desc": "does not build after cancel",
+          "pass": true
+        }
+      ],
+      "judge": 8,
+      "judge_notes": "The trace correctly implements the scenario's critical branch: checks run first, coverage threshold violation (72% < 80%) is detected, user is prompted for confirmation, and the workflow is cancelled (ABORT) before any build or deploy steps execute. The event sequence is clean and complete. Minor issues: the outputs include a deploy_url value despite no deployment occurring, and coverage_result is labeled \"pass with 72% coverage\" which is slightly contradictory since the threshold was not met. These are output metadata inconsistencies rather than behavioral errors \u2014 the actual workflow control flow (no build, no deploy after user decline) is correct."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "low_coverage_declined",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "cancels when user declines",
+          "pass": true
+        },
+        {
+          "desc": "does not build after cancel",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles all critical branches: runs checks, detects 72% coverage below the 80% threshold, prompts the user for confirmation, receives a decline, and aborts before the build and deploy stages. The outputs clearly reflect the halted state with user_proceeded=false and workflow_halted_at=\"Run Checks\". The only minor issue is that deploy_url appears in outputs despite no deployment occurring, which could be slightly misleading, but the other output fields unambiguously confirm the workflow was cancelled. This is a near-perfect execution of the intended scenario."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "deploy_fails_then_recovers",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 4,
+      "checklist_total": 4,
+      "checklist_detail": [
+        {
+          "desc": "rolls back on deploy failure",
+          "pass": true
+        },
+        {
+          "desc": "notifies team that the deploy failed",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after failure",
+          "pass": true
+        },
+        {
+          "desc": "eventually completes after recovery",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles all required scenario branches: checks pass, first deploy triggers rollback and team notification, workflow returns to Select Branch, second attempt re-runs checks and build before deploying again, second deploy succeeds with success notification, health check passes, and workflow completes. The sequencing is correct throughout. Minor deduction for the success notification appearing before entering the Verify Deployment state (debatable ordering) and the {{timestamp}} placeholder left unresolved in artifact names, but neither is a functional correctness issue for the scenario being evaluated."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "deploy_fails_then_recovers",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 4,
+      "checklist_total": 4,
+      "checklist_detail": [
+        {
+          "desc": "rolls back on deploy failure",
+          "pass": true
+        },
+        {
+          "desc": "notifies team that the deploy failed",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after failure",
+          "pass": true
+        },
+        {
+          "desc": "eventually completes after recovery",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles all required scenario branches: checks pass, first deploy fails with rollback and notification, returns to Select Branch, user re-supplies same branch, second deploy succeeds with success notification, health check passes, and workflow completes. All key events (ROLLBACK, NOTIFY on failure, loop back to Select Branch, NOTIFY on success, HEALTH_CHECK, COMPLETE) are present and in the correct order. The only minor imperfection is that the trace uses a placeholder `{{timestamp}}` in artifact names rather than a resolved value, but this is a cosmetic issue that does not affect correctness of the branch handling."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "health_exhausted_then_recovers",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "retries health check up to 3 times",
+          "pass": true
+        },
+        {
+          "desc": "rolls back after health exhaustion",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after rollback",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles all scenario-critical branches: 3 health check failures trigger rollback, team notification occurs, workflow returns to Select Branch and re-prompts the user, a full second cycle runs (checks, build, deploy), and the health check passes on the first attempt of the second round. The final_status is correctly \"success\". Minor deduction: the Slack success notification fires before the second-pass health check completes, which is slightly out of order (success should only be announced after health confirmation). The {{timestamp}} placeholder is unresolved but is a representation artifact, not a logic error. Everything else \u2014 state transitions, retry counting, rollback trigger, re-entry to Select Branch \u2014 is correct and complete."
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "health_exhausted_then_recovers",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "retries health check up to 3 times",
+          "pass": true
+        },
+        {
+          "desc": "rolls back after health exhaustion",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after rollback",
+          "pass": true
+        }
+      ],
+      "judge": 6,
+      "judge_notes": "The trace correctly handles the core scenario branches: proper state machine traversal (Select Branch \u2192 Run Checks \u2192 Build Artifact \u2192 Deploy \u2192 Verify Deployment), deploy success notification, 3 consecutive health check failures triggering a rollback, rollback notification, and return to Select Branch for a second round. These are all correct.\n\nThe critical flaw is in round 2: the health check retry limit is applied inconsistently. Round 1 correctly enforces a 3-attempt limit and rolls back. Round 2 runs 3 failing attempts (which should trigger another rollback by the same logic) but then adds a 4th attempt that passes instead. This contradicts the rule established in round 1 and produces an internally inconsistent workflow. The scenario says \"second round health passes,\" which should mean health passes within the same allowed retry window \u2014 not that the limit is silently extended. The final outcome is directionally correct (eventually succeeds after rollback) but the mechanism violates its own stated rules, which is a meaningful correctness defect in branch/conditional handling."
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "range_given_all_categories",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 5,
+      "checklist_total": 5,
+      "checklist_detail": [
+        {
+          "desc": "collects commits with git log",
+          "pass": true
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": true
+        },
+        {
+          "desc": "has a Features section",
+          "pass": true
+        },
+        {
+          "desc": "has a Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "has a Maintenance section",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The workflow correctly handles all scenario requirements: uses the supplied range (v1.4.0..HEAD), collects 5 commits spanning all three types (features, fixes, chores), categorizes them accurately, writes CHANGELOG.md with three populated sections, asks about regeneration, and correctly follows the \"no regenerate\" branch to completion. The only minor issue is the non-standard \"bug:\" prefix commit (vs \"fix:\") but it's correctly categorized. The regeneration branch behavior is properly exercised - the user was prompted and declined, matching the scenario's \"no regenerate\" intent."
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "range_given_all_categories",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 5,
+      "checklist_total": 5,
+      "checklist_detail": [
+        {
+          "desc": "collects commits with git log",
+          "pass": true
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": true
+        },
+        {
+          "desc": "has a Features section",
+          "pass": true
+        },
+        {
+          "desc": "has a Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "has a Maintenance section",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles all aspects of the scenario: the supplied git range (v1.4.0..HEAD) is used to collect commits, all 5 commits are gathered, categorization is accurate (feat\u2192Features, fix+bug\u2192Bug Fixes, docs+chore\u2192Maintenance), CHANGELOG.md is written with three sections, and the \"no regenerate\" branch is correctly exercised (user asked, answered no, workflow terminates without regenerating). State transitions are logical and complete. Minor deduction: the scenario description says \"no regenerate\" but it's ambiguous whether the workflow should ask at all or simply skip asking \u2014 the trace chose to ask and honor the \"no\" answer, which is the more robust and correct interpretation. Overall a strong, complete execution."
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "infer_range",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "looks up the most recent tag",
+          "pass": true
+        },
+        {
+          "desc": "collects commits after inferring the range",
+          "pass": true
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles the primary scenario requirement: when no range is provided, it runs `git describe --tags` to discover the latest tag (v2.1.0) and constructs the range as `v2.1.0..HEAD`. All required states are entered in order (Gather Changes \u2192 Categorize Commits \u2192 Generate Notes), commits are properly collected and categorized into Features and Bug Fixes, CHANGELOG.md is written with appropriate sections, and the optional regeneration branch is exercised (user declined). The execution is complete and correct. A small deduction for not showing the full CHANGELOG.md content in outputs, but functionally this trace demonstrates correct handling of all scenario branches."
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "infer_range",
+      "repeat": 2,
+      "checklist_coverage": 0.6666666666666666,
+      "checklist_passed": 2,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "looks up the most recent tag",
+          "pass": true
+        },
+        {
+          "desc": "collects commits after inferring the range",
+          "pass": false
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles the core scenario requirement: when the range is empty, it infers the git range by running `git describe --tags` to find the most recent tag (v2.1.0) and constructs `v2.1.0..HEAD`. Commits are then collected from that range, properly categorized into features and fixes (with chores correctly empty), and CHANGELOG.md is written with only the relevant sections (Features and Bug Fixes, omitting Maintenance since chores=[]). The conditional branch for skipping the empty Maintenance section is handled correctly. The user interaction branch (ask to regenerate, user says no, workflow completes) is also exercised properly. The trace is complete and logically consistent. Minor deduction: the trace shows the range inference happening somewhat implicitly (the scenario value is used directly rather than showing explicit empty-range detection and fallback logic), but the outcome is correct and the right command is run to handle the empty-range case."
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "only_features",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "writes the Features section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Maintenance section",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles the scenario end-to-end: git range is used to collect 2 commits, both are correctly categorized as features (fixes and chores arrays are empty), CHANGELOG.md is written with only the Features section (the key conditional branch behavior), and the workflow completes successfully. The outputs clearly confirm only \"Features\" in sections. A minor point is the ASK_USER regenerate step which may or may not be part of the expected workflow spec, but it does not break correctness. Overall the scenario's branch behavior (all-features \u2192 only Features section written) is properly exercised."
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "only_features",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "writes the Features section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Maintenance section",
+          "pass": true
+        }
+      ],
+      "judge": 8,
+      "judge_notes": "The workflow correctly accomplished the core task: collected commits in range via git log, categorized them all as features, and wrote CHANGELOG.md with only the Features section (omitting empty Bug Fixes and Maintenance sections). The critical branch behavior \u2014 writing only the Features section when all commits are features \u2014 was handled correctly. The two feature commits (\"feat: dark mode\" and \"feature: keyboard shortcuts\") were properly included. A minor deduction is warranted for the ASK_USER step asking whether to regenerate, which introduces an unnecessary human interaction not described in the task requirements and adds friction, though it did not break correctness. Overall the scenario's intended conditional behavior was exercised properly."
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "regenerate_once",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 2,
+      "checklist_total": 2,
+      "checklist_detail": [
+        {
+          "desc": "writes the changelog again on regenerate",
+          "pass": true
+        },
+        {
+          "desc": "stops after the user declines a second regenerate",
+          "pass": true
+        }
+      ],
+      "judge": 10,
+      "judge_notes": "The trace executes the gather-categorize-write cycle exactly twice as the scenario requires. First cycle: commits gathered via git log, categorized into Features and Maintenance, CHANGELOG.md written, user asked to regenerate and answered \"yes\". Second cycle: full repeat of all three stages (Gather, Categorize, Generate Notes), CHANGELOG.md written again, user asked to regenerate and answered \"no\", workflow terminates cleanly. All state transitions are present and in correct order, the conditional branch (yes/no on regenerate) is handled correctly, and the file is written the expected number of times (2). No missing steps or incorrect behavior detected."
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "regenerate_once",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 2,
+      "checklist_total": 2,
+      "checklist_detail": [
+        {
+          "desc": "writes the changelog again on regenerate",
+          "pass": true
+        },
+        {
+          "desc": "stops after the user declines a second regenerate",
+          "pass": true
+        }
+      ],
+      "judge": 10,
+      "judge_notes": "The trace executes the gather-categorize-write cycle exactly twice as required by the scenario. First cycle: gathers commits via git log v1.0.0..HEAD, categorizes them, generates notes, writes CHANGELOG.md, then asks to regenerate. User answers yes, triggering a full second cycle: re-gathers, re-categorizes, re-generates, writes CHANGELOG.md a second time, then asks again. User answers no, workflow terminates cleanly. All states are entered in correct order, the conditional branch (yes/no) is handled properly both times, changelog_writes=2 confirms both file writes, and final_regenerate_answer=\"no\" confirms correct stop condition. No missing steps, no wrong behavior."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "kebab_reject_then_fix",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "warns the name must be kebab-case and re-asks",
+          "pass": true
+        },
+        {
+          "desc": "uses the corrected kebab-case name",
+          "pass": true
+        },
+        {
+          "desc": "scaffolds the service README",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles the core scenario branch: it detects the non-kebab name \"Billing Api\", issues a descriptive warning via ASK_USER, and loops back to re-ask before proceeding. The corrected name \"billing-api\" is used consistently throughout all subsequent states and file paths. The full workflow completes with all expected states (Choose Language, Pick Stack, Configure Deployment, Scaffold, Verify) and produces correct outputs. A point is withheld only because the loop-back is shown as a state entry with an explicit descriptive label rather than a clean re-entry into the original Name Service state, which is a minor representational awkwardness, but the functional behavior is entirely correct."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "kebab_reject_then_fix",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "warns the name must be kebab-case and re-asks",
+          "pass": true
+        },
+        {
+          "desc": "uses the corrected kebab-case name",
+          "pass": true
+        },
+        {
+          "desc": "scaffolds the service README",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles the core scenario requirement: when given 'Billing Api' (a non-kebab-case name with spaces and capitals), the workflow detects the invalid name, emits a clear ASK_USER warning explaining the kebab-case requirement, and re-asks before proceeding. After receiving the corrected name 'billing-api', it continues through all the expected states: Choose Language, Pick Stack (database, messaging, HTTP framework), Configure Deployment (target, health endpoint), Scaffold (writing appropriate files), and Verify. The scaffold outputs are correct \u2014 the corrected kebab-case name is used throughout, files are created in the right path (services/billing-api/), and the final summary is accurate. The only minor issue is the trace shows \"ENTER_STATE: Name Service (recursive, after receiving corrected name)\" which implies the corrected name was accepted without showing an explicit ASK_USER event for the re-ask of the name itself, but the warning+re-ask intent is clearly present and the corrected name was accepted. All branches (warn, re-ask, proceed) are exercised correctly. A small deduction for the slightly implicit handling of the \"re-ask\" step rather than showing a distinct ASK_USER for the corrected name input."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "go_compose_sqlite_nats",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 6,
+      "checklist_total": 6,
+      "checklist_detail": [
+        {
+          "desc": "writes docker-compose.yml for Compose target",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for SQLite",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for NATS",
+          "pass": true
+        },
+        {
+          "desc": "no Kubernetes Dockerfile for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "no Lambda serverless.yml for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "does not init git when declined",
+          "pass": true
+        }
+      ],
+      "judge": 7,
+      "judge_notes": "The trace correctly handles all four technology choices (Go, Docker Compose, SQLite, NATS) and both conditional branches (git no, run no). State transitions are well-structured: naming, language, stack, deployment, scaffolding, git prompt (skipped), run prompt (skipped), completion. However, the scaffold is missing a Dockerfile (required for docker-compose.yml to reference) and go.mod (required for any Go project to build). These are not optional artifacts for a working Docker Compose Go service \u2014 their absence means the generated scaffold would not actually function. The branch behavior and choice mapping score well; the file completeness is the main gap."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "go_compose_sqlite_nats",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 6,
+      "checklist_total": 6,
+      "checklist_detail": [
+        {
+          "desc": "writes docker-compose.yml for Compose target",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for SQLite",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for NATS",
+          "pass": true
+        },
+        {
+          "desc": "no Kubernetes Dockerfile for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "no Lambda serverless.yml for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "does not init git when declined",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles all scenario branches: Go language selected with main.go generated, SQLite with db.go, NATS with messaging.go, Docker Compose with docker-compose.yml. The conditional branches for git=no and run=no are both exercised \u2014 questions asked, no=recorded, no corresponding actions taken. State transitions are logical and complete. The only minor gap is that the \"Name Service\" state doesn't show an explicit ASK_USER event for collecting the service name, though \"orders\" correctly appears in outputs. All other workflow elements are properly handled, including health endpoint and HTTP framework questions during their respective phases."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "ts_k8s_helm_postgres_kafka",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 6,
+      "checklist_total": 6,
+      "checklist_detail": [
+        {
+          "desc": "writes a Dockerfile for Kubernetes",
+          "pass": true
+        },
+        {
+          "desc": "writes a k8s deployment manifest",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for PostgreSQL",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for Kafka",
+          "pass": true
+        },
+        {
+          "desc": "initializes git when requested",
+          "pass": true
+        },
+        {
+          "desc": "no Compose file for a Kubernetes target",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handled all required scenario branches: TypeScript language, Kubernetes deployment target with Helm enabled, PostgreSQL database module, Kafka messaging module, git initialization, and skipping local run. All files were actually created on disk with appropriate content (confirmed by filesystem verification). The health endpoint was included in index.ts and referenced in the k8s deployment. The Helm chart was scaffolded with Chart.yaml and templates directory. Git was initialized with a fresh repo (no commits yet). The docker-compose was correctly omitted for Kubernetes target. Minor deductions: the trace log only mentions Chart.yaml but a templates directory also exists (logging incomplete but scaffold is correct); one redundant k8s-deployment.yaml at root level exists but appears to be a pre-existing artifact (timestamp 21:58 vs trace files at 22:13). Overall the execution correctly and completely addressed all conditional branches the scenario is designed to exercise."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "ts_k8s_helm_postgres_kafka",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 6,
+      "checklist_total": 6,
+      "checklist_detail": [
+        {
+          "desc": "writes a Dockerfile for Kubernetes",
+          "pass": true
+        },
+        {
+          "desc": "writes a k8s deployment manifest",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for PostgreSQL",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for Kafka",
+          "pass": true
+        },
+        {
+          "desc": "initializes git when requested",
+          "pass": true
+        },
+        {
+          "desc": "no Compose file for a Kubernetes target",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles all scenario branches: TypeScript selected, PostgreSQL and Kafka stack configured, Kubernetes deployment with Helm (helm=yes produces Chart.yaml + values.yaml), git initialized (GIT_INIT event fired, git_initialized=true in outputs), and run skipped (Verify state explicitly notes skipping local run per user_answers). All expected scaffold files are written: main.ts, Dockerfile, deployment.yaml, db.ts (PostgreSQL), messaging.ts (Kafka), Chart.yaml, values.yaml, README.md. The only minor issues are: (1) having both a raw deployment.yaml and Helm charts is slightly redundant in practice but acceptable for scaffolding; (2) a small inconsistency between WRITE_FILE paths (/tmp/mdscript_exec/services/gateway) and outputs.service_path (services/gateway), which is cosmetic. Overall, every conditional branch the scenario was designed to exercise (Helm=yes, git=yes, run=no, PostgreSQL, Kafka, TypeScript, Kubernetes) is handled correctly and completely."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "rust_lambda_nostack_run",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 5,
+      "checklist_total": 5,
+      "checklist_detail": [
+        {
+          "desc": "asks for Lambda memory size",
+          "pass": true
+        },
+        {
+          "desc": "writes serverless.yml for Lambda",
+          "pass": true
+        },
+        {
+          "desc": "no database module when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "no messaging stub when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "starts the service locally when asked",
+          "pass": true
+        }
+      ],
+      "judge": 7,
+      "judge_notes": "The trace correctly handles all major scenario branches: Rust language, Lambda deployment with 512 MB memory, no database, no messaging, git initialization declined, and local run executed. The deployment configuration correctly captures memory_size=512 in serverless.yml. Branch logic flows correctly throughout. Two notable issues lower the score: (1) Cargo.toml is absent from the files_created list \u2014 a Rust project cannot compile without it, making the scaffold non-functional as delivered; (2) there is a path inconsistency where service_path is \"services/auth\" but all files are written to \"/tmp/auth/\", suggesting a disconnect between the declared output and actual file placement. The extra health_endpoint question is reasonable. Overall the branching and decision logic is correct but the scaffold output is incomplete for Rust specifically."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "rust_lambda_nostack_run",
+      "repeat": 2,
+      "checklist_coverage": 0.6,
+      "checklist_passed": 3,
+      "checklist_total": 5,
+      "checklist_detail": [
+        {
+          "desc": "asks for Lambda memory size",
+          "pass": false
+        },
+        {
+          "desc": "writes serverless.yml for Lambda",
+          "pass": true
+        },
+        {
+          "desc": "no database module when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "no messaging stub when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "starts the service locally when asked",
+          "pass": false
+        }
+      ],
+      "judge": 7,
+      "judge_notes": "All scenario branches were correctly exercised: Rust language, Lambda with 512 MB memory, no database, no messaging, git skipped, and local run triggered. The conditional logic throughout the workflow is sound and all outputs match the scenario intent. The primary deficiency is a missing Cargo.toml \u2014 a Rust project cannot be built or run locally without it, making the \"run locally\" step unrealistic in practice. The files were also written to /tmp/ rather than services/auth (minor path discrepancy). The \"raw HTTP server\" framing for a Lambda deployment is slightly conceptually misaligned (Lambda uses event-driven handlers, not a listening server), though this does not affect branch scoring. Overall, the branching behavior is complete and correct, but the scaffold itself is meaningfully incomplete for Rust."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "custom_runtime",
+      "repeat": 1,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "asks for a custom runtime when language is other",
+          "pass": true
+        },
+        {
+          "desc": "uses the custom runtime",
+          "pass": true
+        },
+        {
+          "desc": "scaffolds the service",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly handles the critical scenario branch: after presenting language options including \"other\", it immediately fires an ASK_USER for a custom runtime with a note explaining why. The custom runtime value (Deno) is then carried through scaffolding \u2014 files are written for Deno and the outputs record language_config as \"Deno\". All workflow states are visited in logical order (Name Service, Choose Language, Pick Stack, Configure Deployment, Scaffold, Verify), all sub-questions within each state are asked, and outputs are fully populated and internally consistent. Minor deduction: the language selection and custom runtime prompts are listed as two separate ASK_USER events rather than showing the user first answering \"other\" and then being asked the follow-up, which is slightly ambiguous about whether a single interaction triggered the conditional \u2014 but the intent and result are clearly correct. Overall a high-quality execution of the targeted scenario."
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "custom_runtime",
+      "repeat": 2,
+      "checklist_coverage": 1,
+      "checklist_passed": 3,
+      "checklist_total": 3,
+      "checklist_detail": [
+        {
+          "desc": "asks for a custom runtime when language is other",
+          "pass": true
+        },
+        {
+          "desc": "uses the custom runtime",
+          "pass": true
+        },
+        {
+          "desc": "scaffolds the service",
+          "pass": true
+        }
+      ],
+      "judge": 9,
+      "judge_notes": "The trace correctly implements the key scenario branch: when language 'other' is selected, a follow-up \"What custom runtime?\" question is immediately asked and the answer (Deno) is captured and propagated throughout. All required states are entered in order (Name Service, Choose Language, Pick Stack, Configure Deployment, Scaffold, Verify). All sub-questions within each state are present and answered. The scaffolded files are appropriate for the chosen deployment target (Docker Compose). The outputs object accurately reflects all user choices, and language_config is set to \"Deno\" rather than \"other\", showing the custom runtime was correctly substituted. The only minor issue is that main.ts uses a TypeScript extension for a Deno runtime \u2014 while technically valid for Deno, it could cause ambiguity; also no Dockerfile was generated despite Docker Compose being selected (a docker-compose.yml was written but a companion Dockerfile is typically expected). These are minor gaps that do not undermine the core scenario requirement being tested."
+    }
+  ]
+}

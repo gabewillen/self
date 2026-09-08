@@ -1,0 +1,105 @@
+# Deploy a branch. RELAY-ENABLED form.
+#
+# To let another agent dispatch execution to an arbitrary state (and resume with
+# injected variables), each state becomes its own @lmql.query taking a shared
+# state dict, plus a dispatch table mapping a public anchor to its query, and an
+# `enter()` entry surface. This scaffolding is not needed to run the workflow
+# end-to-end; it exists only to make states addressable.
+import lmql
+
+
+@lmql.query
+async def confirm(question):
+    '''lmql
+    "{question} (yes/no): [answer]" where answer in ["yes", "no"]
+    return answer == "yes"
+    '''
+
+
+# --- states, each independently entrant over a shared dict ---
+
+@lmql.query
+async def select_branch(state):
+    '''lmql
+    while not state.get("branch"):
+        state["branch"] = await tool.ask("Branch to deploy?")
+    if state["branch"] == "main" and not await confirm("Deploying main requires approval. Proceed?"):
+        state["next"], state["result"] = None, "not approved"
+        return state
+    state["next"] = "run-checks"
+    return state
+    '''
+
+
+@lmql.query
+async def run_checks(state):
+    '''lmql
+    if (await tool.sh("npm run typecheck")).failed:
+        state["next"], state["result"] = None, "type errors"
+        return state
+    cov = (await tool.sh("npm run test -- --coverage")).coverage
+    if cov < 80 and not await confirm(f"Coverage {cov}% is below 80%. Proceed?"):
+        state["next"], state["result"] = None, "cancelled: low coverage"
+        return state
+    state["coverage"] = cov
+    state["next"] = "build-artifact"
+    return state
+    '''
+
+
+@lmql.query
+async def build_artifact(state):
+    '''lmql
+    if (await tool.sh("npm run build")).failed:
+        state["next"] = "run-checks"
+        return state
+    slug = state["branch"].replace("/", "-")
+    state["artifact"] = f"dist/{slug}-{tool.timestamp()}.tar.gz"
+    state["next"] = "deploy"
+    return state
+    '''
+
+
+@lmql.query
+async def deploy(state):
+    '''lmql
+    if (await tool.deploy(state["artifact"], state.get("environment", "staging"))).failed:
+        await tool.rollback()
+        await tool.notify_team("deploy failed, rolled back")
+        state["next"] = "select-branch"
+        return state
+    await tool.notify_team(f"deployed {state['artifact']}")
+    state["next"] = "verify-deployment"
+    return state
+    '''
+
+
+@lmql.query
+async def verify_deployment(state):
+    '''lmql
+    for _ in range(3):
+        if (await tool.health(f"{state.get('deploy_url','')}/health")).ok:
+            state["next"], state["result"] = None, "deploy complete"
+            return state
+    await tool.rollback()
+    await tool.notify_team("health checks failed, rolled back")
+    state["next"] = "select-branch"
+    return state
+    '''
+
+
+# --- dispatch surface another agent calls ---
+
+STATES = {
+    "select-branch": select_branch,
+    "run-checks": run_checks,
+    "build-artifact": build_artifact,
+    "deploy": deploy,
+    "verify-deployment": verify_deployment,
+}
+
+
+async def enter(anchor, state=None):
+    if anchor not in STATES:
+        raise KeyError(f"no such state: {anchor}; known: {list(STATES)}")
+    return await STATES[anchor](dict(state or {}))

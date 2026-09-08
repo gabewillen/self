@@ -1,0 +1,26 @@
+# Ship a feature branch to staging. Composes the shared check + deploy queries.
+import lmql
+from checks import run_checks
+from deploy import deploy
+
+
+@lmql.query
+async def ship_feature(branch=""):
+    '''lmql
+    while not branch:
+        branch = await tool.ask("Feature branch to deploy?")
+
+    state = {"branch": branch}
+    state = await run_checks(state)
+    if not state["checks_ok"]:
+        return f"stopped: {state['reason']}"
+
+    if (await tool.sh("npm run build")).failed:
+        return "stopped: build error"
+    slug = branch.replace("/", "-")
+    state["artifact"] = f"dist/{slug}-{tool.timestamp()}.tar.gz"
+
+    state["environment"] = "staging"
+    state["deploy_url"] = "https://staging.example.test"
+    return await deploy(state)
+    '''

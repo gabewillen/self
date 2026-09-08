@@ -1,0 +1,101 @@
+{
+  "case": "onboard_service",
+  "goal": "Interactively scaffold a new service from language, stack, and deployment choices.",
+  "scenarios": [
+    {
+      "id": "kebab_reject_then_fix",
+      "description": "Given a non-kebab name, must warn and re-ask before scaffolding.",
+      "inputs": { "service_name": "Billing Api" },
+      "world": {
+        "user_answers": {
+          "service_name": "billing-api",
+          "language": "Go", "database": "none", "messaging": "none",
+          "http": "raw server", "deploy_target": "Docker Compose",
+          "health_endpoint": "yes", "initialize_git": "no", "run_locally": "no"
+        }
+      },
+      "checks": [
+        { "check": "event", "event": "ASK_USER", "contains": ["kebab"], "desc": "warns the name must be kebab-case and re-asks" },
+        { "check": "output", "key": "service_name", "contains": ["billing-api"], "desc": "uses the corrected kebab-case name" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["README"], "desc": "scaffolds the service README" }
+      ]
+    },
+    {
+      "id": "go_compose_sqlite_nats",
+      "description": "Go + Docker Compose + SQLite + NATS; git no; run no.",
+      "inputs": { "service_name": "orders" },
+      "world": {
+        "user_answers": {
+          "language": "Go", "database": "SQLite", "messaging": "NATS",
+          "http": "raw server", "deploy_target": "Docker Compose",
+          "health_endpoint": "yes", "initialize_git": "no", "run_locally": "no"
+        }
+      },
+      "checks": [
+        { "check": "event", "event": "WRITE_FILE", "contains": ["docker-compose"], "desc": "writes docker-compose.yml for Compose target" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["db"], "desc": "adds a database module for SQLite" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["messaging"], "desc": "adds a messaging stub for NATS" },
+        { "check": "event_absent", "event": "WRITE_FILE", "contains": ["Dockerfile"], "desc": "no Kubernetes Dockerfile for a Compose target" },
+        { "check": "event_absent", "event": "WRITE_FILE", "contains": ["serverless"], "desc": "no Lambda serverless.yml for a Compose target" },
+        { "check": "event_absent", "event": "GIT_INIT", "desc": "does not init git when declined" }
+      ]
+    },
+    {
+      "id": "ts_k8s_helm_postgres_kafka",
+      "description": "TypeScript + Kubernetes (+helm) + PostgreSQL + Kafka; git yes; run no.",
+      "inputs": { "service_name": "gateway" },
+      "world": {
+        "user_answers": {
+          "language": "TypeScript", "database": "PostgreSQL", "messaging": "Kafka",
+          "http": "framework", "deploy_target": "Kubernetes", "helm": "yes",
+          "health_endpoint": "yes", "initialize_git": "yes", "run_locally": "no"
+        }
+      },
+      "checks": [
+        { "check": "event", "event": "WRITE_FILE", "contains": ["Dockerfile"], "desc": "writes a Dockerfile for Kubernetes" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["deployment"], "desc": "writes a k8s deployment manifest" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["db"], "desc": "adds a database module for PostgreSQL" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["messaging"], "desc": "adds a messaging stub for Kafka" },
+        { "check": "event", "event": "GIT_INIT", "desc": "initializes git when requested" },
+        { "check": "event_absent", "event": "WRITE_FILE", "contains": ["docker-compose"], "desc": "no Compose file for a Kubernetes target" }
+      ]
+    },
+    {
+      "id": "rust_lambda_nostack_run",
+      "description": "Rust + Lambda (memory 512) + no database + no messaging; git no; run locally yes.",
+      "inputs": { "service_name": "auth" },
+      "world": {
+        "user_answers": {
+          "language": "Rust", "database": "none", "messaging": "none",
+          "http": "raw server", "deploy_target": "Lambda", "memory_size": "512",
+          "health_endpoint": "no", "initialize_git": "no", "run_locally": "yes"
+        }
+      },
+      "checks": [
+        { "check": "event", "event": "ASK_USER", "contains": ["memory"], "desc": "asks for Lambda memory size" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["serverless"], "desc": "writes serverless.yml for Lambda" },
+        { "check": "event_absent", "event": "WRITE_FILE", "contains": ["db"], "desc": "no database module when none chosen" },
+        { "check": "event_absent", "event": "WRITE_FILE", "contains": ["messaging"], "desc": "no messaging stub when none chosen" },
+        { "check": "output", "key": "outcome", "contains": ["run"], "desc": "starts the service locally when asked" }
+      ]
+    },
+    {
+      "id": "custom_runtime",
+      "description": "Language 'other' must prompt for a custom runtime.",
+      "inputs": { "service_name": "edge-fn" },
+      "world": {
+        "user_answers": {
+          "language": "other", "custom_runtime": "Deno",
+          "database": "none", "messaging": "none", "http": "raw server",
+          "deploy_target": "Docker Compose", "health_endpoint": "yes",
+          "initialize_git": "no", "run_locally": "no"
+        }
+      },
+      "checks": [
+        { "check": "event", "event": "ASK_USER", "contains": ["runtime"], "desc": "asks for a custom runtime when language is other" },
+        { "check": "output", "key": "language_config", "contains": ["Deno"], "desc": "uses the custom runtime" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["README"], "desc": "scaffolds the service" }
+      ]
+    }
+  ]
+}

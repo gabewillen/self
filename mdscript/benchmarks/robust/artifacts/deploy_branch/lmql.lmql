@@ -1,0 +1,53 @@
+# Deploy a branch to an environment after checks, then verify health.
+#
+# Idiomatic LMQL: nested @lmql.query functions; constrained holes for the
+# human confirmations; ordinary Python control flow drives the workflow.
+import lmql
+
+
+@lmql.query
+async def confirm(question):
+    '''lmql
+    "{question} (yes/no): [answer]" where answer in ["yes", "no"]
+    return answer == "yes"
+    '''
+
+
+@lmql.query
+async def deploy_branch(branch="", environment="staging", deploy_url=""):
+    '''lmql
+    # Select Branch
+    while not branch:
+        branch = await tool.ask("Branch to deploy?")
+    if branch == "main" and not await confirm("Deploying main requires approval. Proceed?"):
+        return "not approved: main deploy declined"
+
+    # Run Checks (a failed build loops back through here)
+    while True:
+        if (await tool.sh("npm run typecheck")).failed:
+            return "stopped: type errors"
+        coverage = (await tool.sh("npm run test -- --coverage")).coverage
+        if coverage < 80 and not await confirm(f"Coverage {coverage}% is below 80%. Proceed?"):
+            return "cancelled: low coverage"
+        if not (await tool.sh("npm run build")).failed:
+            break
+
+    # Build Artifact
+    slug = branch.replace("/", "-")
+    artifact = f"dist/{slug}-{tool.timestamp()}.tar.gz"
+
+    # Deploy
+    if (await tool.deploy(artifact, environment)).failed:
+        await tool.rollback()
+        await tool.notify_team("deploy failed, rolled back")
+        return await deploy_branch("", environment, deploy_url)   # back to Select Branch
+    await tool.notify_team(f"deployed {artifact} to {environment}")
+
+    # Verify Deployment
+    for _ in range(3):
+        if (await tool.health(f"{deploy_url}/health")).ok:
+            return "deploy complete"
+    await tool.rollback()
+    await tool.notify_team("health checks failed, rolled back")
+    return await deploy_branch("", environment, deploy_url)        # back to Select Branch
+    '''
