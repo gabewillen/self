@@ -1,0 +1,526 @@
+{
+  "summary": [
+    {
+      "system": "lmql",
+      "compose_pct": 100,
+      "judge_mean": 8.5,
+      "runs": 4
+    },
+    {
+      "system": "ell",
+      "compose_pct": 100,
+      "judge_mean": 8.75,
+      "runs": 4
+    },
+    {
+      "system": "mdscript",
+      "compose_pct": 95,
+      "judge_mean": 8.75,
+      "runs": 4
+    },
+    {
+      "system": "guidance",
+      "compose_pct": 90,
+      "judge_mean": 9.25,
+      "runs": 4
+    }
+  ],
+  "rows": [
+    {
+      "system": "mdscript",
+      "parent": "ship_feature",
+      "repeat": 1,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "runs typecheck (from the shared checks component)",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check (from the shared deploy component)",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 8
+    },
+    {
+      "system": "mdscript",
+      "parent": "ship_feature",
+      "repeat": 2,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "runs typecheck (from the shared checks component)",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check (from the shared deploy component)",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "mdscript",
+      "parent": "hotfix",
+      "repeat": 1,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "confirms the production hotfix",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "deploys to production",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "mdscript",
+      "parent": "hotfix",
+      "repeat": 2,
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "confirms the production hotfix",
+          "pass": false
+        },
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "deploys to production",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "guidance",
+      "parent": "ship_feature",
+      "repeat": 1,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "runs typecheck (from the shared checks component)",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check (from the shared deploy component)",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "guidance",
+      "parent": "ship_feature",
+      "repeat": 2,
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "runs typecheck (from the shared checks component)",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check (from the shared deploy component)",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": false
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "guidance",
+      "parent": "hotfix",
+      "repeat": 1,
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "confirms the production hotfix",
+          "pass": false
+        },
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "deploys to production",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "guidance",
+      "parent": "hotfix",
+      "repeat": 2,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "confirms the production hotfix",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "deploys to production",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 10
+    },
+    {
+      "system": "lmql",
+      "parent": "ship_feature",
+      "repeat": 1,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "runs typecheck (from the shared checks component)",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check (from the shared deploy component)",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 8
+    },
+    {
+      "system": "lmql",
+      "parent": "ship_feature",
+      "repeat": 2,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "runs typecheck (from the shared checks component)",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check (from the shared deploy component)",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 8
+    },
+    {
+      "system": "lmql",
+      "parent": "hotfix",
+      "repeat": 1,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "confirms the production hotfix",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "deploys to production",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "lmql",
+      "parent": "hotfix",
+      "repeat": 2,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "confirms the production hotfix",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "deploys to production",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "ell",
+      "parent": "ship_feature",
+      "repeat": 1,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "runs typecheck (from the shared checks component)",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check (from the shared deploy component)",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "ell",
+      "parent": "ship_feature",
+      "repeat": 2,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "runs typecheck (from the shared checks component)",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check (from the shared deploy component)",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    },
+    {
+      "system": "ell",
+      "parent": "hotfix",
+      "repeat": 1,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "confirms the production hotfix",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "deploys to production",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 8
+    },
+    {
+      "system": "ell",
+      "parent": "hotfix",
+      "repeat": 2,
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "confirms the production hotfix",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared checks component",
+          "pass": true
+        },
+        {
+          "desc": "follows into the shared deploy component",
+          "pass": true
+        },
+        {
+          "desc": "deploys to production",
+          "pass": true
+        },
+        {
+          "desc": "completes end-to-end across components",
+          "pass": true
+        }
+      ],
+      "judge": 9
+    }
+  ]
+}

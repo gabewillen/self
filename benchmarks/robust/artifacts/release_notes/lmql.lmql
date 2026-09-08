@@ -1,0 +1,46 @@
+# Collect commits in a range, categorize them, and write CHANGELOG.md.
+#
+# Idiomatic LMQL: a constrained hole for the regenerate decision; ordinary
+# Python control flow does the git, categorization, and file work.
+import lmql
+
+
+@lmql.query
+async def confirm(question):
+    '''lmql
+    "{question} (yes/no): [answer]" where answer in ["yes", "no"]
+    return answer == "yes"
+    '''
+
+
+@lmql.query
+async def generate_release_notes(git_range=""):
+    '''lmql
+    while True:
+        # Gather Changes
+        if not git_range:
+            last_tag = (await tool.sh("git describe --tags --abbrev=0")).stdout.strip()
+            git_range = f"{last_tag}..HEAD"
+        subjects = (await tool.sh(f"git log --pretty=%s {git_range}")).stdout.splitlines()
+
+        # Categorize Commits
+        features, fixes, chores = [], [], []
+        for s in subjects:
+            if s.startswith(("feat:", "feature:")):
+                features.append(s)
+            elif s.startswith(("fix:", "bug:")):
+                fixes.append(s)
+            else:
+                chores.append(s)
+
+        # Generate Notes (only nonempty sections)
+        doc = []
+        for title, items in (("Features", features), ("Bug Fixes", fixes), ("Maintenance", chores)):
+            if items:
+                doc.append(f"## {title}\n" + "\n".join(f"- {i}" for i in items))
+        await tool.write_file("CHANGELOG.md", "\n\n".join(doc) + "\n")
+
+        if not await confirm("Regenerate the changelog?"):
+            return "CHANGELOG.md written"
+        git_range = ""  # recompute the range on regenerate
+    '''

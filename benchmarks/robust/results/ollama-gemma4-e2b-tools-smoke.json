@@ -1,0 +1,559 @@
+{
+  "model": "gemma4:e2b",
+  "mode": "tools",
+  "tag": "tools-smoke",
+  "rows": [
+    {
+      "case": "deploy_branch",
+      "scenario": "happy_path",
+      "system": "mdscript",
+      "passed": 3,
+      "total": 6,
+      "coverage": 0.5,
+      "results": [
+        {
+          "desc": "runs typecheck",
+          "pass": true
+        },
+        {
+          "desc": "runs build",
+          "pass": true
+        },
+        {
+          "desc": "notifies team on success",
+          "pass": false
+        },
+        {
+          "desc": "marks deploy complete",
+          "pass": false
+        },
+        {
+          "desc": "no confirmation prompts when nothing risky",
+          "pass": false
+        },
+        {
+          "desc": "no rollback on a clean deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Which branch would you like to deploy?"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "deploy main"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "workflow.md {{artifact}} = dist/main-{{timestamp}}.tar.gz"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Deployment of main artifact to environment succeeded."
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Verify Deployment"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "{{deploy_url}}/health"
+          },
+          {
+            "type": "COMPLETE",
+            "detail": "Successfully deployed the main branch, ran checks, built artifacts, and verified deployment health."
+          }
+        ],
+        "outputs": {
+          "workflow.md": "{{artifact}} = dist/main-{{timestamp}}.tar.gz",
+          "sections": "{{artifact}} = dist/main-{{timestamp}}.tar.gz"
+        },
+        "final_outcome": "Successfully deployed the main branch, ran checks, built artifacts, and verified deployment health.",
+        "cost": {
+          "input_tokens": 26932,
+          "output_tokens": 809,
+          "exec_s": 9.949
+        }
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 26932,
+        "output_tokens": 809,
+        "exec_s": 9.949
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "scenario": "missing_branch",
+      "system": "mdscript",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "asks for the missing branch",
+          "pass": true
+        },
+        {
+          "desc": "uses the branch the user supplied",
+          "pass": false
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Which branch would you like to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "workflow_vars.md {{artifact}} = dist/feature-login-{{timestamp}}.tar.gz"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Artifact created: dist/feature-login-{{timestamp}}.tar.gz"
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Verify Deployment"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "{{deploy_url}}/health"
+          },
+          {
+            "type": "COMPLETE",
+            "detail": "Workflow completed successfully. Branch 'feature/login' was deployed, checks passed, and health verification succeeded."
+          }
+        ],
+        "outputs": {
+          "workflow_vars.md": "{{artifact}} = dist/feature-login-{{timestamp}}.tar.gz",
+          "sections": "{{artifact}} = dist/feature-login-{{timestamp}}.tar.gz"
+        },
+        "final_outcome": "Workflow completed successfully. Branch 'feature/login' was deployed, checks passed, and health verification succeeded.",
+        "cost": {
+          "input_tokens": 24435,
+          "output_tokens": 808,
+          "exec_s": 8.858
+        }
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 24435,
+        "output_tokens": 808,
+        "exec_s": 8.858
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "scenario": "main_declined",
+      "system": "mdscript",
+      "passed": 3,
+      "total": 4,
+      "coverage": 0.75,
+      "results": [
+        {
+          "desc": "asks for confirmation before deploying main",
+          "pass": false
+        },
+        {
+          "desc": "stops because approval was declined",
+          "pass": true
+        },
+        {
+          "desc": "never builds when not approved",
+          "pass": true
+        },
+        {
+          "desc": "nothing to roll back",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Which branch would you like to deploy?"
+          },
+          {
+            "type": "ABORT",
+            "detail": "Deploy was not approved"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "Deploy was not approved",
+        "cost": {
+          "input_tokens": 6931,
+          "output_tokens": 633,
+          "exec_s": 6.536
+        }
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 6931,
+        "output_tokens": 633,
+        "exec_s": 6.536
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "scenario": "low_coverage_proceed",
+      "system": "mdscript",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": false
+        },
+        {
+          "desc": "proceeds to build after user agrees",
+          "pass": true
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Which branch would you like to deploy?"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "deploy main"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Coverage is low (72%). Do you want to proceed anyway?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "workflow.md {{artifact}} = dist/main-{{timestamp}}.tar.gz"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Deployment of main artifact to environment is complete."
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Verify Deployment"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "{{deploy_url}}/health"
+          },
+          {
+            "type": "COMPLETE",
+            "detail": "Successfully deployed the main branch, ran checks, built artifacts, and verified deployment health."
+          }
+        ],
+        "outputs": {
+          "workflow.md": "{{artifact}} = dist/main-{{timestamp}}.tar.gz",
+          "sections": "{{artifact}} = dist/main-{{timestamp}}.tar.gz"
+        },
+        "final_outcome": "Successfully deployed the main branch, ran checks, built artifacts, and verified deployment health.",
+        "cost": {
+          "input_tokens": 29616,
+          "output_tokens": 838,
+          "exec_s": 9.25
+        }
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 29616,
+        "output_tokens": 838,
+        "exec_s": 9.25
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "scenario": "low_coverage_declined",
+      "system": "mdscript",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": false
+        },
+        {
+          "desc": "cancels when user declines",
+          "pass": true
+        },
+        {
+          "desc": "does not build after cancel",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Which branch would you like to deploy?"
+          },
+          {
+            "type": "ABORT",
+            "detail": "Deploy was not approved"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "Deploy was not approved",
+        "cost": {
+          "input_tokens": 6931,
+          "output_tokens": 633,
+          "exec_s": 6.57
+        }
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 6931,
+        "output_tokens": 633,
+        "exec_s": 6.57
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "scenario": "deploy_fails_then_recovers",
+      "system": "mdscript",
+      "passed": 2,
+      "total": 4,
+      "coverage": 0.5,
+      "results": [
+        {
+          "desc": "rolls back on deploy failure",
+          "pass": false
+        },
+        {
+          "desc": "notifies team that the deploy failed",
+          "pass": false
+        },
+        {
+          "desc": "returns to Select Branch after failure",
+          "pass": true
+        },
+        {
+          "desc": "eventually completes after recovery",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Which branch would you like to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "workflow_vars.md {{artifact}} = dist/feature-payments-{{timestamp}}.tar.gz"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Artifact created: dist/feature-payments-{{timestamp}}.tar.gz"
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Verify Deployment"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "{{deploy_url}}/health"
+          },
+          {
+            "type": "COMPLETE",
+            "detail": "Workflow completed successfully. Branch feature/payments was deployed, checks passed, and health verification succeeded."
+          }
+        ],
+        "outputs": {
+          "workflow_vars.md": "{{artifact}} = dist/feature-payments-{{timestamp}}.tar.gz",
+          "sections": "{{artifact}} = dist/feature-payments-{{timestamp}}.tar.gz"
+        },
+        "final_outcome": "Workflow completed successfully. Branch feature/payments was deployed, checks passed, and health verification succeeded.",
+        "cost": {
+          "input_tokens": 24435,
+          "output_tokens": 806,
+          "exec_s": 8.847
+        }
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 24435,
+        "output_tokens": 806,
+        "exec_s": 8.847
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "scenario": "health_exhausted_then_recovers",
+      "system": "mdscript",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "retries health check up to 3 times",
+          "pass": false
+        },
+        {
+          "desc": "rolls back after health exhaustion",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after rollback",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Which branch would you like to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "workflow_vars.md {{artifact}} = dist/feature/search-{{timestamp}}.tar.gz"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Artifact created: dist/feature/search-{{timestamp}}.tar.gz"
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Verify Deployment"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "{{deploy_url}}/health"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "Health check failed for deployment to {{environment}}"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Deployment verification failed and was rolled back. Please select a branch."
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          }
+        ],
+        "outputs": {
+          "workflow_vars.md": "{{artifact}} = dist/feature/search-{{timestamp}}.tar.gz",
+          "sections": "{{artifact}} = dist/feature/search-{{timestamp}}.tar.gz"
+        },
+        "final_outcome": "",
+        "cost": {
+          "input_tokens": 35202,
+          "output_tokens": 1021,
+          "exec_s": 11.367
+        }
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 35202,
+        "output_tokens": 1021,
+        "exec_s": 11.367
+      }
+    }
+  ]
+}

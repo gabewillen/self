@@ -1,0 +1,4216 @@
+{
+  "model": "gemma4:e4b",
+  "aid": "skill",
+  "repeats": 1,
+  "rows": [
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "happy_path",
+      "repeat": 1,
+      "passed": 5,
+      "total": 6,
+      "coverage": 0.8333333333333334,
+      "results": [
+        {
+          "desc": "runs typecheck",
+          "pass": true
+        },
+        {
+          "desc": "runs build",
+          "pass": true
+        },
+        {
+          "desc": "notifies team on success",
+          "pass": true
+        },
+        {
+          "desc": "marks deploy complete",
+          "pass": false
+        },
+        {
+          "desc": "no confirmation prompts when nothing risky",
+          "pass": true
+        },
+        {
+          "desc": "no rollback on a clean deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy feature/checkout-1704067200.tar.gz to staging"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "The team has been notified of the successful deployment."
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "Health check against https://staging.example.test/health passed."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "success"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1936,
+        "output_tokens": 165,
+        "exec_s": 18.428,
+        "total_s": 20.584
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "missing_branch",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "asks for the missing branch",
+          "pass": true
+        },
+        {
+          "desc": "uses the branch the user supplied",
+          "pass": false
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Which branch to deploy?"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Deploying main requires approval. Do you confirm?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "The team in Slack that the deploy succeeded."
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Verify Deployment"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "Health check against https://staging.example.test/health"
+          },
+          {
+            "type": "COMPLETE",
+            "detail": "Deployment successful."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "success"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1805,
+        "output_tokens": 200,
+        "exec_s": 18.895,
+        "total_s": 19.139
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "main_declined",
+      "repeat": 1,
+      "passed": 4,
+      "total": 4,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "asks for confirmation before deploying main",
+          "pass": true
+        },
+        {
+          "desc": "stops because approval was declined",
+          "pass": true
+        },
+        {
+          "desc": "never builds when not approved",
+          "pass": true
+        },
+        {
+          "desc": "nothing to roll back",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Deploying main requires approval. Do you confirm?"
+          },
+          {
+            "type": "ABORT",
+            "detail": "Deployment aborted because the user declined confirmation."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "aborted"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1790,
+        "output_tokens": 77,
+        "exec_s": 10.401,
+        "total_s": 10.647
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "low_coverage_proceed",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "proceeds to build after user agrees",
+          "pass": true
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage is 72%, which is below the recommended 80%. Do you wish to proceed with deployment anyway? (yes/no)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Proceeding with low coverage deploy."
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Deployment successful. Notifying team in Slack."
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Verify Deployment"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "Health check against https://staging.example.test/health (Attempt 1 of 3)"
+          },
+          {
+            "type": "COMPLETE",
+            "detail": "Deployment verified and marked complete."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "success"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1821,
+        "output_tokens": 231,
+        "exec_s": 24.475,
+        "total_s": 24.726
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "low_coverage_declined",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "cancels when user declines",
+          "pass": true
+        },
+        {
+          "desc": "does not build after cancel",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck: pass"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage: pass, coverage 72%"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage is below 80%. Do you wish to proceed anyway?"
+          },
+          {
+            "type": "ABORT",
+            "detail": "Deployment cancelled due to low coverage."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "aborted"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1792,
+        "output_tokens": 138,
+        "exec_s": 12.13,
+        "total_s": 12.425
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "deploy_fails_then_recovers",
+      "repeat": 1,
+      "passed": 3,
+      "total": 4,
+      "coverage": 0.75,
+      "results": [
+        {
+          "desc": "rolls back on deploy failure",
+          "pass": true
+        },
+        {
+          "desc": "notifies team that the deploy failed",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after failure",
+          "pass": true
+        },
+        {
+          "desc": "eventually completes after recovery",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck: pass"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage: pass, coverage 90%"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build: pass"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "Rolled back to previous version after deploy failure."
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Deployment failed and was rolled back."
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck: pass"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage: pass, coverage 90%"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build: pass"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Team notified of successful deployment."
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "Health check passed on first attempt."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "success"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1880,
+        "output_tokens": 248,
+        "exec_s": 25.33,
+        "total_s": 25.631
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "mdscript",
+      "scenario": "health_exhausted_then_recovers",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "retries health check up to 3 times",
+          "pass": false
+        },
+        {
+          "desc": "rolls back after health exhaustion",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after rollback",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck: pass"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage: pass, coverage 85%"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build: pass"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "Team notified of successful deploy."
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "Health check failed (Attempt 1/3)"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "Rolled back due to health check failure."
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck: pass"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "Workflow completed with unresolved follow-up (Health Check Failure)"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1846,
+        "output_tokens": 200,
+        "exec_s": 20.201,
+        "total_s": 20.488
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "guidance",
+      "scenario": "happy_path",
+      "repeat": 1,
+      "passed": 3,
+      "total": 6,
+      "coverage": 0.5,
+      "results": [
+        {
+          "desc": "runs typecheck",
+          "pass": true
+        },
+        {
+          "desc": "runs build",
+          "pass": true
+        },
+        {
+          "desc": "notifies team on success",
+          "pass": false
+        },
+        {
+          "desc": "marks deploy complete",
+          "pass": false
+        },
+        {
+          "desc": "no confirmation prompts when nothing risky",
+          "pass": false
+        },
+        {
+          "desc": "no rollback on a clean deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 91% is below 80%. Proceed? (yes/no): "
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "yes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/checkout-20240613120000.tar.gz staging"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deployed dist/feature/checkout-20240613120000.tar.gz to staging"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "curl -fsS https://staging.example.test/health"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1320,
+        "output_tokens": 222,
+        "exec_s": 20.172,
+        "total_s": 20.424
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "guidance",
+      "scenario": "missing_branch",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "asks for the missing branch",
+          "pass": true
+        },
+        {
+          "desc": "uses the branch the user supplied",
+          "pass": false
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 88% is below 80%. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/login-20240619123456.tar.gz staging"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deployed dist/feature/login-20240619123456.tar.gz to staging"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "curl -fsS https://staging.example.test/health"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1189,
+        "output_tokens": 220,
+        "exec_s": 20.116,
+        "total_s": 20.364
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "guidance",
+      "scenario": "main_declined",
+      "repeat": 1,
+      "passed": 3,
+      "total": 4,
+      "coverage": 0.75,
+      "results": [
+        {
+          "desc": "asks for confirmation before deploying main",
+          "pass": true
+        },
+        {
+          "desc": "stops because approval was declined",
+          "pass": false
+        },
+        {
+          "desc": "never builds when not approved",
+          "pass": true
+        },
+        {
+          "desc": "nothing to roll back",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Deploying main requires approval. Proceed?"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "not approved: main deploy declined"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1174,
+        "output_tokens": 44,
+        "exec_s": 14.305,
+        "total_s": 14.548
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "guidance",
+      "scenario": "low_coverage_proceed",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "proceeds to build after user agrees",
+          "pass": false
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 72% is below 80%. Proceed?"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1205,
+        "output_tokens": 63,
+        "exec_s": 20.998,
+        "total_s": 21.269
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "guidance",
+      "scenario": "low_coverage_declined",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "cancels when user declines",
+          "pass": true
+        },
+        {
+          "desc": "does not build after cancel",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 72% is below 80%. Proceed? (yes/no): "
+          },
+          {
+            "type": "ABORT",
+            "detail": "Cancelled due to low coverage."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "cancelled: low coverage"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1176,
+        "output_tokens": 89,
+        "exec_s": 12.973,
+        "total_s": 13.219
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "guidance",
+      "scenario": "deploy_fails_then_recovers",
+      "repeat": 1,
+      "passed": 2,
+      "total": 4,
+      "coverage": 0.5,
+      "results": [
+        {
+          "desc": "rolls back on deploy failure",
+          "pass": true
+        },
+        {
+          "desc": "notifies team that the deploy failed",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after failure",
+          "pass": false
+        },
+        {
+          "desc": "eventually completes after recovery",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: feature/payments"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/payments-20240613120000.tar.gz staging"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "rollback --previous"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deploy failed, rolled back"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: feature/payments"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/payments-20240613120000.tar.gz staging"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "curl -fsS https://staging.example.test/health"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1264,
+        "output_tokens": 326,
+        "exec_s": 26.063,
+        "total_s": 26.306
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "guidance",
+      "scenario": "health_exhausted_then_recovers",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "retries health check up to 3 times",
+          "pass": true
+        },
+        {
+          "desc": "rolls back after health exhaustion",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after rollback",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 85% is below 80%. Proceed? (yes/no): "
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/search-20240613120000.tar.gz staging"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "curl -fsS https://staging.example.test/health"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "curl -fsS https://staging.example.test/health"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "curl -fsS https://staging.example.test/health"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "rollback --previous"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "health checks failed, rolled back"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1230,
+        "output_tokens": 315,
+        "exec_s": 33.695,
+        "total_s": 33.937
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "lmql",
+      "scenario": "happy_path",
+      "repeat": 1,
+      "passed": 4,
+      "total": 6,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "runs typecheck",
+          "pass": true
+        },
+        {
+          "desc": "runs build",
+          "pass": true
+        },
+        {
+          "desc": "notifies team on success",
+          "pass": false
+        },
+        {
+          "desc": "marks deploy complete",
+          "pass": true
+        },
+        {
+          "desc": "no confirmation prompts when nothing risky",
+          "pass": false
+        },
+        {
+          "desc": "no rollback on a clean deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 91% is below 80%. Proceed? (yes/no): [answer]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "https://staging.example.test/health"
+          },
+          {
+            "type": "COMPLETE",
+            "detail": "deploy complete"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1239,
+        "output_tokens": 158,
+        "exec_s": 17.42,
+        "total_s": 17.665
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "lmql",
+      "scenario": "missing_branch",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "asks for the missing branch",
+          "pass": true
+        },
+        {
+          "desc": "uses the branch the user supplied",
+          "pass": false
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 88% is below 80%. Proceed?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploying main requires approval. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deployed dist/feature-login-1704067200.tar.gz to staging"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "https://staging.example.test/health"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1108,
+        "output_tokens": 193,
+        "exec_s": 21.198,
+        "total_s": 21.445
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "lmql",
+      "scenario": "main_declined",
+      "repeat": 1,
+      "passed": 3,
+      "total": 4,
+      "coverage": 0.75,
+      "results": [
+        {
+          "desc": "asks for confirmation before deploying main",
+          "pass": true
+        },
+        {
+          "desc": "stops because approval was declined",
+          "pass": false
+        },
+        {
+          "desc": "never builds when not approved",
+          "pass": true
+        },
+        {
+          "desc": "nothing to roll back",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Deploying main requires approval. Proceed?"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "not approved: main deploy declined"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1093,
+        "output_tokens": 44,
+        "exec_s": 13.515,
+        "total_s": 13.757
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "lmql",
+      "scenario": "low_coverage_proceed",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "proceeds to build after user agrees",
+          "pass": true
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy?"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 72% is below 80%. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "https://staging.example.test/health"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1124,
+        "output_tokens": 154,
+        "exec_s": 20.823,
+        "total_s": 21.069
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "lmql",
+      "scenario": "low_coverage_declined",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "cancels when user declines",
+          "pass": false
+        },
+        {
+          "desc": "does not build after cancel",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy?"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Deploying main requires approval. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 72% is below 80%. Proceed? (yes/no): [answer]"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "cancelled: low coverage"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1095,
+        "output_tokens": 132,
+        "exec_s": 16.32,
+        "total_s": 16.559
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "lmql",
+      "scenario": "deploy_fails_then_recovers",
+      "repeat": 1,
+      "passed": 2,
+      "total": 4,
+      "coverage": 0.5,
+      "results": [
+        {
+          "desc": "rolls back on deploy failure",
+          "pass": true
+        },
+        {
+          "desc": "notifies team that the deploy failed",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after failure",
+          "pass": false
+        },
+        {
+          "desc": "eventually completes after recovery",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 90% is below 80%. Proceed?"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "Rollback executed due to deploy failure."
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deploy failed, rolled back"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 90% is below 80%. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deployed dist/feature-payments-1704067200.tar.gz to staging"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "https://staging.example.test/health"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1183,
+        "output_tokens": 317,
+        "exec_s": 27.187,
+        "total_s": 27.428
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "lmql",
+      "scenario": "health_exhausted_then_recovers",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "retries health check up to 3 times",
+          "pass": true
+        },
+        {
+          "desc": "rolls back after health exhaustion",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after rollback",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 85% is below 80%. Proceed? (yes/no): [answer]"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "https://staging.example.test/health"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "https://staging.example.test/health"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "https://staging.example.test/health"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": null
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Select Branch"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1149,
+        "output_tokens": 238,
+        "exec_s": 28.15,
+        "total_s": 28.393
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "ell",
+      "scenario": "happy_path",
+      "repeat": 1,
+      "passed": 1,
+      "total": 6,
+      "coverage": 0.16666666666666666,
+      "results": [
+        {
+          "desc": "runs typecheck",
+          "pass": false
+        },
+        {
+          "desc": "runs build",
+          "pass": false
+        },
+        {
+          "desc": "notifies team on success",
+          "pass": false
+        },
+        {
+          "desc": "marks deploy complete",
+          "pass": false
+        },
+        {
+          "desc": "no confirmation prompts when nothing risky",
+          "pass": false
+        },
+        {
+          "desc": "no rollback on a clean deploy",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "pass"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "pass, coverage 91%"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 91% is below 80%. Proceed?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "yes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "pass"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deployed dist/feature-checkout-20240613120000.tar.gz to staging"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "pass"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1279,
+        "output_tokens": 160,
+        "exec_s": 21.436,
+        "total_s": 21.677
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "ell",
+      "scenario": "missing_branch",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "asks for the missing branch",
+          "pass": true
+        },
+        {
+          "desc": "uses the branch the user supplied",
+          "pass": false
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: feature/login"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1148,
+        "output_tokens": 38,
+        "exec_s": 21.199,
+        "total_s": 21.442
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "ell",
+      "scenario": "main_declined",
+      "repeat": 1,
+      "passed": 4,
+      "total": 4,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "asks for confirmation before deploying main",
+          "pass": true
+        },
+        {
+          "desc": "stops because approval was declined",
+          "pass": true
+        },
+        {
+          "desc": "never builds when not approved",
+          "pass": true
+        },
+        {
+          "desc": "nothing to roll back",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Deploying main requires approval. Proceed?"
+          },
+          {
+            "type": "ABORT",
+            "detail": "Branch is main and the user declines approval; must stop before any checks or deploy."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "not approved: main deploy declined"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1133,
+        "output_tokens": 73,
+        "exec_s": 14.474,
+        "total_s": 14.715
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "ell",
+      "scenario": "low_coverage_proceed",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "proceeds to build after user agrees",
+          "pass": true
+        },
+        {
+          "desc": "completes the deploy",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 72% is below 80%. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/reports-20240613120000.tar.gz staging"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deployed dist/feature/reports-20240613120000.tar.gz to staging"
+          },
+          {
+            "type": "HEALTH_CHECK",
+            "detail": "curl -fsS https://staging.example.test/health"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1164,
+        "output_tokens": 238,
+        "exec_s": 22.556,
+        "total_s": 22.798
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "ell",
+      "scenario": "low_coverage_declined",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "warns/confirms on low coverage",
+          "pass": true
+        },
+        {
+          "desc": "cancels when user declines",
+          "pass": true
+        },
+        {
+          "desc": "does not build after cancel",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 72% is below 80%. Proceed? (Answer: no)"
+          },
+          {
+            "type": "ABORT",
+            "detail": "Cancelled due to low coverage."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "cancelled: low coverage"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1135,
+        "output_tokens": 88,
+        "exec_s": 15.389,
+        "total_s": 15.631
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "ell",
+      "scenario": "deploy_fails_then_recovers",
+      "repeat": 1,
+      "passed": 0,
+      "total": 4,
+      "coverage": 0.0,
+      "results": [],
+      "trace": null,
+      "parse_ok": false,
+      "error": "TimeoutError('timed out')",
+      "cost": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "exec_s": 0.0,
+        "total_s": 0.0
+      }
+    },
+    {
+      "case": "deploy_branch",
+      "system": "ell",
+      "scenario": "health_exhausted_then_recovers",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "retries health check up to 3 times",
+          "pass": false
+        },
+        {
+          "desc": "rolls back after health exhaustion",
+          "pass": true
+        },
+        {
+          "desc": "returns to Select Branch after rollback",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 85% is below 80%. Proceed?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 85% is below 80%. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/search-20240613120000.tar.gz staging"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deploy failed, rolled back"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "rollback --previous"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 85% is below 80%. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/search-20240613120000.tar.gz staging"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deployed dist/feature/search-20240613120000.tar.gz to staging"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "curl -fsS https://staging.example.test/health"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "rollback --previous"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "health checks failed, rolled back"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Branch to deploy: "
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run typecheck"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run test -- --coverage"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Coverage 85% is below 80%. Proceed?"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "npm run build"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "deploy dist/feature/search-20240613120000.tar.gz staging"
+          },
+          {
+            "type": "NOTIFY",
+            "detail": "deployed dist/feature/search-20240613120000.tar.gz to staging"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "curl -fsS https://staging.example.test/health"
+          },
+          {
+            "type": "ROLLBACK",
+            "detail": "rollback --previous"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "deploy complete"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1189,
+        "output_tokens": 721,
+        "exec_s": 46.707,
+        "total_s": 46.952
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "range_given_all_categories",
+      "repeat": 1,
+      "passed": 1,
+      "total": 5,
+      "coverage": 0.2,
+      "results": [
+        {
+          "desc": "collects commits with git log",
+          "pass": true
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": false
+        },
+        {
+          "desc": "has a Features section",
+          "pass": false
+        },
+        {
+          "desc": "has a Bug Fixes section",
+          "pass": false
+        },
+        {
+          "desc": "has a Maintenance section",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Gather Changes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log v1.4.0..HEAD"
+          }
+        ],
+        "outputs": {
+          "commits": [
+            "feat: add export button",
+            "fix: correct timezone offset",
+            "bug: avoid duplicate rows",
+            "docs: update readme",
+            "chore: bump deps"
+          ]
+        },
+        "final_outcome": "The workflow completed successfully."
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1804,
+        "output_tokens": 94,
+        "exec_s": 21.697,
+        "total_s": 21.937
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "infer_range",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "looks up the most recent tag",
+          "pass": true
+        },
+        {
+          "desc": "collects commits after inferring the range",
+          "pass": true
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Gather Changes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git describe --tags"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log v2.1.0..HEAD"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "The workflow completed successfully."
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1688,
+        "output_tokens": 84,
+        "exec_s": 23.466,
+        "total_s": 23.708
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "only_features",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes the Features section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Maintenance section",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Gather Changes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log v3.0.0..HEAD"
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Categorize Commits"
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Generate Notes"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Are you sure you want to regenerate the changelog?"
+          }
+        ],
+        "outputs": {
+          "sections": [
+            "Features"
+          ]
+        },
+        "final_outcome": "Success"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1674,
+        "output_tokens": 133,
+        "exec_s": 20.728,
+        "total_s": 20.967
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "mdscript",
+      "scenario": "regenerate_once",
+      "repeat": 1,
+      "passed": 2,
+      "total": 2,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes the changelog again on regenerate",
+          "pass": true
+        },
+        {
+          "desc": "stops after the user declines a second regenerate",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Gather Changes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log v1.0.0..HEAD"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md (Initial write)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "regenerate"
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "Gather Changes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log v1.0.0..HEAD"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md (Regenerated write)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "regenerate"
+          },
+          {
+            "type": "COMPLETE",
+            "detail": "Workflow finished successfully"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "success"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1647,
+        "output_tokens": 203,
+        "exec_s": 30.234,
+        "total_s": 30.475
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "guidance",
+      "scenario": "range_given_all_categories",
+      "repeat": 1,
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "collects commits with git log",
+          "pass": true
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": false
+        },
+        {
+          "desc": "has a Features section",
+          "pass": true
+        },
+        {
+          "desc": "has a Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "has a Maintenance section",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.4.0..HEAD"
+          }
+        ],
+        "outputs": {
+          "sections": [
+            "Features",
+            "Bug Fixes",
+            "Maintenance"
+          ]
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1184,
+        "output_tokens": 62,
+        "exec_s": 15.616,
+        "total_s": 15.862
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "guidance",
+      "scenario": "infer_range",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "looks up the most recent tag",
+          "pass": true
+        },
+        {
+          "desc": "collects commits after inferring the range",
+          "pass": false
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git describe --tags --abbrev=0"
+          }
+        ],
+        "outputs": {
+          "last_tag": "v2.1.0"
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1068,
+        "output_tokens": 56,
+        "exec_s": 16.82,
+        "total_s": 17.062
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "guidance",
+      "scenario": "only_features",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes the Features section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Maintenance section",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v3.0.0..HEAD"
+          }
+        ],
+        "outputs": {
+          "sections": [
+            "Features"
+          ]
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1054,
+        "output_tokens": 54,
+        "exec_s": 15.603,
+        "total_s": 15.847
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "guidance",
+      "scenario": "regenerate_once",
+      "repeat": 1,
+      "passed": 1,
+      "total": 2,
+      "coverage": 0.5,
+      "results": [
+        {
+          "desc": "writes the changelog again on regenerate",
+          "pass": true
+        },
+        {
+          "desc": "stops after the user declines a second regenerate",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.0.0..HEAD"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Regenerate the changelog?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "yes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.0.0..HEAD"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Regenerate the changelog?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "no"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1027,
+        "output_tokens": 202,
+        "exec_s": 25.036,
+        "total_s": 25.279
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "lmql",
+      "scenario": "range_given_all_categories",
+      "repeat": 1,
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "collects commits with git log",
+          "pass": true
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": false
+        },
+        {
+          "desc": "has a Features section",
+          "pass": true
+        },
+        {
+          "desc": "has a Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "has a Maintenance section",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.4.0..HEAD"
+          }
+        ],
+        "outputs": {
+          "sections": [
+            "Features",
+            "Bug Fixes",
+            "Maintenance"
+          ]
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1152,
+        "output_tokens": 62,
+        "exec_s": 18.688,
+        "total_s": 18.931
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "lmql",
+      "scenario": "infer_range",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "looks up the most recent tag",
+          "pass": true
+        },
+        {
+          "desc": "collects commits after inferring the range",
+          "pass": false
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git describe --tags --abbrev=0"
+          }
+        ],
+        "outputs": {
+          "last_tag": "v2.1.0"
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1036,
+        "output_tokens": 56,
+        "exec_s": 20.507,
+        "total_s": 20.75
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "lmql",
+      "scenario": "only_features",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes the Features section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Maintenance section",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v3.0.0..HEAD"
+          }
+        ],
+        "outputs": {
+          "sections": [
+            "Features"
+          ]
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1022,
+        "output_tokens": 54,
+        "exec_s": 18.124,
+        "total_s": 18.368
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "lmql",
+      "scenario": "regenerate_once",
+      "repeat": 1,
+      "passed": 1,
+      "total": 2,
+      "coverage": 0.5,
+      "results": [
+        {
+          "desc": "writes the changelog again on regenerate",
+          "pass": true
+        },
+        {
+          "desc": "stops after the user declines a second regenerate",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.0.0..HEAD"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Regenerate the changelog?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "yes"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.0.0..HEAD"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Regenerate the changelog?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "no"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 995,
+        "output_tokens": 202,
+        "exec_s": 32.553,
+        "total_s": 32.797
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "ell",
+      "scenario": "range_given_all_categories",
+      "repeat": 1,
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "collects commits with git log",
+          "pass": true
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": false
+        },
+        {
+          "desc": "has a Features section",
+          "pass": true
+        },
+        {
+          "desc": "has a Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "has a Maintenance section",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.4.0..HEAD"
+          }
+        ],
+        "outputs": {
+          "sections": [
+            "Features",
+            "Bug Fixes",
+            "Maintenance"
+          ]
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1162,
+        "output_tokens": 62,
+        "exec_s": 22.296,
+        "total_s": 22.54
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "ell",
+      "scenario": "infer_range",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "looks up the most recent tag",
+          "pass": true
+        },
+        {
+          "desc": "collects commits after inferring the range",
+          "pass": false
+        },
+        {
+          "desc": "writes CHANGELOG.md",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git describe --tags --abbrev=0"
+          }
+        ],
+        "outputs": {
+          "last_tag": "v2.1.0"
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1046,
+        "output_tokens": 56,
+        "exec_s": 21.505,
+        "total_s": 21.748
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "ell",
+      "scenario": "only_features",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "writes the Features section",
+          "pass": false
+        },
+        {
+          "desc": "omits the empty Bug Fixes section",
+          "pass": true
+        },
+        {
+          "desc": "omits the empty Maintenance section",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v3.0.0..HEAD"
+          }
+        ],
+        "outputs": {
+          "CHANGELOG.md": "## Features\n- feat: dark mode\n- feature: keyboard shortcuts"
+        },
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1032,
+        "output_tokens": 73,
+        "exec_s": 15.303,
+        "total_s": 15.544
+      }
+    },
+    {
+      "case": "release_notes",
+      "system": "ell",
+      "scenario": "regenerate_once",
+      "repeat": 1,
+      "passed": 1,
+      "total": 2,
+      "coverage": 0.5,
+      "results": [
+        {
+          "desc": "writes the changelog again on regenerate",
+          "pass": true
+        },
+        {
+          "desc": "stops after the user declines a second regenerate",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.0.0..HEAD"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md"
+          },
+          {
+            "type": "REQUEST_CONFIRMATION",
+            "detail": "Regenerate the changelog?"
+          },
+          {
+            "type": "ENTER_STATE",
+            "detail": "regenerate"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "git log --pretty=%s v1.0.0..HEAD"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "CHANGELOG.md"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "CHANGELOG.md written"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1005,
+        "output_tokens": 163,
+        "exec_s": 20.458,
+        "total_s": 20.703
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "kebab_reject_then_fix",
+      "repeat": 1,
+      "passed": 0,
+      "total": 3,
+      "coverage": 0.0,
+      "results": [],
+      "trace": null,
+      "parse_ok": false,
+      "error": "AttributeError(\"'str' object has no attribute 'get'\")",
+      "cost": {
+        "input_tokens": 1941,
+        "output_tokens": 38,
+        "exec_s": 30.435,
+        "total_s": 30.677
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "go_compose_sqlite_nats",
+      "repeat": 1,
+      "passed": 0,
+      "total": 6,
+      "coverage": 0.0,
+      "results": [],
+      "trace": null,
+      "parse_ok": false,
+      "error": "AttributeError(\"'str' object has no attribute 'get'\")",
+      "cost": {
+        "input_tokens": 2077,
+        "output_tokens": 29,
+        "exec_s": 21.267,
+        "total_s": 21.518
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "ts_k8s_helm_postgres_kafka",
+      "repeat": 1,
+      "passed": 0,
+      "total": 6,
+      "coverage": 0.0,
+      "results": [],
+      "trace": null,
+      "parse_ok": false,
+      "error": "AttributeError(\"'str' object has no attribute 'get'\")",
+      "cost": {
+        "input_tokens": 2073,
+        "output_tokens": 29,
+        "exec_s": 22.464,
+        "total_s": 22.709
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "rust_lambda_nostack_run",
+      "repeat": 1,
+      "passed": 2,
+      "total": 5,
+      "coverage": 0.4,
+      "results": [
+        {
+          "desc": "asks for Lambda memory size",
+          "pass": false
+        },
+        {
+          "desc": "writes serverless.yml for Lambda",
+          "pass": false
+        },
+        {
+          "desc": "no database module when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "no messaging stub when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "starts the service locally when asked",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ENTER_STATE",
+            "detail": "Name Service"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Service name is 'auth' (provided in inputs). Proceeding."
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "SUCCESS"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 2042,
+        "output_tokens": 58,
+        "exec_s": 22.327,
+        "total_s": 22.571
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "mdscript",
+      "scenario": "custom_runtime",
+      "repeat": 1,
+      "passed": 0,
+      "total": 3,
+      "coverage": 0.0,
+      "results": [],
+      "trace": null,
+      "parse_ok": false,
+      "error": "AttributeError(\"'str' object has no attribute 'get'\")",
+      "cost": {
+        "input_tokens": 1920,
+        "output_tokens": 29,
+        "exec_s": 19.512,
+        "total_s": 19.757
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "guidance",
+      "scenario": "kebab_reject_then_fix",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "warns the name must be kebab-case and re-asks",
+          "pass": false
+        },
+        {
+          "desc": "uses the corrected kebab-case name",
+          "pass": true
+        },
+        {
+          "desc": "scaffolds the service README",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name?"
+          }
+        ],
+        "outputs": {
+          "service_name": "billing-api"
+        },
+        "final_outcome": "scaffolded services/billing-api: Go, db=none, mq=none, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1578,
+        "output_tokens": 64,
+        "exec_s": 24.359,
+        "total_s": 24.604
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "guidance",
+      "scenario": "go_compose_sqlite_nats",
+      "repeat": 1,
+      "passed": 6,
+      "total": 6,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes docker-compose.yml for Compose target",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for SQLite",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for NATS",
+          "pass": true
+        },
+        {
+          "desc": "no Kubernetes Dockerfile for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "no Lambda serverless.yml for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "does not init git when declined",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? (Expected: orders)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? (Expected: Go)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? (Expected: SQLite)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? (Expected: NATS)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? (Expected: raw server)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? (Expected: Docker Compose)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Helm chart? (Skipped, not K8s)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)? (Skipped, not Lambda)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? (Expected: yes)"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/README.md"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/main.go"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/docker-compose.yml"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/db.py"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/messaging.py"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? (Expected: no)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? (Expected: no)"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "scaffolded services/orders: Go, db=SQLite, mq=NATS, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1714,
+        "output_tokens": 384,
+        "exec_s": 40.502,
+        "total_s": 40.744
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "guidance",
+      "scenario": "ts_k8s_helm_postgres_kafka",
+      "repeat": 1,
+      "passed": 6,
+      "total": 6,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes a Dockerfile for Kubernetes",
+          "pass": true
+        },
+        {
+          "desc": "writes a k8s deployment manifest",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for PostgreSQL",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for Kafka",
+          "pass": true
+        },
+        {
+          "desc": "initializes git when requested",
+          "pass": true
+        },
+        {
+          "desc": "no Compose file for a Kubernetes target",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? (Answer: gateway)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? (Answer: TypeScript)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? (Answer: PostgreSQL)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? (Answer: Kafka)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? (Answer: framework)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? (Answer: Kubernetes)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Helm chart? (Answer: yes)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)? (Skipped, not Lambda)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? (Answer: yes)"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/README.md"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/index.ts"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/Dockerfile"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/k8s/deployment.yaml"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/db.py"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/messaging.py"
+          },
+          {
+            "type": "GIT_INIT",
+            "detail": "git init in services/gateway"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? (Answer: yes)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? (Answer: no)"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "scaffolded services/gateway: TypeScript, db=PostgreSQL, mq=Kafka, deploy=Kubernetes"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1710,
+        "output_tokens": 416,
+        "exec_s": 34.646,
+        "total_s": 34.893
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "guidance",
+      "scenario": "rust_lambda_nostack_run",
+      "repeat": 1,
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "asks for Lambda memory size",
+          "pass": true
+        },
+        {
+          "desc": "writes serverless.yml for Lambda",
+          "pass": true
+        },
+        {
+          "desc": "no database module when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "no messaging stub when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "starts the service locally when asked",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? (auth)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? (Rust)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? (none)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? (none)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? (raw server)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? (Lambda)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? (no)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)? (512)"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/README.md"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/main.rs"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/serverless.yml"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? (no)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? (yes)"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "dev_command(Rust) in services/auth"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "running in development mode"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1679,
+        "output_tokens": 302,
+        "exec_s": 33.437,
+        "total_s": 33.717
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "guidance",
+      "scenario": "custom_runtime",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "asks for a custom runtime when language is other",
+          "pass": true
+        },
+        {
+          "desc": "uses the custom runtime",
+          "pass": false
+        },
+        {
+          "desc": "scaffolds the service",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? (edge-fn)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? (other)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Custom runtime? (Deno)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? (none)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? (none)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? (raw server)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? (Docker Compose)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? (yes)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? (no)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? (no)"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "scaffolded services/edge-fn: Deno, db=none, mq=none, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1557,
+        "output_tokens": 237,
+        "exec_s": 33.275,
+        "total_s": 33.52
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "lmql",
+      "scenario": "kebab_reject_then_fix",
+      "repeat": 1,
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "warns the name must be kebab-case and re-asks",
+          "pass": false
+        },
+        {
+          "desc": "uses the corrected kebab-case name",
+          "pass": true
+        },
+        {
+          "desc": "scaffolds the service README",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name?"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/billing-api/README.md"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/billing-api/main.go"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/billing-api/docker-compose.yml"
+          }
+        ],
+        "outputs": {
+          "service_name": "billing-api"
+        },
+        "final_outcome": "scaffolded services/billing-api: Go, db=none, mq=none, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1484,
+        "output_tokens": 132,
+        "exec_s": 32.876,
+        "total_s": 33.119
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "lmql",
+      "scenario": "go_compose_sqlite_nats",
+      "repeat": 1,
+      "passed": 6,
+      "total": 6,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes docker-compose.yml for Compose target",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for SQLite",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for NATS",
+          "pass": true
+        },
+        {
+          "desc": "no Kubernetes Dockerfile for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "no Lambda serverless.yml for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "does not init git when declined",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name?"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/README.md"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? [choice]"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/main.go"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? [choice]"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/db.py"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? [choice]"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/messaging.py"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? [choice]"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/docker-compose.yml"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Helm chart? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? [choice]"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "scaffolded services/orders: Go, db=SQLite, mq=NATS, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1620,
+        "output_tokens": 348,
+        "exec_s": 31.23,
+        "total_s": 31.476
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "lmql",
+      "scenario": "ts_k8s_helm_postgres_kafka",
+      "repeat": 1,
+      "passed": 6,
+      "total": 6,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes a Dockerfile for Kubernetes",
+          "pass": true
+        },
+        {
+          "desc": "writes a k8s deployment manifest",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for PostgreSQL",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for Kafka",
+          "pass": true
+        },
+        {
+          "desc": "initializes git when requested",
+          "pass": true
+        },
+        {
+          "desc": "no Compose file for a Kubernetes target",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/README.md"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/index.ts"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Service name must be kebab-case."
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Custom runtime?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Helm chart? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? [choice]"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/Dockerfile"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/k8s/deployment.yaml"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/db.py"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/messaging.py"
+          },
+          {
+            "type": "GIT_INIT",
+            "detail": "git -C services/gateway init"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? [choice]"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "scaffolded services/gateway: TypeScript, db=PostgreSQL, mq=Kafka, deploy=Kubernetes"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1616,
+        "output_tokens": 408,
+        "exec_s": 36.261,
+        "total_s": 36.504
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "lmql",
+      "scenario": "rust_lambda_nostack_run",
+      "repeat": 1,
+      "passed": 2,
+      "total": 5,
+      "coverage": 0.4,
+      "results": [
+        {
+          "desc": "asks for Lambda memory size",
+          "pass": true
+        },
+        {
+          "desc": "writes serverless.yml for Lambda",
+          "pass": true
+        },
+        {
+          "desc": "no database module when none chosen",
+          "pass": false
+        },
+        {
+          "desc": "no messaging stub when none chosen",
+          "pass": false
+        },
+        {
+          "desc": "starts the service locally when asked",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Custom runtime?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Helm chart? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? [choice]"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/README.md: # auth\n\nRuntime: Rust\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/main.rs: // Entrypoint for Rust service\n// ... (implementation details based on health)\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/serverless.yml: # AWS SAM template\n# ... (content using 512MB memory)\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/docker-compose.yml: version: '3.8'\nservices:\n  auth:\n    build: ."
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/db.py: # Database module stub\n# ... (PostgreSQL connection setup)\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/auth/messaging.py: # Messaging module stub\n# ... (Kafka producer setup)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? [choice]"
+          },
+          {
+            "type": "RUN_COMMAND",
+            "detail": "cd services/auth && cargo run --release"
+          }
+        ]
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1585,
+        "output_tokens": 475,
+        "exec_s": 34.137,
+        "total_s": 34.383
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "lmql",
+      "scenario": "custom_runtime",
+      "repeat": 1,
+      "passed": 3,
+      "total": 3,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "asks for a custom runtime when language is other",
+          "pass": true
+        },
+        {
+          "desc": "uses the custom runtime",
+          "pass": true
+        },
+        {
+          "desc": "scaffolds the service",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Custom runtime?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Helm chart? [choice]"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)?"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? [choice]"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/edge-fn/README.md: # edge-fn\n\nRuntime: Deno\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/edge-fn/entrypoint.py: # Placeholder entrypoint for Deno (assuming tool handles this based on language)\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/edge-fn/docker-compose.yml: version: '3.8'\nservices:\n  edge-fn:\n    build: .\n    # ... other compose config\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/edge-fn/db.py: # Database module for PostgreSQL, SQLite, none\ndef get_connection(db_type):\n    if db_type == \"PostgreSQL\":\n        return \"pg_conn\"\n    elif db_type == \"SQLite\":\n        return \"sqlite_conn\"\n    else:\n        return None\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/edge-fn/messaging.py: # Messaging stub for Kafka, NATS, none\ndef connect(mq_type):\n    if mq_type == \"Kafka\":\n        return \"kafka_client\"\n    elif mq_type == \"NATS\":\n        return \"nats_client\"\n    else:\n        return None\n"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? [choice]"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/edge-fn/.git/HEAD: Initialized repository structure (simulated by tool.sh)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? [choice]"
+          }
+        ],
+        "outputs": {
+          "language_config": "Deno"
+        },
+        "final_outcome": "scaffolded services/edge-fn: Deno, db=none, mq=none, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1463,
+        "output_tokens": 622,
+        "exec_s": 39.143,
+        "total_s": 39.384
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "ell",
+      "scenario": "kebab_reject_then_fix",
+      "repeat": 1,
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "warns the name must be kebab-case and re-asks",
+          "pass": false
+        },
+        {
+          "desc": "uses the corrected kebab-case name",
+          "pass": true
+        },
+        {
+          "desc": "scaffolds the service README",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? Options: billing-api"
+          }
+        ],
+        "outputs": {
+          "service_name": "billing-api"
+        },
+        "final_outcome": "scaffolded services/billing-api: Go, db=none, mq=none, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1521,
+        "output_tokens": 69,
+        "exec_s": 26.191,
+        "total_s": 26.435
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "ell",
+      "scenario": "go_compose_sqlite_nats",
+      "repeat": 1,
+      "passed": 6,
+      "total": 6,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes docker-compose.yml for Compose target",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for SQLite",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for NATS",
+          "pass": true
+        },
+        {
+          "desc": "no Kubernetes Dockerfile for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "no Lambda serverless.yml for a Compose target",
+          "pass": true
+        },
+        {
+          "desc": "does not init git when declined",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? (Input: orders)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? Options: Go, TypeScript, Rust, other (Input: Go)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Custom runtime? (Input: )"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? Options: PostgreSQL, SQLite, none (Input: SQLite)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? Options: Kafka, NATS, none (Input: NATS)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? Options: framework, raw server (Input: raw server)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? Options: Kubernetes, Lambda, Docker Compose (Input: Docker Compose)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Helm chart? Options: yes, no (Input: )"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)? (Input: )"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? Options: yes, no (Input: yes)"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/README.md # orders\n\nRuntime: Go\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/main.go package main\n\t// Entrypoint for Go service\n\tfunc main() {\n\t\t// Service logic here\n\t}\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/docker-compose.yml version: '3.8'\nservices:\n  orders:\n    build: .\n    ports:\n      - \"8080:8080\"\n    environment:\n      - ENV=production\nvolumes:\n  orders_data:\n"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/db.py# Database module for SQLite\nimport sqlite3\ndef init_db():\tconn = sqlite3.connect('sqlite.db')\tcursor = conn.cursor()\tcursor.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)')\tconn.commit()\tconn.close()"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/orders/messaging.py# Messaging stub for NATS\nclass MessageService:\n    def publish(self, topic: str, message: str):\n        print(f\"Publishing to {topic}: {message}\")\n"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? Options: yes, no (Input: no)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? Options: yes, no (Input: no)"
+          }
+        ],
+        "outputs": {
+          "final_outcome": "scaffolded services/orders: Go, db=SQLite, mq=NATS, deploy=Docker Compose"
+        },
+        "final_outcome": "scaffolded services/orders: Go, db=SQLite, mq=NATS, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1657,
+        "output_tokens": 699,
+        "exec_s": 40.858,
+        "total_s": 41.099
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "ell",
+      "scenario": "ts_k8s_helm_postgres_kafka",
+      "repeat": 1,
+      "passed": 6,
+      "total": 6,
+      "coverage": 1.0,
+      "results": [
+        {
+          "desc": "writes a Dockerfile for Kubernetes",
+          "pass": true
+        },
+        {
+          "desc": "writes a k8s deployment manifest",
+          "pass": true
+        },
+        {
+          "desc": "adds a database module for PostgreSQL",
+          "pass": true
+        },
+        {
+          "desc": "adds a messaging stub for Kafka",
+          "pass": true
+        },
+        {
+          "desc": "initializes git when requested",
+          "pass": true
+        },
+        {
+          "desc": "no Compose file for a Kubernetes target",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? (Input: gateway)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Language? Options: Go, TypeScript, Rust, other (Input: TypeScript)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Custom runtime? (Input: )"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Database? Options: PostgreSQL, SQLite, none (Input: PostgreSQL)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Messaging? Options: Kafka, NATS, none (Input: Kafka)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "HTTP layer? Options: framework, raw server (Input: framework)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Deploy target? Options: Kubernetes, Lambda, Docker Compose (Input: Kubernetes)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Helm chart? Options: yes, no (Input: yes)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Lambda memory (MB)? (Skipped because deploy target is not Lambda)"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Expose a health endpoint? Options: yes, no (Input: yes)"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/README.md"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/gateway.ts"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/Dockerfile"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/k8s/deployment.yaml"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/db.py"
+          },
+          {
+            "type": "WRITE_FILE",
+            "detail": "services/gateway/messaging.py"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Initialize git? Options: yes, no (Input: yes)"
+          },
+          {
+            "type": "GIT_INIT",
+            "detail": "git init in services/gateway"
+          },
+          {
+            "type": "ASK_USER",
+            "detail": "Run the service locally now? Options: yes, no (Input: no)"
+          }
+        ],
+        "outputs": {},
+        "final_outcome": "scaffolded services/gateway: TypeScript, db=PostgreSQL, mq=Kafka, deploy=Kubernetes"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1653,
+        "output_tokens": 497,
+        "exec_s": 34.585,
+        "total_s": 34.829
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "ell",
+      "scenario": "rust_lambda_nostack_run",
+      "repeat": 1,
+      "passed": 3,
+      "total": 5,
+      "coverage": 0.6,
+      "results": [
+        {
+          "desc": "asks for Lambda memory size",
+          "pass": false
+        },
+        {
+          "desc": "writes serverless.yml for Lambda",
+          "pass": false
+        },
+        {
+          "desc": "no database module when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "no messaging stub when none chosen",
+          "pass": true
+        },
+        {
+          "desc": "starts the service locally when asked",
+          "pass": true
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? Options: auth"
+          }
+        ],
+        "outputs": {
+          "outcome": "running in development mode"
+        },
+        "final_outcome": "scaffolded services/auth: Rust, db=none, mq=none, deploy=Lambda"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1622,
+        "output_tokens": 63,
+        "exec_s": 29.479,
+        "total_s": 29.72
+      }
+    },
+    {
+      "case": "onboard_service",
+      "system": "ell",
+      "scenario": "custom_runtime",
+      "repeat": 1,
+      "passed": 0,
+      "total": 3,
+      "coverage": 0.0,
+      "results": [
+        {
+          "desc": "asks for a custom runtime when language is other",
+          "pass": false
+        },
+        {
+          "desc": "uses the custom runtime",
+          "pass": false
+        },
+        {
+          "desc": "scaffolds the service",
+          "pass": false
+        }
+      ],
+      "trace": {
+        "events": [
+          {
+            "type": "ASK_USER",
+            "detail": "Service name? Options: edge-fn"
+          }
+        ],
+        "outputs": {
+          "service_name": "edge-fn"
+        },
+        "final_outcome": "scaffolded services/edge-fn: Deno, db=none, mq=none, deploy=Docker Compose"
+      },
+      "parse_ok": true,
+      "cost": {
+        "input_tokens": 1500,
+        "output_tokens": 70,
+        "exec_s": 37.275,
+        "total_s": 37.516
+      }
+    }
+  ]
+}

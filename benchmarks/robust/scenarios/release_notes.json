@@ -1,0 +1,74 @@
+{
+  "case": "release_notes",
+  "goal": "Collect commits in a range, categorize them, and write CHANGELOG.md.",
+  "scenarios": [
+    {
+      "id": "range_given_all_categories",
+      "description": "Range supplied; commits span features, fixes, and chores; no regenerate.",
+      "inputs": { "git_range": "v1.4.0..HEAD" },
+      "world": {
+        "command_results": {
+          "git log": [
+            "feat: add export button",
+            "fix: correct timezone offset",
+            "bug: avoid duplicate rows",
+            "docs: update readme",
+            "chore: bump deps"
+          ]
+        },
+        "user_answers": { "regenerate": "no" }
+      },
+      "checks": [
+        { "check": "event", "event": "RUN_COMMAND", "contains": ["git log"], "desc": "collects commits with git log" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["CHANGELOG.md"], "desc": "writes CHANGELOG.md" },
+        { "check": "output", "key": "sections", "contains": ["Features"], "desc": "has a Features section" },
+        { "check": "output", "key": "sections", "contains": ["Bug Fixes"], "desc": "has a Bug Fixes section" },
+        { "check": "output", "key": "sections", "contains": ["Maintenance"], "desc": "has a Maintenance section" }
+      ]
+    },
+    {
+      "id": "infer_range",
+      "description": "Range is empty; must infer last-tag..HEAD before collecting commits.",
+      "inputs": { "git_range": "" },
+      "world": {
+        "command_results": {
+          "git describe --tags": "v2.1.0",
+          "git log": ["feat: new dashboard", "fix: login redirect"]
+        },
+        "user_answers": { "regenerate": "no" }
+      },
+      "checks": [
+        { "check": "event", "event": "RUN_COMMAND", "contains": ["tag"], "desc": "looks up the most recent tag" },
+        { "check": "event", "event": "RUN_COMMAND", "contains": ["git log"], "desc": "collects commits after inferring the range" },
+        { "check": "event", "event": "WRITE_FILE", "contains": ["CHANGELOG.md"], "desc": "writes CHANGELOG.md" }
+      ]
+    },
+    {
+      "id": "only_features",
+      "description": "All commits are features; only the Features section should be written.",
+      "inputs": { "git_range": "v3.0.0..HEAD" },
+      "world": {
+        "command_results": { "git log": ["feat: dark mode", "feature: keyboard shortcuts"] },
+        "user_answers": { "regenerate": "no" }
+      },
+      "checks": [
+        { "check": "output", "key": "sections", "contains": ["Features"], "desc": "writes the Features section" },
+        { "check": "output_absent", "key": "sections", "contains": ["Bug Fixes"], "desc": "omits the empty Bug Fixes section" },
+        { "check": "output_absent", "key": "sections", "contains": ["Maintenance"], "desc": "omits the empty Maintenance section" }
+      ]
+    },
+    {
+      "id": "regenerate_once",
+      "description": "User asks to regenerate once, then stops; the gather/categorize/write cycle must run twice.",
+      "inputs": { "git_range": "v1.0.0..HEAD" },
+      "world": {
+        "command_results": { "git log": ["feat: initial release", "chore: ci setup"] },
+        "user_answers": { "regenerate": ["yes", "no"] }
+      },
+      "checks": [
+        { "check": "count", "event": "WRITE_FILE", "contains": ["CHANGELOG.md"], "op": ">=", "value": 2, "desc": "writes the changelog again on regenerate" },
+        { "check": "event", "event": "COMPLETE", "desc": "stops after the user declines a second regenerate" }
+      ]
+    }
+  ]
+}

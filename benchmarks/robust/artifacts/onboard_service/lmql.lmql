@@ -1,0 +1,66 @@
+# Interactively scaffold a new service from language, stack, and deployment choices.
+#
+# Idiomatic LMQL: constrained holes for each interactive choice; ordinary
+# Python control flow and helpers do the deterministic scaffolding.
+import lmql
+
+
+@lmql.query
+async def pick(question, options):
+    '''lmql
+    "{question} [choice]" where choice in options
+    return choice
+    '''
+
+
+@lmql.query
+async def onboard_service(service_name=""):
+    '''lmql
+    # Name Service
+    import re
+    while not service_name or re.search(r"[A-Z ]", service_name):
+        if service_name:
+            await tool.warn("Service name must be kebab-case.")
+        service_name = await tool.ask("Service name?")
+    service_path = f"services/{service_name}"
+
+    # Choose Language
+    language = await pick("Language?", ["Go", "TypeScript", "Rust", "other"])
+    language_config = await tool.ask("Custom runtime?") if language == "other" else language
+
+    # Pick Stack
+    database = await pick("Database?", ["PostgreSQL", "SQLite", "none"])
+    messaging = await pick("Messaging?", ["Kafka", "NATS", "none"])
+    http = await pick("HTTP layer?", ["framework", "raw server"])
+
+    # Configure Deployment
+    deploy_target = await pick("Deploy target?", ["Kubernetes", "Lambda", "Docker Compose"])
+    helm = deploy_target == "Kubernetes" and await pick("Helm chart?", ["yes", "no"]) == "yes"
+    memory_size = await tool.ask("Lambda memory (MB)?") if deploy_target == "Lambda" else None
+    health = await pick("Expose a health endpoint?", ["yes", "no"]) == "yes"
+
+    # Scaffold
+    await tool.write_file(f"{service_path}/README.md", f"# {service_name}\n\nRuntime: {language_config}\n")
+    await tool.write_file(f"{service_path}/{tool.entrypoint_name(language_config)}",
+                          tool.entrypoint_body(language_config, health))
+    if deploy_target == "Kubernetes":
+        await tool.write_file(f"{service_path}/Dockerfile", tool.dockerfile(language_config))
+        await tool.write_file(f"{service_path}/k8s/deployment.yaml", tool.k8s_manifest(service_name, helm))
+    elif deploy_target == "Lambda":
+        await tool.write_file(f"{service_path}/serverless.yml", tool.serverless_yml(service_name, memory_size))
+    elif deploy_target == "Docker Compose":
+        await tool.write_file(f"{service_path}/docker-compose.yml", tool.compose_yml(service_name))
+    if database != "none":
+        await tool.write_file(f"{service_path}/db.py", tool.db_module(database))
+    if messaging != "none":
+        await tool.write_file(f"{service_path}/messaging.py", tool.messaging_stub(messaging))
+
+    if await pick("Initialize git?", ["yes", "no"]) == "yes":
+        await tool.sh(f"git -C {service_path} init")
+
+    # Verify
+    if await pick("Run the service locally now?", ["yes", "no"]) == "yes":
+        await tool.sh(f"cd {service_path} && {tool.dev_command(language_config)}")
+        return "running in development mode"
+    return f"scaffolded {service_path}: {language_config}, db={database}, mq={messaging}, deploy={deploy_target}"
+    '''

@@ -1,0 +1,1629 @@
+{
+  "summary": [
+    {
+      "system": "guidance",
+      "handoff_pct": 87.7,
+      "hop_checks_passed": 50,
+      "hop_checks_total": 57,
+      "hops_run": 15
+    },
+    {
+      "system": "ell",
+      "handoff_pct": 87.7,
+      "hop_checks_passed": 50,
+      "hop_checks_total": 57,
+      "hops_run": 15
+    },
+    {
+      "system": "mdscript",
+      "handoff_pct": 86,
+      "hop_checks_passed": 49,
+      "hop_checks_total": 57,
+      "hops_run": 15
+    },
+    {
+      "system": "lmql",
+      "handoff_pct": 86,
+      "hop_checks_passed": 49,
+      "hop_checks_total": 57,
+      "hops_run": 15
+    }
+  ],
+  "perHop": [
+    {
+      "k": "mdscript::select-branch",
+      "pct": 66.7
+    },
+    {
+      "k": "mdscript::run-checks",
+      "pct": 86.7
+    },
+    {
+      "k": "mdscript::build-artifact",
+      "pct": 100
+    },
+    {
+      "k": "mdscript::deploy",
+      "pct": 100
+    },
+    {
+      "k": "mdscript::verify-deployment",
+      "pct": 66.7
+    },
+    {
+      "k": "guidance::select-branch",
+      "pct": 66.7
+    },
+    {
+      "k": "guidance::run-checks",
+      "pct": 80
+    },
+    {
+      "k": "guidance::build-artifact",
+      "pct": 100
+    },
+    {
+      "k": "guidance::deploy",
+      "pct": 100
+    },
+    {
+      "k": "guidance::verify-deployment",
+      "pct": 88.9
+    },
+    {
+      "k": "lmql::select-branch",
+      "pct": 44.4
+    },
+    {
+      "k": "lmql::run-checks",
+      "pct": 80
+    },
+    {
+      "k": "lmql::build-artifact",
+      "pct": 100
+    },
+    {
+      "k": "lmql::deploy",
+      "pct": 100
+    },
+    {
+      "k": "lmql::verify-deployment",
+      "pct": 100
+    },
+    {
+      "k": "ell::select-branch",
+      "pct": 66.7
+    },
+    {
+      "k": "ell::run-checks",
+      "pct": 86.7
+    },
+    {
+      "k": "ell::build-artifact",
+      "pct": 100
+    },
+    {
+      "k": "ell::deploy",
+      "pct": 100
+    },
+    {
+      "k": "ell::verify-deployment",
+      "pct": 77.8
+    }
+  ],
+  "jump_failures": [],
+  "rows": [
+    {
+      "system": "mdscript",
+      "repeat": 1,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 1,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": true
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 1,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 1,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 1,
+      "anchor": "verify-deployment",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 2,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 2,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": true
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 2,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 2,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 2,
+      "anchor": "verify-deployment",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 3,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 3,
+      "anchor": "run-checks",
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": true
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 3,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 3,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "mdscript",
+      "repeat": 3,
+      "anchor": "verify-deployment",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 1,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 1,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": false
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 1,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 1,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 1,
+      "anchor": "verify-deployment",
+      "passed": 3,
+      "total": 3,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 2,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 2,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": false
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 2,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 2,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 2,
+      "anchor": "verify-deployment",
+      "passed": 3,
+      "total": 3,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 3,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 3,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": true
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 3,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 3,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "guidance",
+      "repeat": 3,
+      "anchor": "verify-deployment",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 1,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 1,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": false
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 1,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 1,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 1,
+      "anchor": "verify-deployment",
+      "passed": 3,
+      "total": 3,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 2,
+      "anchor": "select-branch",
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 2,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": false
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 2,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 2,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 2,
+      "anchor": "verify-deployment",
+      "passed": 3,
+      "total": 3,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 3,
+      "anchor": "select-branch",
+      "passed": 1,
+      "total": 3,
+      "coverage": 0.3333333333333333,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 3,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": false
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 3,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 3,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "lmql",
+      "repeat": 3,
+      "anchor": "verify-deployment",
+      "passed": 3,
+      "total": 3,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 1,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 1,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": false
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 1,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 1,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 1,
+      "anchor": "verify-deployment",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 2,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 2,
+      "anchor": "run-checks",
+      "passed": 4,
+      "total": 5,
+      "coverage": 0.8,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": false
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 2,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 2,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 2,
+      "anchor": "verify-deployment",
+      "passed": 3,
+      "total": 3,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 3,
+      "anchor": "select-branch",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at select-branch",
+          "pass": true
+        },
+        {
+          "desc": "resolves the branch",
+          "pass": false
+        },
+        {
+          "desc": "produces branch for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 3,
+      "anchor": "run-checks",
+      "passed": 5,
+      "total": 5,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at run-checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "does not re-ask for the injected branch",
+          "pass": true
+        },
+        {
+          "desc": "runs the checks",
+          "pass": true
+        },
+        {
+          "desc": "produces coverage for hand-off",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 3,
+      "anchor": "build-artifact",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at build-artifact",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run checks",
+          "pass": true
+        },
+        {
+          "desc": "does not re-run select-branch",
+          "pass": true
+        },
+        {
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 3,
+      "anchor": "deploy",
+      "passed": 4,
+      "total": 4,
+      "coverage": 1,
+      "results": [
+        {
+          "desc": "enters at deploy",
+          "pass": true
+        },
+        {
+          "desc": "does not re-build",
+          "pass": true
+        },
+        {
+          "desc": "notifies on deploy",
+          "pass": true
+        },
+        {
+          "desc": "deploys the injected artifact (variable carried across hand-off)",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "system": "ell",
+      "repeat": 3,
+      "anchor": "verify-deployment",
+      "passed": 2,
+      "total": 3,
+      "coverage": 0.6666666666666666,
+      "results": [
+        {
+          "desc": "enters at verify-deployment",
+          "pass": true
+        },
+        {
+          "desc": "runs the health check",
+          "pass": true
+        },
+        {
+          "desc": "reports completion",
+          "pass": false
+        }
+      ]
+    }
+  ]
+}

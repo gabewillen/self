@@ -1,0 +1,109 @@
+{
+  "case": "deploy_branch",
+  "goal": "Deploy a branch to an environment after checks, then verify health.",
+  "scenarios": [
+    {
+      "id": "happy_path",
+      "description": "Branch given, all checks pass, deploy succeeds, health passes first try.",
+      "inputs": { "branch": "feature/checkout", "environment": "staging", "deploy_url": "https://staging.example.test" },
+      "world": {
+        "command_results": { "npm run typecheck": "pass", "npm run test -- --coverage": "pass, coverage 91%", "npm run build": "pass", "deploy": "success", "health_check": ["pass"] },
+        "user_answers": {}
+      },
+      "checks": [
+        { "check": "event", "event": "RUN_COMMAND", "contains": ["typecheck"], "desc": "runs typecheck" },
+        { "check": "event", "event": "RUN_COMMAND", "contains": ["build"], "desc": "runs build" },
+        { "check": "event", "event": "NOTIFY", "contains": ["team"], "desc": "notifies team on success" },
+        { "check": "event", "event": "COMPLETE", "contains": ["complete"], "desc": "marks deploy complete" },
+        { "check": "event_absent", "event": "REQUEST_CONFIRMATION", "desc": "no confirmation prompts when nothing risky" },
+        { "check": "event_absent", "event": "ROLLBACK", "desc": "no rollback on a clean deploy" }
+      ]
+    },
+    {
+      "id": "missing_branch",
+      "description": "Branch is empty; workflow must ask for it before doing anything.",
+      "inputs": { "branch": "", "environment": "staging", "deploy_url": "https://staging.example.test" },
+      "world": {
+        "command_results": { "npm run typecheck": "pass", "npm run test -- --coverage": "pass, coverage 88%", "npm run build": "pass", "deploy": "success", "health_check": ["pass"] },
+        "user_answers": { "branch": "feature/login" }
+      },
+      "checks": [
+        { "check": "event", "event": "ASK_USER", "contains": ["branch"], "desc": "asks for the missing branch" },
+        { "check": "output", "key": "branch", "contains": ["feature/login"], "desc": "uses the branch the user supplied" },
+        { "check": "event", "event": "COMPLETE", "desc": "completes the deploy" }
+      ]
+    },
+    {
+      "id": "main_declined",
+      "description": "Branch is main and the user declines approval; must stop before any checks or deploy.",
+      "inputs": { "branch": "main", "environment": "production", "deploy_url": "https://prod.example.test" },
+      "world": {
+        "command_results": {},
+        "user_answers": { "confirm_main": "no" }
+      },
+      "checks": [
+        { "check": "event", "event": "REQUEST_CONFIRMATION", "contains": ["main"], "desc": "asks for confirmation before deploying main" },
+        { "check": "event", "event": "ABORT", "desc": "stops because approval was declined" },
+        { "check": "event_absent", "event": "RUN_COMMAND", "contains": ["build"], "desc": "never builds when not approved" },
+        { "check": "event_absent", "event": "ROLLBACK", "desc": "nothing to roll back" }
+      ]
+    },
+    {
+      "id": "low_coverage_proceed",
+      "description": "Coverage below 80%; user chooses to proceed; deploy then succeeds.",
+      "inputs": { "branch": "feature/reports", "environment": "staging", "deploy_url": "https://staging.example.test" },
+      "world": {
+        "command_results": { "npm run typecheck": "pass", "npm run test -- --coverage": "pass, coverage 72%", "npm run build": "pass", "deploy": "success", "health_check": ["pass"] },
+        "user_answers": { "proceed_low_coverage": "yes" }
+      },
+      "checks": [
+        { "check": "event", "event": "REQUEST_CONFIRMATION", "contains": ["coverage"], "desc": "warns/confirms on low coverage" },
+        { "check": "event", "event": "RUN_COMMAND", "contains": ["build"], "desc": "proceeds to build after user agrees" },
+        { "check": "event", "event": "COMPLETE", "desc": "completes the deploy" }
+      ]
+    },
+    {
+      "id": "low_coverage_declined",
+      "description": "Coverage below 80%; user declines; must cancel before build/deploy.",
+      "inputs": { "branch": "feature/reports", "environment": "staging", "deploy_url": "https://staging.example.test" },
+      "world": {
+        "command_results": { "npm run typecheck": "pass", "npm run test -- --coverage": "pass, coverage 72%" },
+        "user_answers": { "proceed_low_coverage": "no" }
+      },
+      "checks": [
+        { "check": "event", "event": "REQUEST_CONFIRMATION", "contains": ["coverage"], "desc": "warns/confirms on low coverage" },
+        { "check": "event", "event": "ABORT", "desc": "cancels when user declines" },
+        { "check": "event_absent", "event": "RUN_COMMAND", "contains": ["build"], "desc": "does not build after cancel" }
+      ]
+    },
+    {
+      "id": "deploy_fails_then_recovers",
+      "description": "Checks pass; first deploy fails (rollback + notify + return to Select Branch); user re-supplies same branch; second deploy succeeds; health passes.",
+      "inputs": { "branch": "feature/payments", "environment": "staging", "deploy_url": "https://staging.example.test" },
+      "world": {
+        "command_results": { "npm run typecheck": "pass", "npm run test -- --coverage": "pass, coverage 90%", "npm run build": "pass", "deploy": ["fail", "success"], "health_check": ["pass"] },
+        "user_answers": { "branch": "feature/payments" }
+      },
+      "checks": [
+        { "check": "event", "event": "ROLLBACK", "desc": "rolls back on deploy failure" },
+        { "check": "event", "event": "NOTIFY", "contains": ["fail"], "desc": "notifies team that the deploy failed" },
+        { "check": "event", "event": "ENTER_STATE", "contains": ["select"], "desc": "returns to Select Branch after failure" },
+        { "check": "event", "event": "COMPLETE", "desc": "eventually completes after recovery" }
+      ]
+    },
+    {
+      "id": "health_exhausted_then_recovers",
+      "description": "Deploy succeeds but health fails all 3 attempts; rollback + return to Select Branch; second round health passes.",
+      "inputs": { "branch": "feature/search", "environment": "staging", "deploy_url": "https://staging.example.test" },
+      "world": {
+        "command_results": { "npm run typecheck": "pass", "npm run test -- --coverage": "pass, coverage 85%", "npm run build": "pass", "deploy": "success", "health_check": ["fail", "fail", "fail", "pass"] },
+        "user_answers": { "branch": "feature/search" }
+      },
+      "checks": [
+        { "check": "count", "event": "HEALTH_CHECK", "op": ">=", "value": 3, "desc": "retries health check up to 3 times" },
+        { "check": "event", "event": "ROLLBACK", "desc": "rolls back after health exhaustion" },
+        { "check": "event", "event": "ENTER_STATE", "contains": ["select"], "desc": "returns to Select Branch after rollback" }
+      ]
+    }
+  ]
+}

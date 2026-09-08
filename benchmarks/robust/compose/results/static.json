@@ -1,0 +1,26 @@
+{
+  "mdscript": {
+    "references": 4,
+    "click_navigable": 4,
+    "navigability_pct": 100.0,
+    "dedicated_wiring_lines": 0
+  },
+  "guidance": {
+    "references": 4,
+    "click_navigable": 0,
+    "navigability_pct": 0.0,
+    "dedicated_wiring_lines": 8
+  },
+  "lmql": {
+    "references": 4,
+    "click_navigable": 0,
+    "navigability_pct": 0.0,
+    "dedicated_wiring_lines": 8
+  },
+  "ell": {
+    "references": 4,
+    "click_navigable": 0,
+    "navigability_pct": 0.0,
+    "dedicated_wiring_lines": 8
+  }
+}

@@ -1,0 +1,26 @@
+# Ship a hotfix to production. Composes the shared check + deploy queries.
+import lmql
+from checks import confirm, run_checks
+from deploy import deploy
+
+
+@lmql.query
+async def hotfix(branch=""):
+    '''lmql
+    if not await confirm("This deploys a hotfix straight to production. Proceed?"):
+        return "cancelled: hotfix declined"
+
+    state = {"branch": branch}
+    state = await run_checks(state)
+    if not state["checks_ok"]:
+        return f"stopped: {state['reason']}"
+
+    if (await tool.sh("npm run build")).failed:
+        return "stopped: build error"
+    slug = branch.replace("/", "-")
+    state["artifact"] = f"dist/{slug}-hotfix-{tool.timestamp()}.tar.gz"
+
+    state["environment"] = "production"
+    state["deploy_url"] = "https://prod.example.test"
+    return await deploy(state)
+    '''

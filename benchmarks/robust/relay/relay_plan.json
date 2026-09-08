@@ -1,0 +1,227 @@
+{
+  "workflow": "deploy_branch",
+  "artifacts": {
+    "mdscript": "/Users/gabrielwillen/VSCode/mdscript/benchmarks/robust/relay/artifacts/deploy_branch/mdscript.md",
+    "guidance": "/Users/gabrielwillen/VSCode/mdscript/benchmarks/robust/relay/artifacts/deploy_branch/guidance.py",
+    "lmql": "/Users/gabrielwillen/VSCode/mdscript/benchmarks/robust/relay/artifacts/deploy_branch/lmql.lmql",
+    "ell": "/Users/gabrielwillen/VSCode/mdscript/benchmarks/robust/relay/artifacts/deploy_branch/ell.py"
+  },
+  "hops": [
+    {
+      "anchor": "select-branch",
+      "inject": {},
+      "world": {
+        "user_answers": {
+          "branch": "feature/relay"
+        }
+      },
+      "checks": [
+        {
+          "check": "event",
+          "event": "ENTER_STATE",
+          "contains": [
+            "select"
+          ],
+          "desc": "enters at select-branch"
+        },
+        {
+          "check": "event",
+          "event": "ASK_USER",
+          "contains": [
+            "branch"
+          ],
+          "desc": "resolves the branch"
+        },
+        {
+          "check": "output",
+          "key": "branch",
+          "contains": [
+            "feature/relay"
+          ],
+          "desc": "produces branch for hand-off"
+        }
+      ]
+    },
+    {
+      "anchor": "run-checks",
+      "inject": {
+        "branch": "feature/relay"
+      },
+      "world": {
+        "command_results": {
+          "npm run typecheck": "pass",
+          "npm run test -- --coverage": "pass, coverage 88%"
+        }
+      },
+      "checks": [
+        {
+          "check": "event",
+          "event": "ENTER_STATE",
+          "contains": [
+            "check"
+          ],
+          "desc": "enters at run-checks"
+        },
+        {
+          "check": "event_absent",
+          "event": "ENTER_STATE",
+          "contains": [
+            "select"
+          ],
+          "desc": "does not re-run select-branch"
+        },
+        {
+          "check": "event_absent",
+          "event": "ASK_USER",
+          "contains": [
+            "branch"
+          ],
+          "desc": "does not re-ask for the injected branch"
+        },
+        {
+          "check": "event",
+          "event": "RUN_COMMAND",
+          "contains": [
+            "typecheck"
+          ],
+          "desc": "runs the checks"
+        },
+        {
+          "check": "output",
+          "key": "coverage",
+          "contains": [
+            "88"
+          ],
+          "desc": "produces coverage for hand-off"
+        }
+      ]
+    },
+    {
+      "anchor": "build-artifact",
+      "inject": {
+        "branch": "feature/relay",
+        "coverage": "88"
+      },
+      "world": {
+        "command_results": {
+          "npm run build": "pass"
+        }
+      },
+      "checks": [
+        {
+          "check": "event",
+          "event": "ENTER_STATE",
+          "contains": [
+            "build"
+          ],
+          "desc": "enters at build-artifact"
+        },
+        {
+          "check": "event_absent",
+          "event": "RUN_COMMAND",
+          "contains": [
+            "typecheck"
+          ],
+          "desc": "does not re-run checks"
+        },
+        {
+          "check": "event_absent",
+          "event": "ENTER_STATE",
+          "contains": [
+            "select"
+          ],
+          "desc": "does not re-run select-branch"
+        },
+        {
+          "check": "output",
+          "key": "artifact",
+          "contains": [
+            "feature-relay"
+          ],
+          "desc": "uses injected branch in the artifact name (variable carried across hand-off)"
+        }
+      ]
+    },
+    {
+      "anchor": "deploy",
+      "inject": {
+        "branch": "feature/relay",
+        "artifact": "dist/feature-relay-20260101.tar.gz",
+        "environment": "staging"
+      },
+      "world": {
+        "command_results": {
+          "deploy": "success"
+        }
+      },
+      "checks": [
+        {
+          "check": "event",
+          "event": "ENTER_STATE",
+          "contains": [
+            "deploy"
+          ],
+          "desc": "enters at deploy"
+        },
+        {
+          "check": "event_absent",
+          "event": "RUN_COMMAND",
+          "contains": [
+            "build"
+          ],
+          "desc": "does not re-build"
+        },
+        {
+          "check": "event",
+          "event": "NOTIFY",
+          "desc": "notifies on deploy"
+        },
+        {
+          "check": "output",
+          "key": "artifact",
+          "contains": [
+            "feature-relay"
+          ],
+          "desc": "deploys the injected artifact (variable carried across hand-off)"
+        }
+      ]
+    },
+    {
+      "anchor": "verify-deployment",
+      "inject": {
+        "branch": "feature/relay",
+        "deploy_url": "https://staging.example.test"
+      },
+      "world": {
+        "command_results": {
+          "health_check": [
+            "pass"
+          ]
+        }
+      },
+      "checks": [
+        {
+          "check": "event",
+          "event": "ENTER_STATE",
+          "contains": [
+            "verif"
+          ],
+          "desc": "enters at verify-deployment"
+        },
+        {
+          "check": "event",
+          "event": "HEALTH_CHECK",
+          "desc": "runs the health check"
+        },
+        {
+          "check": "output",
+          "key": "result",
+          "contains": [
+            "complete"
+          ],
+          "desc": "reports completion"
+        }
+      ]
+    }
+  ]
+}
