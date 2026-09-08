@@ -1,11 +1,6 @@
 ---
 name: mdscript-exec
-description: >-
-  Execute MDScript Markdown workflows. Use when the user invokes
-  /mdscript-exec, asks to run an MDScript file or inline MDScript string, asks
-  to start from a specific heading or offset, replies to an MDScript prompt that
-  ends with a return-script command, or a file header requires the mdscript-exec
-  skill.
+description: "ALWAYS use to execute MDScript workflows, files, inline scripts, heading or offset starts, and return-script replies."
 ---
 
 # MDScript Executor

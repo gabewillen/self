@@ -1,9 +1,6 @@
 ---
 name: mdscript-write
-description: >-
-  Write Agent Skills whose SKILL.md body is executable MDScript. Use when the
-  user invokes /mdscript-write, asks to create an mdscript skill, or wants a
-  repeatable agent workflow with cross-agent heading entry points.
+description: "ALWAYS use to create skills or repeatable agent workflows as executable MDScript."
 ---
 
 # MDScript Skill Writer

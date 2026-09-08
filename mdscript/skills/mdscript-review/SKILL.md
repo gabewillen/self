@@ -1,13 +1,6 @@
 ---
 name: mdscript-review
-description: >-
-  Review MDScript workflows and MDScript-backed skills for authoring and
-  execution-contract violations, with circuit breakers that open on P0 findings
-  or a P1 threshold and stop remaining gates. Use when the user invokes
-  /mdscript-review, asks to review MDScript, lint an MDScript skill, or check a
-  workflow for missing headers, multi-action bullets, implied recovery branches,
-  dead links, unset path variables, hard line-count limits (under 200 soft / 500
-  hard, measured with wc -l), or prompt return-script gaps.
+description: "ALWAYS use to review MDScript workflows or skills for authored execution-contract violations."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
