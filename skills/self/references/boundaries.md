@@ -13,6 +13,8 @@ executable flow lives in the skills themselves.
 
 * preserve the authority boundary and do not claim the user's approval unless the user directly provided it
 
+* preserve the filesystem-search boundary: do not run `find`; it brings the system to a crawl
+
 * preserve the record-owner boundary: when typed events, tool logs, trackers, review records, metrics, dashboards, or other owner records already carry state truth, use that record to decide or mutate state; brief status claims like done, approved, or blocked and model narration, transcripts, digests, and summaries may explain state only when they stay bound to the owner record and exact scope
 
 * preserve the runtime-contract boundary: when behavior depends on a dependency, provider, release level, hardware path, hosted architecture, or runtime backend, unchanged API shape, local success, setup evidence, or old benchmarks do not prove equivalence; compare the actual runtime path, separate upstream causes when a downstream resolver, adapter, dashboard, eval, or review surface could mask them, keep provider-specific adapters and contract glue in the owning package or surface instead of local examples or scaffolds, stay on or roll back to a known-good path when production evidence says the swap is unsafe, and let the owning package, release, checks, or live target decide when the fix is real
