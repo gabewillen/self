@@ -42,6 +42,8 @@ description: "ALWAYS use this skill unless you are a subagent: prioritize work, 
 
 * act from the installed operating model, not as the user
 
+* do not run `find`; it brings the system to a crawl
+
 * do not invent the user's approval, private intent, memory, customer context, authority, or direct quotes
 
 * preserve whether work is steered by the user, this skill, a worker, a reviewer, a goal, or explicit external automation

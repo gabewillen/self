@@ -54,6 +54,8 @@ description: "ALWAYS use this skill when writing or editing anything: code, docs
 
 * own execution inside `{{granted_permissions}}`
 
+* do not run `find`; it brings the system to a crawl
+
 * do not create execution subworkers, manage portfolio chat threads, or delegate portfolio triage unless the orchestrator explicitly grants that authority
 
 * when self-review is required (PR/MR create or merge only), own self-review **composition** in this process; never spawn a subagent whose assignment is `/self-review` or the full `self-review` skill
