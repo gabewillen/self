@@ -2,14 +2,14 @@
 
 ## Refresh PR State
 
-* re-read every value in this workflow from GitHub on this tick
-* do not reuse the previous tick's checks, comments, threads, or verdicts
-* set `{{owner}}` and `{{repo_name}}` by splitting `{{repo}}` on `/`
+* read each value in this workflow from GitHub again on this tick
+* do not use the checks, comments, threads, or verdicts of the previous tick again
+* set `{{owner}}` and `{{repo_name}}` from the two parts of `{{repo}}` at `/`
 * run `gh pr view {{pr_number}} --repo {{repo}} --json number,url,state,isDraft,mergeable,mergeStateStatus,baseRefName,headRefName,headRefOid,reviewDecision,reviews,latestReviews,comments,statusCheckRollup`
 * set `{{pr_state}}`, `{{head_sha}}`, `{{base_ref}}`, `{{head_ref}}`, `{{mergeable}}`, `{{merge_state}}`, `{{review_decision}}`, `{{is_draft}}` from that JSON
 * read all three comment surfaces: inline review threads, PR-level comments, and review bodies
-* set `{{pr_comments}}` from the `comments` field with author, timestamp, and body
-* set `{{review_bodies}}` from the `reviews` field with reviewer, state, submitted time, and body
+* set `{{pr_comments}}` from the `comments` field with the author, timestamp, and body
+* set `{{review_bodies}}` from the `reviews` field with the reviewer, state, submitted time, and body
 * do not take review bodies from `latestReviews`
 * if `{{pr_comments}}` or `{{review_bodies}}` looks truncated
   * run `gh api repos/{{repo}}/issues/{{pr_number}}/comments --paginate` for PR-level comments
@@ -18,18 +18,18 @@
 
 ## Refresh Checks
 
-* set `{{check_rows}}` from `statusCheckRollup` with name, status, conclusion, and workflowName
+* set `{{check_rows}}` from `statusCheckRollup` with the name, status, conclusion, and workflowName
 * if `{{check_rows}}` is empty
   * run `gh api repos/{{repo}}/commits/{{head_sha}}/check-runs --paginate`
   * set `{{check_rows}}` from `check_runs`
-* drop any row whose `head_sha` is not `{{head_sha}}`
-* set `{{failing_checks}}` to rows whose conclusion is `FAILURE`, `TIMED_OUT`, `CANCELLED`, or `ACTION_REQUIRED`
-* set `{{pending_checks}}` to rows whose status is `QUEUED` or `IN_PROGRESS`
-* set `{{ci_summary}}` to counts by conclusion plus the failing check names
-* if both commands error
+* drop each row whose `head_sha` is not `{{head_sha}}`
+* set `{{failing_checks}}` to the rows whose conclusion is `FAILURE`, `TIMED_OUT`, `CANCELLED`, or `ACTION_REQUIRED`
+* set `{{pending_checks}}` to the rows whose status is `QUEUED` or `IN_PROGRESS`
+* set `{{ci_summary}}` to the counts for each conclusion and the names of the failed checks
+* if the two commands give errors
   * set `{{blocker}}` to cannot read CI state for `{{head_sha}}`
   * return to the caller
-* if `{{pr_state}}` is `OPEN` and no row was returned by either command
+* if `{{pr_state}}` is `OPEN` and the two commands gave no rows
   * set `{{blocker}}` to no checks readable for `{{head_sha}}`
   * do not report the PR as green
   * return to the caller
@@ -56,10 +56,11 @@ query($owner:String!,$repo:String!,$number:Int!,$cursor:String){
 }'
 ```
 
-* set `{{unresolved_threads}}` to nodes where `isResolved` is false, keeping thread id, path, line, and every comment body
+* set `{{unresolved_threads}}` to the nodes where `isResolved` is false
+* keep the thread id, path, line, and each comment body for these nodes
 * run `gh api repos/{{repo}}/pulls/{{pr_number}}/comments --paginate` for inline review comments
 * attach each inline comment to its thread in `{{unresolved_threads}}`
-* if the query errors
+* if the query gives an error
   * set `{{blocker}}` to cannot read review threads for `{{pr_url}}`
   * do not set `{{unresolved_threads}}` to empty after a failed query
   * return to the caller
@@ -67,79 +68,98 @@ query($owner:String!,$repo:String!,$number:Int!,$cursor:String){
 
 ## Compare Against Last Tick
 
-* set `{{new_comments}}` to entries in `{{pr_comments}}`, `{{review_bodies}}`, and `{{unresolved_threads}}` newer than front-matter `last_seen_at`
-* if `{{head_sha}}` differs from front-matter `last_head_sha`
-  * treat every earlier check result, review, and approval as stale
-* set front-matter `last_seen_at` to the newest timestamp read
-* set front-matter `last_head_sha` to `{{head_sha}}`
-* report checks read, failing, pending, unresolved threads, PR-level comments, and review bodies as counts
-* if `{{pending_checks}}` is non-empty
-  * report every comment and thread count as provisional for this tick
-  * do not state a final unresolved-thread count while checks are still running
-  * expect review bots to post after their checks finish
-* do not report no new activity unless every fetch in this workflow succeeded
-* name the three surfaces read in the tick report: inline threads, PR-level comments, and review bodies
-* do not dump full JSON into chat; keep ids, paths, bodies, and check names only
+* set `{{new_comments}}` to the entries in `{{pr_comments}}`, `{{review_bodies}}`, and `{{unresolved_threads}}` that are newer than the front-matter `last_seen_at`
+* if `{{head_sha}}` is not the same as the front-matter `last_head_sha`
+  * treat each earlier check result, review, and approval as stale
+* set the front-matter `last_seen_at` to the newest timestamp that you read
+* set the front-matter `last_head_sha` to `{{head_sha}}`
+* report the counts of read checks, failed checks, checks not complete, unresolved threads, PR-level comments, and review bodies
+* if `{{pending_checks}}` is not empty
+  * report each comment and thread count as provisional for this tick
+  * do not give a final count of unresolved threads while checks still run
+  * expect review bots to post after their checks are complete
+* if a fetch in this workflow failed
+  * do not report "no new activity"
+* in the tick report, name the three surfaces that you read: inline threads, PR-level comments, and review bodies
+* do not put full JSON into the chat
+* keep only the ids, paths, bodies, and check names
 * return to the caller
 
 ## Evaluate Merge Ready
 
 * set `{{merge_ready}}` to `false`
 * if `{{is_draft}}` is true
-  * leave `{{merge_ready}}` false and return
+  * keep `{{merge_ready}}` false and return
 * if `{{mergeable}}` is `CONFLICTING`
-  * leave `{{merge_ready}}` false and return
+  * keep `{{merge_ready}}` false and return
 * if `{{review_decision}}` is `CHANGES_REQUESTED`
-  * leave `{{merge_ready}}` false and return
-* if `{{unresolved_threads}}` is non-empty
-  * leave `{{merge_ready}}` false and return
-* if `{{failing_checks}}` is non-empty
-  * leave `{{merge_ready}}` false and return
-* if `{{pending_checks}}` is non-empty
-  * leave `{{merge_ready}}` false and return
+  * keep `{{merge_ready}}` false and return
+* if `{{unresolved_threads}}` is not empty
+  * keep `{{merge_ready}}` false and return
+* if `{{failing_checks}}` is not empty
+  * keep `{{merge_ready}}` false and return
+* if `{{pending_checks}}` is not empty
+  * keep `{{merge_ready}}` false and return
 * set `{{merge_ready}}` to `true`
 * return to the caller
 
 ## Watch Tick
 
-* set `{{blocker}}` to empty at the start of every tick so a blocker restored from front matter cannot satisfy a later `set {{blocker}}` guard
-* touch `{{agent_heartbeat}}` at the start of every tick so the ticker's idle guard stays satisfied
-* increment `{{tick_count}}` and set it in `{{watch_mdscript}}` front matter with `last_head_sha`, `last_tick_at`, `last_seen_at`, and `last_processed_seq`
-* run [Refresh PR State](#refresh-pr-state), which re-reads checks, review threads, and conversation comments from GitHub on every tick
+* at the start of each tick, set `{{blocker}}` to empty
+* then a blocker from the front matter cannot satisfy a later `set {{blocker}}` guard
+* at the start of each tick, touch `{{agent_heartbeat}}` to satisfy the ticker idle guard
+* increment `{{tick_count}}`
+* set `tick_count`, `last_head_sha`, `last_tick_at`, `last_seen_at`, and `last_processed_seq` in the `{{watch_mdscript}}` front matter
+* run [Refresh PR State](#refresh-pr-state)
+* this reads the checks, review threads, and conversation comments from GitHub again on each tick
 * if [Refresh PR State](#refresh-pr-state) set `{{blocker}}`
   * [Report Blocker](#report-blocker)
 * if `{{pr_state}}` is `MERGED` or `CLOSED`
   * set `{{stop_reason}}` to PR `{{pr_state}}`
   * run [Stop Watch Loop](../../self-unwatch/SKILL.md#stop-watch-loop)
-  * report that the PR ended and the watch stopped
+  * report that the PR ended and that the watch stopped
   * stop
 * run [Sync Branch](sync-branch.mdscript.md#sync-branch)
-* if sync sets `{{blocker}}`
+* if the sync sets `{{blocker}}`
   * [Report Blocker](#report-blocker)
 * run [Repair CI](repair-ci.mdscript.md#repair-ci)
-* if CI repair sets a hard `{{blocker}}` that needs human authority
+* if the CI repair sets a hard `{{blocker}}` that must have human authority
   * [Report Blocker](#report-blocker)
 * run [Triage Review Comments](triage-review-comments.mdscript.md#triage-review-comments)
-* if triage left actionable items in `{{pending_fixes}}`
+* if the triage put actionable items in `{{pending_fixes}}`
   * run [Dispatch Fixes](fix-with-subagent.mdscript.md#dispatch-fixes)
 * run [Evaluate Merge Ready](#evaluate-merge-ready)
 * if `{{merge_ready}}` is `true`
-  * report merge-ready status for `{{pr_url}}` — keep watching until `/self-unwatch`
-* report the tick as work already done: fixes applied, commits pushed, threads resolved, checks requeued, and what remains outside the grant
-* do not end a tick with a proposal, a permission request, or work deferred to the next tick when the action was inside `{{watch_grant}}`
-* if the tick surfaced an ambiguous call
-  * resolve it through the `self` skill and act
-  * do not park it as a question
-* append one ledger line under `~/.agents/projects/{{project_name}}/lane-ledger.jsonl` with tick, head SHA, CI summary, unresolved thread count, `ticker_pid`, wake path, and that the detached ticker remains armed
-* never kill, reap, or clean up the ticker, its process group, its spool, or its pid file from a tick, a resume, a subagent, a thread-cleanup pass, or an end-of-turn tidy; only `/self-unwatch`, a terminal PR state, or owner-process death may stop it
-* end the turn without re-arming, without `sleep`, and without a one-shot wake — the detached ticker owns the next tick
+  * report the merge-ready status for `{{pr_url}}`
+  * continue the watch until `/self-unwatch`
+* report the tick as work that is done: the applied fixes, pushed commits, resolved threads, and requeued checks
+* in the tick report, also tell what remains outside the grant
+* if an action was inside `{{watch_grant}}`
+  * do not end a tick with a proposal, a permission request, or that work moved to the next tick
+* if the tick found an unclear decision
+  * make the decision through the `self` skill and act
+  * do not keep it as a question
+* append one ledger line to `~/.agents/projects/{{project_name}}/lane-ledger.jsonl` with these items:
+  * the tick, the head SHA, the CI summary, and the unresolved thread count
+  * `ticker_pid`, the wake path, and the statement that the detached ticker stays armed
+* never kill or clean up the ticker, its process group, its spool, or its pid file
+* this rule applies to a tick, a resume, a subagent, a thread cleanup pass, and an end-of-turn tidy
+* only `/self-unwatch`, a terminal PR state, or the death of the owner process can stop the ticker
+* do not re-arm the ticker, do not use `sleep`, and do not set a one-shot wake
+* let the detached ticker start the next tick
+* end the turn
 
 ## Report Blocker
 
-* before reporting any blocker, confirm the item is truly in `{{grant_excludes}}` or genuinely undecidable; if the `self` skill and current evidence can decide it, act instead of reporting
-* set front-matter `blocker` on `{{watch_mdscript}}` to the exact human decision needed
-* write a parent-visible note naming `{{blocker}}`, `{{pr_url}}`, current head, `ticker_pid`, and `{{watch_mdscript}}`
-* keep front-matter `watch_active: true` and leave the persistent loop running unless the user runs `/self-unwatch`
-* keep repairing everything else inside the grant while the blocker waits — one blocked item never pauses the whole watch
-* ask the user only the specific decision that is blocked
-* end the turn without killing the loop and without re-arming
+* before you report a blocker, make sure that the item is really in `{{grant_excludes}}` or that nobody can decide it
+* if the `self` skill and the current evidence can decide it
+  * act and do not report the blocker
+* set the front-matter `blocker` in `{{watch_mdscript}}` to the exact human decision that is necessary
+* write a note that the parent can see, with `{{blocker}}`, `{{pr_url}}`, the current head, `ticker_pid`, and `{{watch_mdscript}}`
+* keep the front-matter `watch_active: true`
+* keep the persistent loop alive until the user runs `/self-unwatch`
+* while the blocker waits, continue to repair all other items inside the grant
+* one blocked item never pauses the full watch
+* ask the user only for the specific decision that is blocked
+* do not kill the loop and do not re-arm it
+* end the turn

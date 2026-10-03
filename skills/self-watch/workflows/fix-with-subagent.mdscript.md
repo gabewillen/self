@@ -4,17 +4,18 @@
 
 * if `{{pending_fixes}}` is empty
   * return to the caller
-* group non-overlapping easy fixes into parallel waves; keep overlapping hard fixes serial
+* put easy fixes that do not overlap into parallel waves
+* keep hard fixes that overlap in series
 * for each fix item in the current wave
   * if `difficulty` is `easy`
     * set `{{fix_model}}` to `{{easy_model}}` and `{{fix_effort}}` to `{{easy_effort}}`
   * if `difficulty` is `hard`
     * set `{{fix_model}}` to `{{hard_model}}` and `{{fix_effort}}` to `{{hard_effort}}`
   * [Spawn Fixer](#spawn-fixer)
-* wait for the wave to finish
+* wait until the wave is complete
 * run [Apply And Verify](#apply-and-verify)
 * run [Resolve Threads](#resolve-threads)
-* clear completed items from `{{pending_fixes}}`
+* remove the completed items from `{{pending_fixes}}`
 * if `{{pending_fixes}}` still has items
   * [Dispatch Fixes](#dispatch-fixes)
 * return to the caller
@@ -22,36 +23,43 @@
 ## Spawn Fixer
 
 * spawn one readonly-unless-editing `generalPurpose` Task subagent with `model="{{fix_model}}"`, the effort level `{{fix_effort}}`, and `run_in_background=true`
-* give the subagent only:
+* give the subagent only these items:
   * `{{repo_root}}`
   * `{{pr_url}}` and `{{head_ref}}`
-  * the single fix summary, path, thread id or CI check name
-  * instruction to make the minimal scoped change
-  * instruction to run the smallest relevant verification command
-  * instruction to return diff summary, commands run, and whether the original finding is fixed or invalid
-* do not give the subagent other threads' conclusions
+  * the summary, path, thread id, or CI check name of the single fix
+  * an instruction to make the smallest change in scope
+  * an instruction to run the smallest related check command
+  * an instruction to return a diff summary and the commands that it ran
+  * an instruction to tell if the original finding is fixed or not valid
+* do not give the subagent the conclusions of other threads
 * record the subagent id in `{{fixer_ids}}`
 * return to the caller wave
 
 ## Apply And Verify
 
-* integrate returned edits on `{{head_ref}}`
-* if two fixers touched the same files incompatibly
-  * keep the harder-model result when one was hard, otherwise re-dispatch a single hard-model fixer for the conflicted paths
-* run the smallest relevant tests or lint for the touched paths
-* if verification fails
-  * append a hard `{{pending_fixes}}` item describing the regression
+* apply the returned edits to `{{head_ref}}`
+* if two fixers changed the same files and the changes do not agree
+  * if one fixer was hard
+    * keep the result of the harder model
+  * if no fixer was hard
+    * dispatch one new hard-model fixer for the paths in conflict
+* run the smallest related tests or lint for the changed paths
+* if the check fails
+  * append a hard `{{pending_fixes}}` item that tells about the regression
   * return to the caller
-* commit the verified fix without asking — arming the watch is the standing grant to commit, push, reply, resolve, and rerun on `{{head_ref}}`; use a concise message focused on why
+* commit the fix that passed the check, and do not ask the user
+* the armed watch is the standing grant to commit, push, reply, resolve, and rerun on `{{head_ref}}`
+* write a short commit message that tells why
 * push `{{head_ref}}` without force
 * return to the caller
 
 ## Resolve Threads
 
-* for each review fix that landed and verified
-  * reply on the thread with what changed (commit SHA or summary) when a reply helps reviewers
+* for each review fix that landed and passed the check
+  * if a reply helps the reviewers
+    * reply on the thread with the change (the commit SHA or a summary)
   * mark the GitHub review thread resolved with `gh api graphql` (`resolveReviewThread`) or the equivalent REST flow
 * for CI fixes
-  * re-watch the check until it leaves the failed state or the next tick picks it up
-* do not resolve threads that were classified `disagree`, `question`, or `out_of_scope`
+  * watch the check again until it is not in the failed state or until the next tick gets it
+* do not resolve threads that have the class `disagree`, `question`, or `out_of_scope`
 * return to the caller

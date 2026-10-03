@@ -47,25 +47,46 @@ owner_dialect: "{{owner_dialect}}"
 
 ## Watch Contract
 
-* treat this file's YAML front matter as the sole authoritative watch state
+* treat the YAML front matter of this file as the only source of truth for the watch state
 
-* keep `{{pr_url}}` watched every `{{interval}}` for unresolved review comments, CI/CD failures, and base-branch drift
+* watch `{{pr_url}}` at each `{{interval}}` for unresolved review comments, CI/CD failures, and base-branch drift
 
-* repair routine findings with `{{easy_model}}` at `{{easy_effort}}` and hard findings with `{{hard_model}}` at `{{hard_effort}}`
+* repair routine findings with `{{easy_model}}` at `{{easy_effort}}`
 
-* act on `{{watch_grant}}` without asking again: a finding inside the grant is work for this tick, not a proposal; only `{{grant_excludes}}` reaches the user
+* repair hard findings with `{{hard_model}}` at `{{hard_effort}}`
 
-* when a call is unclear
+* do the work in `{{watch_grant}}` and do not ask again
+
+* if a finding is inside the grant
+  * do the work in this tick
+  * do not make it a proposal
+
+* send only the items in `{{grant_excludes}}` to the user
+
+* if a decision is not clear
   * run `/mdscript-exec {{skill_root}}/../self/SKILL.md`
-  * decide from current evidence without pausing the watch to ask
+  * decide from the current evidence
+  * do not pause the watch to ask the user
 
-* stop only on `/self-unwatch` or PR `MERGED` / `CLOSED`; merge-ready is reported without stopping
+* stop only on `/self-unwatch` or on PR `MERGED` / `CLOSED`
 
-* keep exactly one armed ticker: `{{sentinel}}` at PID `{{ticker_pid}}`, self-detached into its own process group under PID 1 so agent-turn and session cleanup cannot reap it
+* report a merge-ready PR and do not stop
 
-* the ticker dies only on `/self-unwatch`, a terminal PR state, death of owner process `{{owner_pid}}`, or the idle guard; never reap it from a tick, resume, subagent, or cleanup pass
+* keep exactly one armed ticker: `{{sentinel}}` at PID `{{ticker_pid}}`
 
-* the tick listener is disposable — if the harness kills it, re-attach it and keep the same ticker
+* the ticker is self-detached into its own process group under PID 1
+
+* because of this, the cleanup of an agent turn or a session cannot kill the ticker
+
+* the ticker stops only on `/self-unwatch`, a terminal PR state, the end of owner process `{{owner_pid}}`, or the idle guard
+
+* never kill the ticker from a tick, a resume, a subagent, or a cleanup pass
+
+* the tick listener is disposable
+
+* if the harness kills the tick listener
+  * attach the listener again
+  * keep the same ticker
 
 ## Resume Goal
 
@@ -73,20 +94,21 @@ owner_dialect: "{{owner_dialect}}"
 
 ## Resume Watch
 
-* restore every variable from this file's front matter
+* restore each variable from the front matter of this file
 
-* set `{{watch_mdscript}}` to this file's own absolute path
+* set `{{watch_mdscript}}` to the absolute path of this file
 
 * if `watch_active` is not `true`
-  * report that the watch is inactive and suggest `/self-watch` to start again
+  * report that the watch is not active
+  * tell the user to use `/self-watch` to start again
   * stop
 
-* touch `{{agent_heartbeat}}` so the ticker's idle guard knows this agent is still consuming ticks
+* touch `{{agent_heartbeat}}` to tell the ticker idle guard that this agent still reads the ticks
 
-* if `{{ticker_pid}}` is dead or its command line no longer contains `{{sentinel}}`
+* if `{{ticker_pid}}` is dead or its command line does not contain `{{sentinel}}`
   * run `mdscript-exec {{skill_root}}/workflows/ticker-process.mdscript.md#check-ticker-liveness`
   * if `{{owner_pid}}` is still alive
-    * re-arm once through `mdscript-exec {{skill_root}}/SKILL.md#arm-persistent-interval-loop`
+    * arm the ticker again one time through `mdscript-exec {{skill_root}}/SKILL.md#arm-persistent-interval-loop`
   * if `{{owner_pid}}` is gone
     * [Stop Watch](#stop-watch)
 
@@ -101,27 +123,31 @@ owner_dialect: "{{owner_dialect}}"
 
 * run `mdscript-exec {{skill_root}}/workflows/watch-tick.mdscript.md#watch-tick`
 
-* set front-matter `tick_count`, `last_head_sha`, `last_tick_at`, and `last_processed_seq` from that tick
+* set the front-matter `tick_count`, `last_head_sha`, `last_tick_at`, and `last_processed_seq` from that tick
 
-* set front-matter `resume_heading` to `resume-watch` while the watch stays armed
+* while the watch stays armed, set the front-matter `resume_heading` to `resume-watch`
 
-* end the turn without re-arming and without a one-shot wake
+* do not re-arm the ticker and do not set a one-shot wake
+
+* end the turn
 
 ## Report Blocker
 
 * run `mdscript-exec {{skill_root}}/workflows/watch-tick.mdscript.md#report-blocker`
 
-* set front-matter `blocker` to the exact human decision needed
+* set the front-matter `blocker` to the exact human decision that is necessary
 
-* keep `watch_active: true` and leave the loop armed unless the user runs `/self-unwatch`
+* keep `watch_active: true`
+
+* keep the loop armed until the user runs `/self-unwatch`
 
 ## Stop Watch
 
 * run `mdscript-exec {{skill_root}}/../self-unwatch/SKILL.md#stop-watch-loop`
 
-* set front-matter `watch_active: false`, `status` to the terminal state, `stopped_at`, and `stop_reason`
+* set the front-matter `watch_active: false`, `status` to the terminal state, `stopped_at`, and `stop_reason`
 
-* set front-matter `resume_heading` to `stop-watch`
+* set the front-matter `resume_heading` to `stop-watch`
 
 ## Loop Resume Command
 
