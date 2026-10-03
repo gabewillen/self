@@ -4,20 +4,24 @@
 
 * set `{{skill_root}}` to this skill directory
 * set `{{review_skill_root}}` to the installed self-review skill root
-* set `{{repo_root}}` to the working repository root, or the path the user named
+* set `{{repo_root}}` to the current repository root, or to the path that the user named
 * run [Resolve Agent Home](../../self-common/workflows/agent-home.mdscript.md#resolve-agent-home)
-* set `{{review_scope}}` from the user request; if empty, default to the working diff
-* set `{{full_sweep}}` to `true` only if the user asked for a complete or whole-tree review
-* read [anti-patterns.md](references/anti-patterns.md) and hold it for every gate
+* set `{{review_scope}}` from the user request
+* if `{{review_scope}}` is empty
+  * set `{{review_scope}}` to the current diff
+* if the user asked for a complete or whole-tree review
+  * set `{{full_sweep}}` to `true`
+* read [anti-patterns.md](references/anti-patterns.md)
+* use these anti-patterns in all gates
 * run [Triage](workflows/triage.mdscript.md#triage)
 * if `{{full_sweep}}` is not `true`
-  * narrow `{{machine_inventory}}` to machines the change touches
+  * remove from `{{machine_inventory}}` each machine that the change does not touch
 * [Gate 0 Ownership](#gate-0-ownership)
 
 ## Gate 0 Ownership
 
 * run [Audit Ownership](workflows/audit-ownership.mdscript.md#audit-ownership)
-* if any finding was recorded
+* if an audit in this gate recorded a finding
   * [Verify](#verify)
 * [Gate 1 Graph](#gate-1-graph)
 
@@ -26,14 +30,14 @@
 * run [Extract Model](workflows/extract-model.mdscript.md#extract-model)
 * run [Audit Structure](workflows/audit-structure.mdscript.md#audit-structure)
 * run [Audit Reachability](workflows/audit-reachability.mdscript.md#audit-reachability)
-* if any finding was recorded
+* if an audit in this gate recorded a finding
   * [Verify](#verify)
 * [Gate 2 Actor Boundary](#gate-2-actor-boundary)
 
 ## Gate 2 Actor Boundary
 
 * run [Audit Actor Boundary](workflows/audit-actor-boundary.mdscript.md#audit-actor-boundary)
-* if any finding was recorded
+* if an audit in this gate recorded a finding
   * [Verify](#verify)
 * [Gate 3 Behavior](#gate-3-behavior)
 
@@ -41,7 +45,7 @@
 
 * run [Audit Control Flow](workflows/audit-control-flow.mdscript.md#audit-control-flow)
 * run [Audit Time And Determinism](workflows/audit-time-determinism.mdscript.md#audit-time-and-determinism)
-* if any finding was recorded
+* if an audit in this gate recorded a finding
   * [Verify](#verify)
 * [Gate 4 Design](#gate-4-design)
 
@@ -63,14 +67,16 @@
   * [Request Waiver](#request-waiver)
 * if `{{blocking_count}}` is greater than zero
   * set `{{verdict}}` to `fail`
-  * stop and report `fail`, the gate that stopped, counts by severity, top findings, waivers, and `{{findings_path}}`
+  * report `fail`, the gate that stopped, the counts by severity, the top findings, the waivers, and `{{findings_path}}`
+  * stop
 * set `{{verdict}}` to `pass`
-* stop and report `pass`, the last gate reached, refuted findings, waivers, and `{{findings_path}}`
+* report `pass`, the last gate that the review reached, the refuted findings, the waivers, and `{{findings_path}}`
+* stop
 
 ## Request Waiver
 
 * set `{{waiver_requested}}` to `true`
-* if the user already named waived rule ids
-  * set `{{waived_rule_ids}}`
+* if the user already named the waived rule ids
+  * set `{{waived_rule_ids}}` to those rule ids
   * [Emit Findings](#emit-findings)
 * run [Request Waiver](workflows/request-waiver.mdscript.md#request-waiver)

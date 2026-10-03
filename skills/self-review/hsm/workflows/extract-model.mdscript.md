@@ -2,19 +2,19 @@
 
 ## Extract Model
 
-* for each machine in `{{machine_inventory}}`, obtain its finalized graph by the cheapest route
-  that works:
-  * a model introspection or transition-snapshot API on the finalized model
-  * a model/diagram export the project already produces
-  * an instrumented run that records every vertex and transition at startup
-  * only if none exist: read the definition **and every builder or helper it calls**, expanding each
-    into the vertices and transitions it injects
+* for each machine in `{{machine_inventory}}`, get its finalized graph by the least expensive route that works:
+  * a model introspection API or transition-snapshot API on the finalized model
+  * a model export or diagram export that the project already makes
+  * an instrumented run that records all vertices and transitions at startup
+  * if no other route exists, read the definition **and all builders and helpers that it calls**
+    * expand each builder or helper into the vertices and transitions that it adds
 * normalize each graph to `{{out_dir}}/graph.json`:
   * `vertices`: qualified name, kind (state, composite, initial, choice, history, final), owner
   * `transitions`: qualified name, source, target, events, has_guard, kind (internal, local, external)
   * `events`: declared name, kind, and the dispatch sites outside the machine
-  * `behaviors`: entry, exit, effect, guard, activity — each with the source location holding it
-* set `{{graph_source}}` to the route used
-* if the route was source expansion, set `{{graph_confidence}}` to `low` and record a `P2` finding:
-  the model graph is not machine-readable, so structural review is unverifiable
+  * `behaviors`: entry, exit, effect, guard, activity — each with the source location that holds it
+* set `{{graph_source}}` to the route that you used
+* if the route was source expansion
+  * set `{{graph_confidence}}` to `low`
+  * record a `P2` finding: the graph is not machine-readable, so you cannot prove the structural review
 * return to the caller
