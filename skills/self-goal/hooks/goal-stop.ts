@@ -41,7 +41,7 @@ if (!conversationId) {
   finishHook();
 }
 
-// An inactive run still has to answer to the review gate, so fall back to
+// An inactive run still has to answer to the completion gate, so fall back to
 // resolving this conversation's run even when it is no longer marked active.
 const paths =
   resolveActiveGoalPaths(root, conversationId) ??
@@ -59,15 +59,15 @@ if (!state) {
 if (shouldSkipGoalHooks(input.dialect, state)) {
   finishHook();
 }
-// An inactive run is only legitimate when self-review actually closed it.
-// Without this check, marking the goal complete in its own front matter ends
-// the loop, and the review gate never runs.
+// An inactive run is only legitimate when the completion gate actually closed
+// it. Without this check, marking the goal complete in its own front matter
+// ends the loop, and the gate never runs.
 if (!state.active) {
   if (input.status !== "completed") {
     finishHook();
   }
   // A deliberate stop or blocker is a legitimate way to leave a run inactive;
-  // only a completion claim has to answer to the self-review gate.
+  // only a completion claim has to answer to the completion gate.
   const claimedComplete = !state.status || state.status === "completed";
   if (!claimedComplete) {
     finishHook();
@@ -105,7 +105,7 @@ if (!state.active) {
           { ...state, active: true, resume_heading: "pursue-goal" },
           reopenIteration,
           [
-            "This goal was marked complete without a self-review verdict; the run has been re-opened.",
+            "This goal was marked complete before its completion gate passed; the run has been re-opened.",
             ...closed.reasons,
           ],
         ),

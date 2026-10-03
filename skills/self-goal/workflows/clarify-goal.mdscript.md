@@ -25,4 +25,16 @@
     * use the resume heading `Clarify Goal` and `{{primary_user_action}}` as the requested value
   * ask the user for the primary user/runtime path as `{{primary_user_action}}`
   * [Clarify Goal](#clarify-goal)
+* if `{{self_review}}` is empty and the user explicitly asked for a self-review of this goal
+  * set `{{self_review}}` to `requested`
+  * set `{{self_review_answer}}` to the words of that request
+* do not set `{{self_review}}` from a skill rule, a hook, `AGENTS.md`, or a default
+* if `{{self_review}}` is empty
+  * run [Prepare Prompt Return Script](../../self-common/workflows/return-script.mdscript.md#prepare-prompt-return-script)
+    * use the resume heading `Clarify Goal` and `{{self_review}}` as the requested value
+  * ask the user for `{{self_review}}`: "Do you want a multi-lane self-review before this goal closes?"
+    * if the answer is yes, set `{{self_review}}` to `requested`
+    * if the answer is no, set `{{self_review}}` to `declined`
+    * set `{{self_review_answer}}` to the answer of the user
+  * [Clarify Goal](#clarify-goal)
 * return to the caller

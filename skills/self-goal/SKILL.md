@@ -1,6 +1,6 @@
 ---
 name: self-goal
-description: "ALWAYS use this skill when you run a goal loop (/goal or /self-goal). Continue the loop until proof artifacts exist and multi-lane review returns Proven-for with empty blocking findings. If a harness /goal ability is available, prefer it for multi-round continuation and skip the hooks of this skill. Keep the MDScript-only run state under runs/<run_id>/. Drive parallel subagent work with append-only logs."
+description: "ALWAYS use this skill when you run a goal loop (/goal or /self-goal). Ask the user if a multi-lane self-review must close the goal; never imply it. Continue the loop until the proof artifacts exist. If the user asked for review, continue until it returns Proven-for with empty blocking findings. If a harness /goal ability is available, prefer it for multi-round continuation and skip the hooks of this skill. Keep the MDScript-only run state under runs/<run_id>/. Drive parallel subagent work with append-only logs."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -100,7 +100,9 @@ description: "ALWAYS use this skill when you run a goal loop (/goal or /self-goa
 * if the artifacts or the `{{primary_user_action}}` proof are incomplete
   * change the completion_gate notes in `{{goal_mdscript}}` to show the current gaps
   * [Pursue Goal](#pursue-goal)
-* set `{{self_review_requested}}` to `true`, because the user started this goal loop and its verdict closes the goal
+* if `{{self_review}}` is not `requested`
+  * do not compose a self-review
+  * [Complete Goal](#complete-goal)
 * run [Compose Multi-Lane Review](workflows/compose-multi-lane-review.mdscript.md#compose-multi-lane-review)
   * this workflow execs a multi-lane adversarial blind review
   * the lanes are always-on rules + security + completeness, and the selected eng-* language/framework lanes from vendored gabewillen/rules
@@ -118,7 +120,13 @@ description: "ALWAYS use this skill when you run a goal loop (/goal or /self-goa
 
 ## Complete Goal
 
-* use the self-review verdict as the only thing that closes a goal
+* if `{{self_review}}` is empty or `pending`
+  * do not complete the goal
+  * [Clarify Goal](workflows/clarify-goal.mdscript.md#clarify-goal)
+* if `{{self_review}}` is `declined`
+  * use the proof artifacts and the recorded `{{self_review_answer}}` as the completion gate
+  * [Close Goal Run](#close-goal-run)
+* use the self-review verdict as the only thing that closes a goal that has `self_review: requested`
   * `active: false` or `status: completed` without that verdict does not end the run
 * if `{{skip_goal_hooks}}` is `false`
   * expect the stop hook to open again a run that is marked complete without a valid verdict
@@ -133,12 +141,17 @@ description: "ALWAYS use this skill when you run a goal loop (/goal or /self-goa
   * a `goal` and a `conversation_id` that agree with this run
   * a grade/proof_decision that starts with `Proven for`, and empty `blocking_findings`
   * `proof_supplied` / `artifact_paths` that refer to run artifacts
+* [Close Goal Run](#close-goal-run)
+
+## Close Goal Run
+
 * set the front-matter `active: false` on `{{goal_mdscript}}`
 * change `{{goal_mdscript}}` to `status: completed` and `resume_heading: complete-goal`
 * append `goal_completed` to `{{session_dir}}/session-log.jsonl` and `{{project_home}}/goal/goal-log.jsonl`
 * append `run_completed` to `{{run_dir}}/progress.jsonl`
 * stop and report the completed goal, `{{run_dir}}`, `{{goal_mdscript}}`, and an artifact summary
-* in that report, also give the self-review Proven-for verdict and `loop_driver={{loop_driver}}`
+* in that report, also give `self_review={{self_review}}` and `loop_driver={{loop_driver}}`
+* if `{{self_review}}` is `requested`, also give the self-review Proven-for verdict
 
 ## Stop Hook Resume
 

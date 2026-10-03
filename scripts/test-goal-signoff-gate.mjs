@@ -349,6 +349,68 @@ check({
   detail: `review_round=${fmRoundTrip?.review_round}`,
 });
 
+// Self-review is asked, never implied. Run the real completion gate on a real
+// run tracker for each decision the user can leave behind. Run state goes to
+// the scratch agent home, never the real one.
+process.env.AGENTS_HOME = join(scratch, "agents-home");
+function completionFor(selfReview, answer = "") {
+  const conversation = `consent-${selfReview ?? "none"}-${answer ? "a" : "x"}`;
+  const runPaths = lib.startGoalRun(scratch, conversation, {
+    active: true,
+    goal: GOAL,
+    conversation_id: conversation,
+    proof_kind: "default",
+    live_proof: "optional",
+    self_review: selfReview,
+    self_review_answer: answer,
+  });
+  const reloaded = lib.loadGoalState(runPaths);
+  return { state: reloaded, result: lib.evaluateGoalCompletion(scratch, runPaths, conversation) };
+}
+// The manifest reason is the proof-artifact gate, which applies to every run.
+const mentionsReview = (reasons) =>
+  reasons.some((r) => !/artifacts\/manifest\.json/.test(r) && /sign-off|signoff|verdict|blind lane/i.test(r));
+const asksUser = (reasons) => reasons.some((r) => /No self-review decision: ask the user/.test(r));
+
+const pending = completionFor(undefined);
+check({
+  name: "a run with no self-review decision is written as pending",
+  passed: pending.state?.self_review === "pending",
+  detail: `self_review=${pending.state?.self_review}`,
+});
+check({
+  name: "a run with no self-review decision asks the user instead of implying review",
+  passed: pending.result.complete === false && asksUser(pending.result.reasons) && !mentionsReview(pending.result.reasons),
+  detail: pending.result.reasons.join(" | ").slice(0, 80),
+});
+
+const declined = completionFor("declined", "no, skip the review");
+check({
+  name: "a declined self-review keeps the answer through the front matter",
+  passed: declined.state?.self_review === "declined" && declined.state?.self_review_answer === "no, skip the review",
+  detail: `self_review=${declined.state?.self_review}`,
+});
+check({
+  name: "a declined self-review does not ask for sign-offs or a verdict",
+  passed: !mentionsReview(declined.result.reasons) && !asksUser(declined.result.reasons),
+  detail: declined.result.reasons.join(" | ").slice(0, 80),
+});
+
+const declinedNoAnswer = completionFor("declined");
+check({
+  name: "a declined self-review with no recorded answer cannot close the goal",
+  passed: declinedNoAnswer.result.complete === false
+    && declinedNoAnswer.result.reasons.some((r) => /self_review_answer/.test(r)),
+  detail: declinedNoAnswer.result.reasons.join(" | ").slice(0, 80),
+});
+
+const requested = completionFor("requested", "yes");
+check({
+  name: "a requested self-review still needs the multi-lane verdict",
+  passed: requested.result.complete === false && mentionsReview(requested.result.reasons),
+  detail: requested.result.reasons.join(" | ").slice(0, 80),
+});
+
 if (failed) {
   console.error(`\n[test-goal-signoff-gate] BROKEN: ${failed} check(s) failed`);
   process.exit(1);

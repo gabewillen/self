@@ -45,7 +45,16 @@ export interface GoalState {
   skip_hooks?: boolean;
   /** How the loop is driven: harness-goal | self-hooks. */
   loop_driver?: "harness-goal" | "self-hooks" | "gabe-hooks";
+  /**
+   * The user's self-review decision for this run. Self-review is asked, never
+   * implied: `pending` until the user answers, `requested` or `declined` after.
+   */
+  self_review?: GoalSelfReviewDecision;
+  /** The user's answer to the self-review question, as the user gave it. */
+  self_review_answer?: string;
 }
+
+export type GoalSelfReviewDecision = "pending" | "requested" | "declined";
 
 export type ProofKind = "tui" | "ui" | "default";
 export type ProofTier = "unit" | "integration" | "live";
@@ -602,6 +611,12 @@ export function goalStateFromFrontMatter(
       fm.loop_driver === "harness-goal" || fm.loop_driver === "self-hooks" || fm.loop_driver === "gabe-hooks"
         ? fm.loop_driver
         : undefined,
+    self_review:
+      fm.self_review === "pending" || fm.self_review === "requested" || fm.self_review === "declined"
+        ? fm.self_review
+        : undefined,
+    self_review_answer:
+      typeof fm.self_review_answer === "string" ? fm.self_review_answer : undefined,
   };
 }
 
@@ -1054,7 +1069,7 @@ export function writeGoalMdscript(
   const reasonsBullets =
     reasons.length > 0
       ? reasons.map((reason) => `* completion gate: ${reason}`).join("\n")
-      : "* completion gate: none recorded yet — evaluate artifacts and multi-lane self-review before stopping";
+      : "* completion gate: none recorded yet — evaluate artifacts and the self-review decision before stopping";
 
   const body = `---
 id: ${yamlScalar(paths.runId ?? "run")}
@@ -1074,6 +1089,8 @@ primary_user_action: ${yamlScalar(primaryAction)}
 skip_hooks: ${yamlScalar(Boolean(state.skip_hooks))}
 loop_driver: ${yamlScalar(state.loop_driver ?? (state.skip_hooks ? "harness-goal" : "self-hooks"))}
 reviewer_skill: self-review
+self_review: ${yamlScalar(state.self_review ?? "pending")}
+self_review_answer: ${yamlScalar(state.self_review_answer ?? "")}
 goal: ${yamlBlockScalar(goal)}
 completion_gate:
 ${reasonsYaml}
@@ -1095,8 +1112,10 @@ ${MDSCRIPT_EXEC_HEADER}
 * primary_user_action is \`${primaryAction || "(unset)"}\`
 * append-only surfaces: \`${runRelative}/progress.jsonl\`, session-log.jsonl, and the project goal-log.jsonl
 * immutable run rule: never reuse or delete prior runs/<run_id>/ directories
-* review rule: compose self-review for completion; orchestrator never self-authors a Proven verdict
-* completion requires on-disk artifacts/manifest matching proof_kind/live_proof and a durable multi-lane self-review verdict with empty blocking_findings
+* review rule: self-review is asked, never implied; while self_review is \`pending\`, ask the user whether to run a multi-lane self-review and record self_review and self_review_answer
+* review rule: if self_review is \`requested\`, compose self-review for completion; orchestrator never self-authors a Proven verdict
+* completion requires on-disk artifacts/manifest matching proof_kind/live_proof and a user self-review decision
+* if self_review is \`requested\`, completion also requires a durable multi-lane self-review verdict with empty blocking_findings
 
 ## Resume Goal
 
@@ -1108,6 +1127,7 @@ ${MDSCRIPT_EXEC_HEADER}
 * set \`{{run_dir}}\` from front-matter \`run_dir\`
 * set \`{{goal_mdscript}}\` from front-matter \`goal_mdscript\`
 * set \`{{proof_kind}}\` / \`{{live_proof}}\` / \`{{primary_user_action}}\` from front matter
+* set \`{{self_review}}\` / \`{{self_review_answer}}\` from front matter
 * set \`{{orchestrator_model}}\` to this chat's model slug
 * set \`{{iteration}}\` from front-matter \`iteration\`
 * read this file's front matter as authoritative run state, latest \`progress.jsonl\` lines, artifacts/manifest.json, and any self-review findings / remaining blockers
@@ -1963,6 +1983,12 @@ export function evaluateGoalCompletion(
     reasons.push(...artifactsStatus.reasons);
   }
 
+  const review = selfReviewDecisionStatus(state);
+  if (!review.reviewRequested) {
+    reasons.push(...review.reasons);
+    return { complete: reasons.length === 0, reasons };
+  }
+
   const triple = validateTripleBlindSignoffs({
     root,
     paths,
@@ -1993,6 +2019,36 @@ export function evaluateGoalCompletion(
   return { complete: reasons.length === 0, reasons };
 }
 
+/**
+ * Self-review closes a goal only when the user asked for it. A run with no
+ * recorded answer cannot close: the agent must ask, not assume either way.
+ */
+export function selfReviewDecisionStatus(state: GoalState): {
+  reviewRequested: boolean;
+  reasons: string[];
+} {
+  if (state.self_review === "requested") {
+    return { reviewRequested: true, reasons: [] };
+  }
+  const answer = state.self_review_answer?.trim() ?? "";
+  if (state.self_review === "declined") {
+    return answer
+      ? { reviewRequested: false, reasons: [] }
+      : {
+          reviewRequested: false,
+          reasons: [
+            "self_review is `declined` but self_review_answer does not record the user's answer.",
+          ],
+        };
+  }
+  return {
+    reviewRequested: false,
+    reasons: [
+      "No self-review decision: ask the user whether to run a multi-lane self-review before this goal closes, then record self_review (`requested` or `declined`) and self_review_answer in the run front matter.",
+    ],
+  };
+}
+
 export function deactivateGoal(
   root: string,
   paths: GoalSessionPaths,
@@ -2010,9 +2066,10 @@ export function deactivateGoal(
 }
 
 /**
- * Re-open a run that was marked inactive or completed without self-review
- * having closed it. Only a multi-lane Proven-for verdict ends a goal; an agent
- * editing its own front matter must not be able to end the loop.
+ * Re-open a run that was marked inactive or completed before its completion
+ * gate passed. The gate needs the proof artifacts, the user's self-review
+ * decision, and, when the user asked for review, a multi-lane Proven-for
+ * verdict; an agent editing its own front matter must not end the loop.
  */
 export function reopenGoalRun(
   root: string,

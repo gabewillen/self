@@ -26,6 +26,7 @@
 * give `{{goal_mdscript}}` YAML front matter with these fields:
   * `active`, `status`, `goal`, paths, proof fields, and `resume_heading`
   * `iteration`, `started_at`, `skip_hooks`, and `loop_driver`
+  * `self_review` and `self_review_answer`
 * after the front matter, write the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->`
 * write each heading in `{{goal_mdscript}}` as a `##` state, never as `#`
 * include the `##` states `Goal Contract`, `Resume Goal`, `Pursue Goal`, `Complete Goal`, `Manual Stop`, and `Stop Hook Resume Command`

@@ -5,8 +5,10 @@
 * if `{{self_review_requested}}` is empty
   * if the user explicitly asked for a self-review or a multi-lane review of this change
     * set `{{self_review_requested}}` to `true`
-  * if the user started `/self-goal` or `/goal` for this work
+  * if a goal run for this work has `self_review: requested`
     * set `{{self_review_requested}}` to `true`
+  * if a goal run for this work has `self_review: declined`
+    * set `{{self_review_requested}}` to `false`
 * do not set `{{self_review_requested}}` from a skill rule, a hook, `AGENTS.md`, a default, or a different task
 * if `{{self_review_requested}}` is `true`
   * set `{{self_review_required}}` to `true`
