@@ -2,20 +2,28 @@
 
 ## Capture Artifacts
 
-* treat unit tests and partial UI steps as supporting evidence only
-* when `{{live_proof}}` is `required`, exercise `{{primary_user_action}}` on the real stack and capture output under `{{run_dir}}/artifacts/live/` with a new timestamped filename
-* if the real stack is down, start or fix it before substituting weaker proof
-  * if it still cannot run, document the blocker in the manifest and do not claim ready for review
-* for `proof_kind: tui`, capture at least one terminal/TUI capture under `artifacts/captures/` or `artifacts/screenshots/`
-* for `proof_kind: ui`, capture at least one image under `artifacts/images/` or `artifacts/screenshots/`
-* for `proof_kind: default`, capture at least one log under `artifacts/logs/`
-* never overwrite an existing artifact file — always use a new timestamped path
-* write or update `{{run_dir}}/artifacts/manifest.json` with `goal`, `conversation_id`, `primary_user_action` when required, `updated_at`, and an `artifacts` array
-* every manifest entry must include `path`, `kind`, `reproduce`, and `proves`
-* prefer explicit `tier: "live" | "unit" | "integration"` on each entry
-* mark live-tier when path is under `artifacts/live/`, `tier` is `live`, or `reproduce` runs real-stack/E2E commands
-* verify every referenced artifact file exists on disk under `{{run_dir}}`
-* when live proof is required, confirm at least one live-tier artifact proves `{{primary_user_action}}`
-* run the live reproduce command yourself and confirm pass/success output in the artifact file before review
-* append artifact paths and reproduce results to `{{run_dir}}/progress.jsonl`
+* use unit tests and partial UI steps only as support evidence
+* if `{{live_proof}}` is `required`
+  * do `{{primary_user_action}}` on the real stack
+  * capture the output under `{{run_dir}}/artifacts/live/` with a new timestamped filename
+* if the real stack is down, start or fix it before you use weaker proof
+  * if it still cannot run, write the blocker in the manifest
+  * if it still cannot run, do not claim that it is ready for review
+* for `proof_kind: tui`, capture one or more terminal/TUI captures under `artifacts/captures/` or `artifacts/screenshots/`
+* for `proof_kind: ui`, capture one or more images under `artifacts/images/` or `artifacts/screenshots/`
+* for `proof_kind: default`, capture one or more logs under `artifacts/logs/`
+* never overwrite an artifact file that exists, and always use a new timestamped path
+* write or change `{{run_dir}}/artifacts/manifest.json` with these fields:
+  * `goal`, `conversation_id`, `updated_at`, and an `artifacts` array
+  * `primary_user_action` if live proof is necessary
+* make sure that each manifest entry has `path`, `kind`, `reproduce`, and `proves`
+* prefer an explicit `tier: "live" | "unit" | "integration"` on each entry
+* mark an entry as live-tier if one of these conditions is true:
+  * the path is under `artifacts/live/`, or `tier` is `live`
+  * `reproduce` runs real-stack/E2E commands
+* make sure that each referenced artifact file exists on disk under `{{run_dir}}`
+* if live proof is necessary, make sure that one or more live-tier artifacts prove `{{primary_user_action}}`
+* before the review, run the live reproduce command yourself
+* before the review, make sure that the artifact file shows pass/success output
+* append the artifact paths and the reproduce results to `{{run_dir}}/progress.jsonl`
 * return to the caller

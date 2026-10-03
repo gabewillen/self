@@ -2,41 +2,51 @@
 
 ## Prepare Prompt Return Script
 
-* use this workflow before an MDScript agent role prompts the user, a repository owner, or another authority surface for input while execution is paused
+* use this workflow before an MDScript agent role asks for input while the execution is paused
+  * this rule applies to a prompt to the user, a repository owner, or another authority surface
 * run [Resolve File Task Root](file-task-comments.mdscript.md#resolve-file-task-root)
-* infer `{{return_source_workflow}}` from the current MDScript file being executed
-* infer `{{return_resume_heading}}` from the caller heading that should continue after the answer is applied
-* infer `{{pending_question}}`, `{{pending_decision}}`, `{{blocker}}`, `{{claim_scope}}`, `{{parent_agent}}`, and `{{parent_reporting_path}}`
+* find `{{return_source_workflow}}` from the current MDScript file that you execute
+* find `{{return_resume_heading}}` from the caller heading that must continue after you apply the answer
+* find `{{pending_question}}`, `{{pending_decision}}`, `{{blocker}}`, and `{{claim_scope}}`
+* find `{{parent_agent}}` and `{{parent_reporting_path}}`
 * set `{{return_dir}}` to `{{file_task_root}}/returns`
-* set `{{return_id}}` to a stable, lowercase slug from `{{return_source_workflow}}`, `{{return_resume_heading}}`, and the current UTC timestamp
+* set `{{return_id}}` to a stable lowercase slug
+  * make the slug from `{{return_source_workflow}}`, `{{return_resume_heading}}`, and the current UTC timestamp
 * set `{{return_script}}` to `{{return_dir}}/{{return_id}}.mdscript.md`
-* create `{{return_dir}}` before writing `{{return_script}}`
-  * if creation fails, stop and report the exact path and error
+* before you write `{{return_script}}`, create `{{return_dir}}`
+  * if the create operation fails, stop and report the exact path and error
 * [Write Prompt Return Script](#write-prompt-return-script)
 
 ## Write Prompt Return Script
 
-* write `{{return_script}}` as executable MDScript, not a prose note
+* write `{{return_script}}` as executable MDScript, not as a prose note
   * if the write fails, stop and report the exact path and error
 * start `{{return_script}}` with the exact execution header `<!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->`
-* write every heading in `{{return_script}}` as a `##` state, never `#`
+* write each heading in `{{return_script}}` as a `##` state, never as `#`
 * write a `## Resume` heading that restores the saved variables and context from this return script
-* under `## Resume`, apply the user's latest answer to `{{pending_decision}}`
-* under `## Resume`, record the answered question, blocker, claim scope, parent reporting path, and any stop/report fields needed by the caller
-* under `## Resume`, continue by executing `{{return_source_workflow}}#{{return_resume_heading}}`
-* include the current durable context needed to continue without replaying earlier states: task id, lane id, goal MDScript, ledger keys, event execution, source workflow, current heading, proof scope, proof path, local resource path, proof supplied, proof not claimed, blocker, next owner, and reporting path
+* under `## Resume`, apply the latest answer of the user to `{{pending_decision}}`
+* under `## Resume`, record the answered question, the blocker, the claim scope, and the parent reporting path
+* under `## Resume`, record the stop and report fields that the caller needs
+* under `## Resume`, continue with the execution of `{{return_source_workflow}}#{{return_resume_heading}}`
+* include the durable context that is necessary to continue without a replay of earlier states:
+  * the task id, the lane id, the goal MDScript, the ledger keys, and the event execution
+  * the source workflow, the current heading, the proof scope, the proof path, and the local resource path
+  * the proof given, the proof not claimed, the blocker, the next owner, and the reporting path
 * include only sanitized state
 * do not write secrets, credentials, private endpoints, token values, or private local paths into a return script
-* set `{{return_resume_command}}` to the executable resume command for the current runner, such as `/mdscript-exec {{return_script}}` in Codex or `mdscript-exec {{return_script}}` in a CLI surface
+* set `{{return_resume_command}}` to the executable resume command for the current runner
+  * for example, use `/mdscript-exec {{return_script}}` in Codex or `mdscript-exec {{return_script}}` in a CLI surface
 * [Prompt With Return Command](#prompt-with-return-command)
 
 ## Prompt With Return Command
 
 * if `{{return_script}}` does not exist
   * [Write Prompt Return Script](#write-prompt-return-script)
-* prompt the authority surface for `{{pending_decision}}` with the smallest decision-ready question needed to continue
-* include the blocker, accepted options or requested value, consequence of each available path, and the proof or authority boundary that forced the prompt
-* end the user-facing prompt with `{{return_resume_command}}` as the final line
-* do not put any text after the resume command
-* do not prompt from an agent MDScript workflow without first writing `{{return_script}}`
-* stop after the prompt while waiting for the answer
+* ask the authority surface for `{{pending_decision}}`
+  * use the smallest question that is ready for a decision and lets the workflow continue
+* include the blocker, and the accepted options or the requested value
+* include the result of each available path, and the proof or authority boundary that caused the prompt
+* make `{{return_resume_command}}` the last line of the prompt that the user sees
+* do not put text after the resume command
+* do not ask from an agent MDScript workflow before you write `{{return_script}}`
+* after the prompt, stop and wait for the answer

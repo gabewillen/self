@@ -2,39 +2,52 @@
 
 ## Require Automate Skill
 
-* before any agent calls `automation_update` or any available automation creation or update tool
+* before an agent calls `automation_update` or an automation tool that creates or changes an automation
   * [Load Automate Skill](#load-automate-skill)
-* require the automation contract to include `{{mdscript_reentry}}`, owner role, lane id, watched target, source of truth, cadence, stop condition, allowed actions, forbidden actions, parent agent, reporting path, next jump, and stop-report rule
-  * if any required field is missing, stop and report the exact missing contract fields
-* for explicit external watcher automations, prefer `{{mdscript_reentry}}` that targets the lane's `{{goal_mdscript}}#resume-goal` when a goal MDScript exists
-* require watcher automations to refresh live state and execute the changed hot-path action instead of re-reading or restating skill context on every wake
-* require watcher automations to execute the matching event MDScript jump when `DISPOSITION_READY`, `TARGET_DRIFT`, `HANDOFF_UNACKED`, or `STALE_MR` conditions are met
-* require watcher automations to report `{{event_exec}}` to the parent reporting path before stopping
+* examine the automation contract for these fields:
+  * `{{mdscript_reentry}}`, the owner role, the lane id, and the watched target
+  * the source of truth, the cadence, the stop condition, the allowed actions, and the forbidden actions
+  * the parent agent, the reporting path, the next jump, and the stop-report rule
+* if a necessary field is not there
+  * stop and report the exact fields that are not there
+* if the automation is an explicit external watcher and a goal MDScript exists
+  * prefer a `{{mdscript_reentry}}` that targets the `{{goal_mdscript}}#resume-goal` of the lane
+* make sure that a watcher automation gets the live state again on each wake
+* make sure that a watcher automation executes the hot-path action that changed
+* make sure that a watcher automation does not read or state the skill context again on each wake
+* make sure that a watcher automation executes the related event MDScript jump for these conditions:
+  * `DISPOSITION_READY`, `TARGET_DRIFT`, `HANDOFF_UNACKED`, or `STALE_MR`
+* make sure that a watcher automation reports `{{event_exec}}` to the parent reporting path before it stops
 * if the automation resumes `self-orchestrate`, `self-implement`, or `self-review`
   * run [Select Configured Model And Reasoning](model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning) with `{{self_role}}` set to the resumed role
-  * require the automation body or referenced goal MDScript to include `model: {{required_model}}`, `reasoning: {{required_reasoning}}`, and `model_selection_basis: {{model_selection_basis}}`
-* require `{{mdscript_reentry}}` to be an exact command shaped like `/mdscript-exec <absolute-mdscript-path>#stable-heading`
-  * if the shape is wrong, stop and report the invalid re-entry command
+  * make sure that the automation body or the goal MDScript it references has these lines:
+    * `model: {{required_model}}`, `reasoning: {{required_reasoning}}`, and `model_selection_basis: {{model_selection_basis}}`
+* make sure that `{{mdscript_reentry}}` is an exact command with the shape `/mdscript-exec <absolute-mdscript-path>#stable-heading`
+  * if the shape is wrong, stop and report the incorrect re-entry command
 * if no stable MDScript re-entry point exists
-  * create or request the missing workflow heading before creating the automation
-  * if the heading cannot be created, [Block Automation Preflight](#block-automation-preflight)
-* do not call `automation_update`, hand-write raw automation directives, create, update, replace, or claim an automation active until the `self-automate` contract is complete
+  * before you create the automation, create the workflow heading or ask for it
+  * if you cannot create the heading, [Block Automation Preflight](#block-automation-preflight)
+* until the `self-automate` contract is complete, do not do these actions:
+  * call `automation_update` or write raw automation directives by hand
+  * create, change, or replace an automation
+  * say that an automation is active
 * return to the caller
 
 ## Load Automate Skill
 
-* if `self-automate` is present in the active skill list
+* if `self-automate` is in the active skill list
   * run `/mdscript-exec {{skills_root}}/self-automate/SKILL.md`
   * run `/mdscript-exec {{skills_root}}/self-automate/SKILL.md#load-automation-context`
   * return to [Require Automate Skill](#require-automate-skill)
 * load `self-automate` by absolute path from `{{skills_root}}/self-automate/SKILL.md`
-  * if the skill cannot be loaded, [Block Automation Preflight](#block-automation-preflight)
+  * if you cannot load the skill, [Block Automation Preflight](#block-automation-preflight)
 * run `/mdscript-exec {{skills_root}}/self-automate/SKILL.md`
 * run `/mdscript-exec {{skills_root}}/self-automate/SKILL.md#load-automation-context`
 * return to [Require Automate Skill](#require-automate-skill)
 
 ## Block Automation Preflight
 
-* set `{{blocker}}` to the exact missing automation skill or MDScript entry point
-* report `Blocked: {{blocker}}` to the parent reporting path before stopping when this is a child orchestrator, implementer, reviewer, or automation lane
+* set `{{blocker}}` to the exact automation skill or MDScript entry point that is not there
+* if this is a child orchestrator, implementer, reviewer, or automation lane
+  * before you stop, report `Blocked: {{blocker}}` to the parent reporting path
 * stop

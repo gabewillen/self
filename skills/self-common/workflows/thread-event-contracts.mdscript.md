@@ -3,28 +3,29 @@
 ## Handle Thread Event Contracts
 
 * read [event-exec map](../references/event-exec-map.md)
-* treat cross-thread events as executable owner actions, not status summaries
-* require every event report to include the fields listed in the event-exec map
+* use cross-thread events as executable owner actions, not as status summaries
+* make sure that each event report has the fields that the event-exec map lists
 * if only `{{event_type}}` exists
   * set `{{event_exec}}` from the canonical map for that type
-* if a bare event label was emitted without `{{event_exec}}`
+* if an agent sent a bare event label without `{{event_exec}}`
   * set `{{event_exec}}` to the exact MDScript execution jump for the event
-* include `{{event_exec}}` in the child-to-parent report, lane ledger, watcher output, and handoff
-* when a watcher, child orchestrator, implementer, or reviewer observes one of these events
+* put `{{event_exec}}` in the child-to-parent report, the lane ledger, the watcher output, and the handoff
+* if a watcher, child orchestrator, implementer, or reviewer sees one of these events
   * [Dispatch Thread Event](#dispatch-thread-event)
-* when multiple events apply
-  * handle `TARGET_DRIFT` before `DISPOSITION_READY`
-  * handle `STALE_MR` before repeating proof
-  * handle `HANDOFF_UNACKED` before adding lower-priority work
+* if more than one event applies
+  * do `TARGET_DRIFT` before `DISPOSITION_READY`
+  * do `STALE_MR` before you do the proof again
+  * do `HANDOFF_UNACKED` before you add work with a lower priority
 * return to the caller
 
 ## Dispatch Thread Event
 
-* run the exact event heading named by `{{event_exec}}`
-* report the executed event to the parent agent or parent reporting path before stopping
+* run the exact event heading that `{{event_exec}}` names
+* before you stop, report the executed event to the parent agent or the parent reporting path
 * record `{{event_exec}}` and `{{event_deadline}}` in the lane ledger
-* if the required response cannot be performed inside current authority
-  * report `Blocked for {{claim_scope}}: {{blocker}}` to the parent with `{{event_exec}}`, `{{event_type}}`, and the exact missing authority or resource
+* if you cannot do the necessary response inside the current authority
+  * report `Blocked for {{claim_scope}}: {{blocker}}` to the parent with `{{event_exec}}` and `{{event_type}}`
+  * in that report, name the exact authority or resource that is not there
   * stop
 * return to the caller
 
@@ -32,55 +33,71 @@
 
 * set `{{event_type}}` to `DISPOSITION_READY`
 * set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
-* verify the MR/PR is on the current integration target
-  * if not, stop and report the target mismatch
-* verify exact-head CI is green
-  * if not, stop and report the CI state
-* verify one fresh current-target `Proven` review exists
-  * if not, stop and report the missing review
-* verify no unresolved discussions remain
-  * if any remain, stop and report the unresolved discussion ids
+* make sure that the MR/PR is on the current integration target
+  * if it is not, stop and report the target mismatch
+* make sure that the exact-head CI is green
+  * if it is not, stop and report the CI state
+* make sure that one fresh `Proven` review for the current target exists
+  * if it does not exist, stop and report that the review is not there
+* make sure that no discussions stay open
+  * if a discussion stays open, stop and report the ids of the open discussions
 * start the merge, close, or disposition workflow immediately
-* if disposition is denied
+* if the disposition is denied
   * record the explicit authority, policy, proof, merge, or tracker reason
   * stop and report the denial to the parent
-* do not leave `DISPOSITION_READY` as watcher context
-* report `{{event_exec}}`, `{{event_type}}`, `{{issue_or_mr}}`, `{{current_head}}`, `{{target_head}}`, `{{ci_state}}`, `{{review_state}}`, `{{unresolved_discussions}}`, and `{{next_action}}` to the parent before stopping
+* do not keep `DISPOSITION_READY` only as watcher context
+* before you stop, report these values to the parent:
+  * `{{event_exec}}`, `{{event_type}}`, `{{issue_or_mr}}`, `{{current_head}}`, and `{{target_head}}`
+  * `{{ci_state}}`, `{{review_state}}`, `{{unresolved_discussions}}`, and `{{next_action}}`
 * stop
 
 ## Event TARGET DRIFT
 
 * set `{{event_type}}` to `TARGET_DRIFT`
 * set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-target-drift`
-* verify the MR/PR base, tested target, or proof target no longer equals the current integration target
-  * if targets still match, stop and report that target drift is not present
-* refresh onto the current target within one watcher cycle
-* if refresh cannot happen
-  * report the exact blocker, dirty state, conflict, missing authority, failed command, or thread failure
+* make sure that one of these targets is not equal to the current integration target:
+  * the MR/PR base, the tested target, or the proof target
+* if all these targets are equal to the current integration target
+  * stop and report that no target drift exists
+* move the MR/PR onto the current target in one watcher cycle or less
+* if you cannot move it
+  * report the exact blocker, dirty state, conflict, authority that is not there, failed command, or thread failure
   * stop
-* treat target drift as a hard interrupt over repeated old-target proof
-* report `{{event_exec}}`, `{{event_type}}`, `{{issue_or_mr}}`, old target, current integration target, `{{current_head}}`, attempted refresh path, and blocker if any to the parent before stopping
+* give target drift priority as a hard interrupt over more proof on the old target
+* before you stop, report these values to the parent:
+  * `{{event_exec}}`, `{{event_type}}`, `{{issue_or_mr}}`, the old target, and the current integration target
+  * `{{current_head}}`, the refresh path that you tried, and the blocker if one exists
 * stop
 
 ## Event HANDOFF UNACKED
 
 * set `{{event_type}}` to `HANDOFF_UNACKED`
 * set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-handoff-unacked`
-* verify a priority instruction has no acknowledgment, output, or blocker after one watcher cycle
-  * if an ack, output, or blocker exists, stop and report that the handoff is no longer unacked
+* make sure that a priority instruction has no acknowledgment, output, or blocker after one watcher cycle
+  * if an ack, output, or blocker exists, stop and report that the handoff now has an ack
 * escalate to the parent immediately
-* as parent, reissue the handoff with a deadline, reassign ownership, or record the explicit wait reason
+* as the parent, do one of these actions:
+  * send the handoff again with a deadline
+  * give the ownership to a different owner
+  * record the explicit reason to wait
 * do not wait silently
-* report `{{event_exec}}`, `{{event_type}}`, the unacked instruction, owner, watcher cycle deadline, last contact attempt, and next owner to the parent before stopping
+* before you stop, report these values to the parent:
+  * `{{event_exec}}`, `{{event_type}}`, the instruction without an ack, and the owner
+  * the watcher cycle deadline, the last contact try, and the next owner
 * stop
 
 ## Event STALE MR
 
 * set `{{event_type}}` to `STALE_MR`
 * set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-stale-mr`
-* verify no head movement after an explicit target-consume, rebase, merge-target refresh, or source-refresh instruction
-  * if the head has moved, stop and report the new head
-* report the blocker path, dirty state, conflict, missing authority, failed command, or thread failure
-* do not repeat old-head proof as if it advances the lane
-* report `{{event_exec}}`, `{{event_type}}`, `{{issue_or_mr}}`, requested refresh instruction, last observed head, expected target head, attempted command/path, and blocker if any to the parent before stopping
+* make sure that the head did not move after an explicit instruction of one of these types:
+  * target-consume, rebase, merge-target refresh, or source-refresh
+* if the head moved
+  * stop and report the new head
+* report the blocker path, dirty state, conflict, authority that is not there, failed command, or thread failure
+* do not do old-head proof again as if it moves the lane forward
+* before you stop, report these values to the parent:
+  * `{{event_exec}}`, `{{event_type}}`, `{{issue_or_mr}}`, and the requested refresh instruction
+  * the last head that you saw and the expected target head
+  * the command or path that you tried, and the blocker if one exists
 * stop
