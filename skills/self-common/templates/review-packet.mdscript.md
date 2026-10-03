@@ -15,35 +15,38 @@ re_entry: /mdscript-exec <this-file>#review-this-change
 
 * read the claim in [Claim Under Review](#claim-under-review)
 * read only the paths listed in [In Scope](#in-scope)
-* do not read another lane's sign-off, the author's repair narrative, or any preferred verdict
-* run this lane's entrypoint and answer [Open Questions](#open-questions)
-* write findings to the `{{signoff_path}}` the composer supplied
+* do not read the sign-off of a different lane
+* do not read the repair narrative of the author or a preferred verdict
+* run the entrypoint of this lane
+* answer [Open Questions](#open-questions)
+* write the findings to the `{{signoff_path}}` that the composer gave
 
 ## Claim Under Review
 
-* state the claim in one bullet, as the author would have it accepted
+* write all text in ASD-STE100, as the `mdscript-write` conventions tell you
+* state the claim in one bullet, in the words that the author wants the reviewer to accept
 * state `proof_scope`, `merge_target`, and the frozen commit or head under review
 
 ## In Scope
 
 * list each in-scope path as one bullet
-* list the diff artifact path that holds the change
-* list the neutral supporting paths a lane may read to understand it
+* list the path of the diff artifact that holds the change
+* list the neutral support paths that a lane can read to understand the change
 
 ## Proof Supplied
 
 * list each proof as one bullet with the exact command and its exit code
-* never record a proof as passing unless its exit code was checked
+* if you did not examine the exit code of a proof, do not record that proof as a pass
 
 ## Proof Not Claimed
 
 * list each gap this review does not close as one bullet
-* name what evidence would close it
+* name the evidence that can close the gap
 
 ## Open Questions
 
 * ask each falsification question as one bullet
-* aim each at a way the claim could be wrong, not at confirming it
+* aim each question at a possible error in the claim, not at a proof of the claim
 
 ## Resume This Review
 

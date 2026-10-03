@@ -17,25 +17,30 @@ created_at: {{created_at}}
 
 ## Summary
 
-* state the event or decision this comment records
+* state the event or decision that this comment records
+* write all text in ASD-STE100, as the `mdscript-write` conventions tell you
 
 ## Evidence
 
-* list the evidence, artifact ids, and command results for this comment
+* list the evidence, the artifact ids, and the command results for this comment
 
 ## Questions
 
-* list open questions, or stop if none remain
+* list the open questions
+* if no open questions remain, stop
 
 ## Next
 
-* perform the next discrete owner action
-* continue with `/mdscript-exec {{comment_file}}#next` or the owning task/workflow entry point
+* do the next single action of the owner
+* continue with `/mdscript-exec {{comment_file}}#next` or the entry point of the task or workflow that owns this comment
 
 ## Stop Report
 
 * write `stop_reason=...`
 * write `next_owner=...`
-* write `blocker=...` when blocked
-* write `cleanup_status=...` when cleanup ownership applies
-* write `resume_command=...` when a return or goal resume continues the lane
+* if the lane is blocked
+  * write `blocker=...`
+* if the lane owns cleanup
+  * write `cleanup_status=...`
+* if a return script or a goal resume continues the lane
+  * write `resume_command=...`

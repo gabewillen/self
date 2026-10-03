@@ -3,14 +3,14 @@
 ## Resolve File Task Root
 
 * if `{{source_repo_root}}` is empty
-  * set `{{source_repo_root}}` to the current working repository root when one exists
+  * if a current work repository exists, set `{{source_repo_root}}` to its root
 * if `{{source_repo_root}}` is set
   * resolve `{{source_repo_root}}` to an absolute canonical path
-* set `{{agents_root}}` to `$AGENTS_HOME` when configured, otherwise `~/.agents`
+* set `{{agents_root}}` to `$AGENTS_HOME`, or to `~/.agents` if `$AGENTS_HOME` is not set
 * resolve `{{agents_root}}` to an absolute path
 * set `{{repo_root}}` to `{{agents_root}}` for installed skill and workflow entry points
-* infer `{{project_name}}` from the explicit project name, configured project identity, or source repository basename, in that order
-* normalize `{{project_name}}` to a stable lowercase path-safe slug
+* find `{{project_name}}` in this order: the explicit project name, the configured project identity, the basename of the source repository
+* change `{{project_name}}` to a stable lowercase slug that is safe in a path
 * set `{{file_task_root}}` to `{{agents_root}}/projects/{{project_name}}`
 * set `{{task_dir}}` to `{{file_task_root}}/tasks`
 * set `{{comment_dir}}` to `{{file_task_root}}/comments`
@@ -20,10 +20,12 @@
 * set `{{return_dir}}` to `{{file_task_root}}/returns`
 * set `{{artifact_dir}}` to `{{file_task_root}}/artifacts`
 * set `{{ledger_file}}` to `{{file_task_root}}/lane-ledger.jsonl`
-* treat `{{source_repo_root}}` only as the affected implementation or evidence surface
-* create missing task, comment, goal, plan, instruction, return, artifact, and ledger parent directories under `{{file_task_root}}`
-  * if directory creation fails, stop and report the exact path and error
-* do not write agent control-plane tasks, comments, plans, goals, instructions, artifacts, or lane ledgers into `{{source_repo_root}}`
+* use `{{source_repo_root}}` only as the surface of the affected implementation or evidence
+* under `{{file_task_root}}`, create each missing parent directory for tasks, comments, goals, and plans
+* under `{{file_task_root}}`, create each missing parent directory for instructions, returns, artifacts, and the ledger
+  * if the creation of a directory fails, stop and report the exact path and error
+* do not write control-plane tasks, comments, plans, or goals of the agent into `{{source_repo_root}}`
+* do not write control-plane instructions, artifacts, or lane ledgers of the agent into `{{source_repo_root}}`
 
 ## Ensure File Task
 
@@ -43,21 +45,23 @@
 
 ## Verify File Task
 
-* verify `{{task_file}}` has the MDScript execution header after YAML front matter
-  * if missing, [Repair File Task](#repair-file-task)
-* verify every required front-matter field from the contract is present
-  * if any field is missing, [Repair File Task](#repair-file-task)
-* verify exact body headings `## Objective`, `## Contract`, `## Current State`, `## Evidence`, `## Open Questions`, and `## Next Action` exist
-  * if any heading is missing, [Repair File Task](#repair-file-task)
-* verify `## Next Action` has one discrete action and an exact `/mdscript-exec` continuation or an explicit stop
-  * if invalid, [Repair File Task](#repair-file-task)
+* examine `{{task_file}}` for the MDScript execution header after the YAML front matter
+  * if the header is missing, [Repair File Task](#repair-file-task)
+* examine `{{task_file}}` for each front-matter field that the contract makes necessary
+  * if a field is missing, [Repair File Task](#repair-file-task)
+* examine `{{task_file}}` for the exact body headings `## Objective`, `## Contract`, `## Current State`, and `## Evidence`
+  * if a heading is missing, [Repair File Task](#repair-file-task)
+* examine `{{task_file}}` for the exact body headings `## Open Questions` and `## Next Action`
+  * if a heading is missing, [Repair File Task](#repair-file-task)
+* examine `## Next Action` for one single action and an exact `/mdscript-exec` continuation or an explicit stop
+  * if the section is not valid, [Repair File Task](#repair-file-task)
 * return to the caller
 
 ## Repair File Task
 
 * rewrite missing front-matter fields and body headings in `{{task_file}}` from the contract and template
 * [Verify File Task](#verify-file-task)
-* if verification still fails after one repair, stop and report the exact missing fields or headings
+* if the examination fails again after one repair, stop and report the exact missing fields or headings
 
 ## Add File Comment
 
@@ -65,43 +69,44 @@
 * read [file-comment contract](../references/file-comment-contract.md)
 * read [file-comment template](../templates/file-comment.mdscript.md)
 * set `{{comment_task_dir}}` to `{{comment_dir}}/{{task_id}}`
-* create `{{comment_task_dir}}` when missing
-  * if creation fails, stop and report the exact path and error
-* set `{{comment_file}}` to `{{comment_task_dir}}/<timestamp>-<role>-<short-slug>.mdscript.md` using UTC `YYYYMMDDTHHMMSSZ`
+* if `{{comment_task_dir}}` is missing, create it
+  * if the creation fails, stop and report the exact path and error
+* set `{{comment_file}}` to `{{comment_task_dir}}/<timestamp>-<role>-<short-slug>.mdscript.md`
+  * write `<timestamp>` in UTC as `YYYYMMDDTHHMMSSZ`
 * write `{{comment_file}}` from the template and contract
   * if the write fails, stop and report the exact path and error
 * [Verify File Comment](#verify-file-comment)
 
 ## Verify File Comment
 
-* verify `{{comment_file}}` has the MDScript execution header after YAML front matter
-  * if missing, [Repair File Comment](#repair-file-comment)
-* verify every required front-matter field from the contract is present
-  * if any field is missing, [Repair File Comment](#repair-file-comment)
-* verify exact body headings `## Summary`, `## Evidence`, `## Questions`, `## Next`, and `## Stop Report` exist
-  * if any heading is missing, [Repair File Comment](#repair-file-comment)
-* verify `## Next` has one discrete action and an exact continuation or stop
-  * if invalid, [Repair File Comment](#repair-file-comment)
-* do not edit or delete prior comments to change history
+* examine `{{comment_file}}` for the MDScript execution header after the YAML front matter
+  * if the header is missing, [Repair File Comment](#repair-file-comment)
+* examine `{{comment_file}}` for each front-matter field that the contract makes necessary
+  * if a field is missing, [Repair File Comment](#repair-file-comment)
+* examine `{{comment_file}}` for the exact body headings `## Summary`, `## Evidence`, `## Questions`, `## Next`, and `## Stop Report`
+  * if a heading is missing, [Repair File Comment](#repair-file-comment)
+* examine `## Next` for one single action and an exact continuation or stop
+  * if the section is not valid, [Repair File Comment](#repair-file-comment)
+* do not edit or delete earlier comments to change the history
 * return to the caller
 
 ## Repair File Comment
 
 * rewrite missing front-matter fields and body headings in `{{comment_file}}` from the contract and template
 * [Verify File Comment](#verify-file-comment)
-* if verification still fails after one repair, stop and report the exact missing fields or headings
+* if the examination fails again after one repair, stop and report the exact missing fields or headings
 
 ## Ensure File Plan
 
 * run [Resolve File Task Root](#resolve-file-task-root)
 * set `{{plan_file}}` to `{{plan_dir}}/{{plan_id}}.mdscript.md`
-* write or update `{{plan_file}}` as executable MDScript with the execution header
+* write or change `{{plan_file}}` as executable MDScript with the execution header
   * if the write fails, stop and report the exact path and error
-* write stable `##` states for context, ordered actions, verification, failure recovery, and completion
-* keep each plan bullet to one discrete tool-executable action
-* link every branch, retry, recovery, and handoff to an explicit MDScript state
-* include the exact `/mdscript-exec {{plan_file}}#<next-state>` command wherever the plan pauses, delegates, or resumes
-* do not maintain a prose-only duplicate plan when the MDScript plan exists
+* write stable `##` states for the context, the ordered actions, the examination, the recovery from failure, and the end
+* write one single action in each plan bullet, and make sure that a tool can execute it
+* link each branch, retry, recovery, and handoff to an explicit MDScript state
+* at each point where the plan pauses, delegates, or resumes, include the exact `/mdscript-exec {{plan_file}}#<next-state>` command
+* if the MDScript plan exists, do not keep a duplicate plan in prose only
 * return to the caller
 
 ## Ensure File Instruction
@@ -110,26 +115,31 @@
 * if the instruction already belongs in an MDScript `SKILL.md` or workflow file
   * return to the caller
 * set `{{instruction_file}}` to `{{instruction_dir}}/{{instruction_id}}.mdscript.md`
-* write or update `{{instruction_file}}` as executable MDScript with the execution header
+* write or change `{{instruction_file}}` as executable MDScript with the execution header
   * if the write fails, stop and report the exact path and error
-* write stable `##` states for applying, verifying, recovering from, and reporting the instruction
-* keep each instruction bullet to one discrete tool-executable action
-* link every condition, failure, retry, recovery, and authority prompt to an explicit MDScript state or return script
-* include the exact `/mdscript-exec {{instruction_file}}#<entry-state>` command in every handoff that depends on the instruction
-* do not create prose-only durable instruction files for agent-shaped work
+* write stable `##` states to apply, examine, recover, and report the instruction
+* write one single action in each instruction bullet, and make sure that a tool can execute it
+* link each condition, failure, retry, recovery, and authority prompt to an explicit MDScript state or return script
+* in each handoff that depends on the instruction, include the exact `/mdscript-exec {{instruction_file}}#<entry-state>` command
+* for work in the shape of an agent task, do not create durable instruction files in prose only
 * return to the caller
 
 ## Read File Task Packet
 
 * run [Resolve File Task Root](#resolve-file-task-root)
 * execute or read the named MDScript state in the current task file
-* read all unresolved comment MDScripts for that task
-* read the parent task MDScript when one exists
+* read all open comment MDScripts for that task
+* if a parent task MDScript exists, read it
 * read the active plan or instruction MDScripts for the lane
 * read the lane ledger entries for the lane
-* for an initial or final cumulative review, start from the current branch diff against the merge target plus the task file, relevant comments, and neutral supporting code or artifacts
-* for a repair review, start from the rolling diff between the last completed review tree and the current tree plus the task file, unresolved requirements, and neutral supporting code or artifacts
-* do not use old comments, generated summaries, or previous reviewer conclusions as the initial frame for a fresh blind review unless the assignment is explicitly reconciliation
+* if the review is a first review or a final cumulative review
+  * start from the diff of the current branch against the merge target
+  * add the task file, the related comments, and the neutral support code or artifacts
+* if the review is a repair review
+  * start from the diff between the tree of the last completed review and the current tree
+  * add the task file, the open requirements, and the neutral support code or artifacts
+* if the assignment is not explicitly a reconciliation
+  * do not use old comments, generated summaries, or earlier reviewer conclusions as the first frame for a new blind review
 * return to the caller
 
 ## Sync File Task Proof State

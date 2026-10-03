@@ -17,25 +17,31 @@ updated_at: {{updated_at}}
 
 ## Objective
 
-* state the lane objective for `{{claim_scope}}`
+* state the objective of the lane for `{{claim_scope}}`
+* write all text in ASD-STE100, as the `mdscript-write` conventions tell you
 
 ## Contract
 
-* state preconditions, postconditions, invariants, proof path, local resource path, proof supplied, proof not claimed, and review gate
+* state the preconditions, the postconditions, and the invariants
+* state the proof path and the local resource path
+* state the proof that you give and the proof that you do not claim
+* state the review gate
 
 ## Current State
 
-* record the current lane state from live sources
+* record the current state of the lane from live sources
 
 ## Evidence
 
-* list current proof artifacts and command results
+* list the current proof artifacts and the command results
 
 ## Open Questions
 
-* list unresolved decisions, or stop if none remain
+* list the open decisions
+* if no open decisions remain, stop
 
 ## Next Action
 
-* perform the next discrete action for this lane
-* continue with `/mdscript-exec {{task_file}}#next-action` or stop when the claim is terminal
+* do the next single action for this lane
+* if the claim is terminal, stop
+* if the claim is not terminal, continue with `/mdscript-exec {{task_file}}#next-action`
