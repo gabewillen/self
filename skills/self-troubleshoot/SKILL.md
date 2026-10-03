@@ -1,6 +1,6 @@
 ---
 name: self-troubleshoot
-description: "ALWAYS use this skill when the user runs /self-troubleshoot or reports a bug, regression, outage, flake, or broken behavior to diagnose: reproduce the failure with a red test on the closest safe production-like surface, root-cause it, fix the cause through self-implement, then rerun the untouched reproduction. Green ends the loop; red returns to root-cause analysis. Never fix a failure this lane has not reproduced."
+description: "ALWAYS use this skill when the user runs the /self-troubleshoot command. Also use it if the user reports a bug, regression, outage, flake, or broken behavior to diagnose. Reproduce the failure with a red test on the closest safe production-like surface. Find the root cause and fix the cause through self-implement. Then run the untouched reproduction again. Green ends the loop; red returns to root-cause analysis. Never fix a failure that this lane did not reproduce."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
