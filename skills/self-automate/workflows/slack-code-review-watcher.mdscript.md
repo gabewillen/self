@@ -6,11 +6,13 @@
 
 * run [Resolve File Task Root](../../self-common/workflows/file-task-comments.mdscript.md#resolve-file-task-root)
 
-* infer `{{watched_channel}}`, `{{automation_memory}}`, `{{file_task_id}}`, `{{goal_mdscript}}`, `{{last_handled_slack_timestamp}}`, and `{{blocking_severity_threshold}}` from the saved automation contract
+* find `{{watched_channel}}`, `{{automation_memory}}`, `{{file_task_id}}`, `{{goal_mdscript}}`, `{{last_handled_slack_timestamp}}`, and `{{blocking_severity_threshold}}` in the saved automation contract
 
-* if `{{blocking_severity_threshold}}` is empty, set it to every unresolved finding that blocks the exact approval scope or is an agent-unacceptable maintainability smell
+* if `{{blocking_severity_threshold}}` is empty, set it to these unresolved findings:
+  * each finding that blocks the exact approval scope
+  * each finding that is an agent-unacceptable maintainability smell
 
-* treat `{{automation_memory}}` as an operational observation log, not as the durable owner of watcher state
+* use `{{automation_memory}}` as an operational observation log, not as the durable owner of the watcher state
 
 * run [Read File Task Packet](../../self-common/workflows/file-task-comments.mdscript.md#read-file-task-packet)
 
@@ -32,9 +34,9 @@
 
 * read the tail of `{{automation_memory}}`
 
-* if an unexpired `router_run_started` entry has no matching `router_run_finished`, continue at [Stop Quietly](#stop-quietly)
+* if an unexpired `router_run_started` entry has no `router_run_finished` that matches it, continue at [Stop Quietly](#stop-quietly)
 
-* append one `router_run_started` observation with a unique run id and an expiry about twenty minutes in the future
+* append one `router_run_started` observation with a unique run id and an expiry about twenty minutes from now
 
 * record the lease in the project lane ledger
 
@@ -42,11 +44,13 @@
 
 ## Reconcile In Flight Reviewer
 
-* identify reviewer records without a later terminal result for the same artifact
+* find the reviewer records that have no later terminal result for the same artifact
 
-* refresh current GitHub replies, re-review requests, head SHA, unresolved conversations, review state, checks, conflicts, and mergeability for each candidate
+* for each candidate, refresh these GitHub items:
+  * the current replies, re-review requests, head SHA, and unresolved conversations
+  * the review state, checks, conflicts, and mergeability
 
-* if an in-flight reviewer is still running, continue at [Stop For In Flight Reviewer](#stop-for-in-flight-reviewer)
+* if an in-flight reviewer still runs, continue at [Stop For In Flight Reviewer](#stop-for-in-flight-reviewer)
 
 * if an in-flight reviewer is stale for about fifteen minutes, continue at [Refresh Stale Reviewer](#refresh-stale-reviewer)
 
@@ -60,7 +64,7 @@
 
 ## Refresh Stale Reviewer
 
-* if a refresh was sent within fifteen minutes, continue at [Stop Quietly](#stop-quietly)
+* if the watcher sent a refresh in the last fifteen minutes, continue at [Stop Quietly](#stop-quietly)
 
 * send one concise refresh message to the reviewer thread
 
@@ -74,7 +78,8 @@
 
 * read `{{watched_channel}}` and the thread and reaction context for candidate review requests
 
-* exclude bot-only merge notices, artifact-free bumps, already-handled messages, and messages already acknowledged by the current Slack identity
+* exclude bot-only merge notices, artifact-free bumps, and already-handled messages
+* exclude messages that the current Slack identity already acknowledged
 
 * choose the oldest actionable unhandled review request
 
@@ -84,23 +89,23 @@
 
 ## Create Reviewer Thread
 
-* infer the owning Codex project from the review artifact and Slack context
+* find the Codex project that owns the review artifact from the artifact and the Slack context
 
-* list current Codex projects before creating a reviewer thread
+* before you create a reviewer thread, list the current Codex projects
 
-* if thread tooling is unavailable after exact tool discovery, continue at [Report Watcher Blocker](#report-watcher-blocker)
+* if the thread tools are not available after exact tool discovery, continue at [Report Watcher Blocker](#report-watcher-blocker)
 
 * run [Select Configured Model And Reasoning](../../self-common/workflows/model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning) with `{{self_role}}` set to `reviewer`
 
 * create one reviewer thread with `model: {{required_model}}`, `reasoning: {{required_reasoning}}`, and `model_selection_basis: {{model_selection_basis}}`
 
-* require the reviewer to use `self-review` for judgment and `self-voice` for public comments
+* tell the reviewer that it must use `self-review` for judgment and `self-voice` for public comments
 
-* require the reviewer to inspect current GitHub state on the exact head before returning a verdict
+* tell the reviewer that it must examine the current GitHub state on the exact head before it returns a verdict
 
 * record the thread id, artifact, model fields, and parent reporting path in the lane ledger
 
-* record `{{blocking_severity_threshold}}` in the watcher goal and reviewer handoff
+* record `{{blocking_severity_threshold}}` in the watcher goal and the reviewer handoff
 
 * run [Add File Comment](../../self-common/workflows/file-task-comments.mdscript.md#add-file-comment)
 
@@ -108,17 +113,18 @@
 
 ## Evaluate Review Result
 
-* read the reviewer's current-head findings, proof decision, stop report, and cleanup state
+* read the current-head findings, proof decision, stop report, and cleanup state of the reviewer
 
 * if any finding meets or exceeds `{{blocking_severity_threshold}}`, continue at [Post Blocking Result](#post-blocking-result)
 
-* if any pack-unacceptable maintainability smell exists below the configured severity threshold, continue at [Post Blocking Result](#post-blocking-result)
+* if a pack-unacceptable maintainability smell exists below the configured severity threshold, continue at [Post Blocking Result](#post-blocking-result)
 
-* record lower-severity findings below `{{blocking_severity_threshold}}` as nonblocking only when they do not block the exact approval scope and are not pack-unacceptable smells
+* if a lower-severity finding is below `{{blocking_severity_threshold}}`, does not block the exact approval scope, and is not a pack-unacceptable smell
+  * record it as nonblocking
 
 * if the reviewer verdict is not `Proven` for the exact approval scope, continue at [Report Watcher Blocker](#report-watcher-blocker)
 
-* refresh GitHub head, replies, conversations, checks, conflicts, and mergeability
+* refresh the GitHub head, replies, conversations, checks, conflicts, and mergeability
 
 * if the reviewed head or gate state changed, continue at [Create Reviewer Thread](#create-reviewer-thread)
 
@@ -136,7 +142,7 @@
 
 ## Post Proven Result
 
-* submit GitHub approval on the exact reviewed head when current authority allows it
+* if the current authority allows it, submit GitHub approval on the exact reviewed head
 
 * add the configured approval reaction to the original Slack request
 
@@ -148,7 +154,8 @@
 
 * write the exact missing tool, access, project, source, or authority as a project comment MDScript
 
-* post one concise agent-voice blocker sentence and the smallest useful question in the original Slack thread when delivery is authorized
+* if delivery is authorized
+  * post one concise agent-voice blocker sentence and the smallest useful question in the original Slack thread
 
 * continue at [Finish Watcher Run](#finish-watcher-run)
 
@@ -160,9 +167,9 @@
 
 * append `router_run_finished` to the observation log
 
-* update the watcher goal MDScript with the next exact re-entry command
+* change the watcher goal MDScript to include the next exact re-entry command
 
-* record changed state, blocker, deadline, or terminal status in a project comment MDScript
+* record the changed state, blocker, deadline, or terminal status in a project comment MDScript
 
 * report the stop state to the parent path
 

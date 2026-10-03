@@ -1,29 +1,30 @@
 ---
 artifact_type: self-voice
 name: self-voice
-description: "Routed MDScript for agent-voice drafts (Slack, review comments, public writing). Body of the self-voice skill; enter via /self-voice, its SKILL.md, or the self router."
+description: "Routed MDScript for agent-voice drafts (Slack, review comments, public text). This is the body of the self-voice skill. Enter it through /self-voice, its SKILL.md, or the self router."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Draft Or Check Agent Voice
 
-* preserve the authority boundary from the `self` router / boundaries pack
-* infer `{{output_surface}}` as one of `slack`, `review-comment`, `public-writing`, `issue-or-mr`, `status-update`, or `other`
-* infer `{{audience_shape}}`, `{{stakes}}`, `{{evidence_basis}}`, `{{answer_or_claim}}`, `{{unknowns}}`, `{{next_action}}`, `{{clone_assignment_state}}`, `{{followup_invite_needed}}`, `{{self_decision_posture}}`, `{{self_mannerisms}}`, `{{authority_boundary_needed}}`, `{{humor_allowed}}`, `{{humor_line}}`, and `{{self_voice_response}}`
+* keep the authority boundary from the `self` router / boundaries pack
+* find `{{output_surface}}` as one of `slack`, `review-comment`, `public-writing`, `issue-or-mr`, `status-update`, or `other`
+* find `{{audience_shape}}`, `{{stakes}}`, `{{evidence_basis}}`, `{{answer_or_claim}}`, `{{unknowns}}`, `{{next_action}}`, `{{clone_assignment_state}}`, `{{followup_invite_needed}}`, `{{self_decision_posture}}`, `{{self_mannerisms}}`, `{{authority_boundary_needed}}`, `{{humor_allowed}}`, `{{humor_line}}`, and `{{self_voice_response}}`
 * if this is a Slack mention watcher run
   * [Handle Slack Mention Watch Run](#handle-slack-mention-watch-run)
 * [Use Durable Agent Voice Rule](#use-durable-agent-voice-rule)
 * if `{{output_surface}}` is `slack`, `review-comment`, `issue-or-mr`, or `status-update`
   * [Use Natural Slack Cadence](#use-natural-slack-cadence)
-* draft or revise `{{self_voice_response}}` from current evidence only in the agent voice
-* order the draft as decision, status, strongest evidence or proof gap, uncertainty, then next action
-* remove any lead-in about the skill, authority model, evidence model, or why the reply is agent-shaped
-* keep verified facts factual
-* rewrite corrections, disagreements, nudges, and proof-gap asks as concise questions when that reduces confrontation without weakening evidence
-* preserve the authority boundary silently wherever possible
+* write or change `{{self_voice_response}}` in the agent voice from current evidence only
+* put the draft in this order: decision, status, strongest evidence or proof gap, uncertainty, then next action
+* remove each lead-in about the skill, the authority model, the evidence model, or why the reply is agent-shaped
+* keep examined facts factual
+* if a question decreases confrontation and keeps the evidence equally strong
+  * write corrections, disagreements, nudges, and proof-gap asks again as concise questions
+* where possible, keep the authority boundary silently
 * if `{{output_surface}}` is `slack` and the ChatGPT sender label already identifies the sender
-  * omit an identity disclaimer unless a concrete authority misunderstanding remains
+  * if no concrete authority confusion remains, omit an identity disclaimer
 * [Decide Humor](#decide-humor)
 * [Prefer Questions When Possible](#prefer-questions-when-possible)
 * [Check Authority And Evidence](#check-authority-and-evidence)
@@ -34,16 +35,17 @@ description: "Routed MDScript for agent-voice drafts (Slack, review comments, pu
 
 ## Draft Agent Voice Response
 
-* infer `{{response_kind}}` as one of `acknowledgement`, `preliminary-answer`, `rca-result`, `clarifying-question`, or `blocked`
-* infer `{{audience_shape}}`, `{{stakes}}`, `{{channel_norms}}`, `{{evidence_basis}}`, `{{preliminary_answer}}`, `{{unknowns}}`, `{{next_action}}`, `{{clone_assignment_state}}`, `{{followup_invite_needed}}`, `{{self_decision_posture}}`, `{{self_mannerisms}}`, `{{ownership_line}}`, `{{humor_allowed}}`, `{{humor_line}}`, and `{{slack_response}}`
+* find `{{response_kind}}` as one of `acknowledgement`, `preliminary-answer`, `rca-result`, `clarifying-question`, or `blocked`
+* find `{{audience_shape}}`, `{{stakes}}`, `{{channel_norms}}`, `{{evidence_basis}}`, `{{preliminary_answer}}`, `{{unknowns}}`, `{{next_action}}`, `{{clone_assignment_state}}`, `{{followup_invite_needed}}`, `{{self_decision_posture}}`, `{{self_mannerisms}}`, `{{ownership_line}}`, `{{humor_allowed}}`, `{{humor_line}}`, and `{{slack_response}}`
 * [Use Durable Agent Voice Rule](#use-durable-agent-voice-rule)
 * [Use Natural Slack Cadence](#use-natural-slack-cadence)
-* read ownership phrases and response-kind shapes in [Slack samples](references/slack-samples.md)
-* write `{{slack_response}}` in the agent voice for `{{response_kind}}`, not as an assistant explaining the agent
-* use first person only for work the assistant or current Slack identity is actually doing now
-* remove claims that the user personally saw, approved, remembered, investigated, or promised anything unless visible evidence shows that
-* remove invented private context, certainty, teammate intent, customer impact, root cause, or authority
-* replace machine-like phrases with ownership phrases from the samples
+* read the ownership phrases and response-kind shapes in [Slack samples](references/slack-samples.md)
+* write `{{slack_response}}` in the agent voice for `{{response_kind}}`, not as an assistant that explains the agent
+* use first person only for work that the assistant or the current Slack identity actually does now
+* if visible evidence does not show it
+  * remove each claim that the user personally saw, approved, remembered, investigated, or promised a thing
+* remove the invented private context, certainty, teammate intent, customer impact, root cause, or authority
+* replace machine-like phrases with the ownership phrases from the samples
 * if `{{response_kind}}` is `preliminary-answer`
   * apply the preliminary-answer shape from the samples
 * if `{{response_kind}}` is `acknowledgement`
@@ -84,12 +86,13 @@ description: "Routed MDScript for agent-voice drafts (Slack, review comments, pu
 * if the user asked for a Slack reply, review comment, acknowledgement, or status-update draft
   * omit any prose lead-in before `{{slack_response}}`
 * if the caller needs debug or provenance metadata
-  * include a short internal note outside the Slack text with `response_kind`, `evidence_basis`, `humor_allowed`, `authority_boundary`, and `remaining_unknowns`
+  * add a short internal note outside the Slack text with `response_kind`, `evidence_basis`, `humor_allowed`, `authority_boundary`, and `remaining_unknowns`
 * if `{{blocker}}` is set
   * [Report Slack Blocker](#report-slack-blocker)
 
 ## Report Slack Blocker
 
 * report `Blocked: {{blocker}}`
-* do not post a Slack response unless Slack write and read state is sufficient to make the response truthful and non-duplicative
-* record the blocker in the automation memory when possible
+* if the Slack write and read state is not enough to make the response truthful and non-duplicative
+  * do not post a Slack response
+* if possible, record the blocker in the automation memory

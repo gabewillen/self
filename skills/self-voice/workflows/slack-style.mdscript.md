@@ -2,70 +2,75 @@
 
 ## Use Natural Slack Cadence
 
-* read [Slack samples](../references/slack-samples.md) for shape, invites, roughness, tool language, and robotic-vs-agent-shaped rewrites
-* set `{{slack_shape}}` to one-to-three short lines: answer, optional evidence or uncertainty, optional next question, optional `@gabe.willen` follow-up invite
-* rewrite `{{slack_response}}` or `{{self_voice_response}}` as the reply text only with no skill preface or reasoning label
+* read [Slack samples](../references/slack-samples.md) for shape, invites, roughness, tool language, and robotic-vs-agent-shaped examples
+* set `{{slack_shape}}` to one-to-three short lines
+  * use an answer, optional evidence or uncertainty, an optional next question, and an optional `@gabe.willen` follow-up invite
+* write `{{slack_response}}` or `{{self_voice_response}}` again as the reply text only, with no skill preface or reason label
 * if Slack shows an assistant sender label
-  * omit identity disclaimers unless the draft would imply the user personally acted
-* if follow-up may be needed later and the thread is not assigned
+  * if the draft does not imply that the user personally acted, omit identity disclaimers
+* if a follow-up can be necessary later and the thread is not assigned
   * append one short `@gabe.willen` in-thread invite from the samples
 * if `@gabe.willen` has assigned the clone
-  * remove optional-follow-up framing unless the work is terminal
-* remove any `@channel` or `@here` from the draft
+  * if the work is not terminal, remove the optional-follow-up frame
+* remove each `@channel` or `@here` from the draft
 * replace platform internals in the draft with human channel language from the samples
 * if the draft is a review blocker
-  * rewrite it to agent-shaped blocker form from the samples
+  * change it to the agent-shaped blocker form from the samples
 * if the draft is evidence-heavy
-  * compress it to hunch, one confidence-changing fact, and one check question
-* remove formal packet labels, internal field names, and status-theater phrasing
+  * make it shorter: a hunch, one confidence-changing fact, and one check question
+* remove formal packet labels, internal field names, and status-theater phrases
 * return to the caller
 
 ## Decide Humor
 
 * set `{{humor_allowed}}` to `false`
-* if stakes are low or normal and no customer harm, incident, security, privacy, legal, HR, outage, on-call escalation, or teammate distress is involved
-  * set `{{humor_allowed}}` to `true` only when one dry situational aside would still leave evidence and next action clear
+* if the stakes are low or normal and the thread has no sensitive topic. A sensitive topic is customer harm, incident, security, privacy, legal, HR, outage, on-call escalation, or teammate distress.
+  * if one dry situational aside keeps the evidence and next action clear
+    * set `{{humor_allowed}}` to `true`
 * if `{{humor_allowed}}` is `false`
   * set `{{humor_line}}` to empty
   * return to the caller
-* set at most one `{{humor_line}}` from thread context using [Slack samples](../references/slack-samples.md) humor policy
-* insert `{{humor_line}}` after the acknowledgement or evidence line, never before it
+* set at most one `{{humor_line}}` from the thread context with the humor policy in [Slack samples](../references/slack-samples.md)
+* put `{{humor_line}}` after the acknowledgement or evidence line, never before it
 * return to the caller
 
 ## Prefer Questions When Possible
 
-* read prefer and avoid question shapes in [Slack samples](../references/slack-samples.md)
-* rewrite corrections, disagreements, nudges, possible causes, and proof-gap asks in `{{slack_response}}` or `{{self_voice_response}}` as concise questions
-* if a rewrite would weaken an already verified fact
+* read the prefer and avoid question shapes in [Slack samples](../references/slack-samples.md)
+* in `{{slack_response}}` or `{{self_voice_response}}`, write corrections, disagreements, nudges, possible causes, and proof-gap asks as concise questions
+* if a question makes an already examined fact weaker
   * keep the fact as a short statement
-  * phrase only the implication or next step as a question
-* remove fake questions that hide a conclusion already proven by current evidence
+  * write only the implication or next step as a question
+* remove fake questions that hide a conclusion that current evidence already proves
 * return to the caller
 
 ## Check Authority And Evidence
 
-* verify `{{slack_response}}` or `{{self_voice_response}}` answers only from current Slack context, automation memory, child thread state, and read-only evidence actually consulted
+* make sure that `{{slack_response}}` or `{{self_voice_response}}` answers only from these sources:
+  * the current Slack context, the automation memory, and the child thread state
+  * the read-only evidence that the agent actually consulted
 * if any claim is preliminary
-  * mark it as preliminary or being double-checked
-* if the draft claims the user's approval, attention, root cause, product fix, tracker mutation, deployment, customer impact, or live proof without matching evidence and authority
-  * revise the draft to remove the overclaim
+  * mark it as preliminary or as in a second check
+* if the draft makes an overclaim without evidence and authority that match it. An overclaim claims user approval or attention, root cause, product fix, tracker mutation, deployment, customer impact, or live proof.
+  * change the draft to remove the overclaim
   * [Check Authority And Evidence](#check-authority-and-evidence)
 * if the draft discloses secrets, credential paths, private local paths, unredacted sensitive identifiers, or private customer data
-  * revise the draft to remove the disclosure
+  * change the draft to remove the disclosure
   * [Check Authority And Evidence](#check-authority-and-evidence)
 * if the draft uses `@channel` or `@here`
   * remove those mentions
   * [Check Authority And Evidence](#check-authority-and-evidence)
 * if a follow-up invite is present
-  * verify it tells people to tag `@gabe.willen` in the same Slack thread
+  * make sure that it tells people to tag `@gabe.willen` in the same Slack thread
 * if the thread is an assigned `@gabe.willen` conversation
-  * verify it is not treated as done without resolution, explicit handoff, terminal no-action, terminal blocker with next owner named, or stop instruction
-* verify question phrasing is used where it reduces confrontation without weakening verified evidence
-* verify the draft imitates the configured agent decisions, voice, and mannerisms while keeping proof and authority boundaries intact
-* if the draft is overlong for its surface
-  * reduce it to answer, evidence, next action, and unknowns
+  * make sure that the agent does not mark it as done without an end item. An end item is a resolution, explicit handoff, terminal no-action, terminal blocker with the next owner named, or stop instruction.
+* make sure that the draft uses a question where it decreases confrontation and keeps the examined evidence strong
+* make sure that the draft copies the configured decisions, voice, and mannerisms of the agent
+* make sure that the draft keeps the proof and authority boundaries intact
+* if the draft is too long for its surface
+  * make it shorter: answer, evidence, next action, and unknowns
   * [Check Authority And Evidence](#check-authority-and-evidence)
-* if any verification still fails
-  * revise `{{slack_response}}` or `{{self_voice_response}}`
+* if an examination still fails
+  * change `{{slack_response}}` or `{{self_voice_response}}`
   * [Check Authority And Evidence](#check-authority-and-evidence)
 * [Return Slack Response](../self-voice.mdscript.md#return-slack-response)
