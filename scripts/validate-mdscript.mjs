@@ -79,7 +79,7 @@ const parsed = new Map(files.map((f) => [resolve(f), parse(f)]));
 const setVars = new Set();
 for (const { text } of parsed.values()) {
   for (const line of text.split("\n")) {
-    if (!/^\s*\* (set|otherwise set|restore|infer|resolve|read) /.test(line)) continue;
+    if (!/^\s*\* (set|otherwise set|restore|infer|find|resolve|read) /.test(line)) continue;
     for (const m of line.matchAll(/\{\{([a-z0-9_]+)\}\}/g)) setVars.add(m[1]);
   }
   for (const m of text.matchAll(/front matter[^\n]*`([a-z0-9_]+)`/g)) setVars.add(m[1]);
@@ -236,7 +236,7 @@ function steText(raw) {
     .replace(/\{\{[^}]+\}\}/g, " VAR ")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, " LINK ")
     .replace(/https?:\/\/\S+/g, " URL ")
-    .replace(/(^|\s)[~./]?[\w.-]*\/[\w./<>*#-]*/g, " PATH ")
+    .replace(/(^|\s)[~./]?[\w.-]*\/[\w./<>*#-]*?(?=[.,;:!?]?(\s|$))/g, " PATH ")
     .replace(/\b[\w]+(?:[-_][\w]+)+\b/g, " NAME ")
     .replace(/\/[a-z][\w-]*/g, " CMD ");
 }
