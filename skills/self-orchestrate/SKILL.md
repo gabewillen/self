@@ -1,6 +1,6 @@
 ---
 name: self-orchestrate
-description: "ALWAYS use this skill unless you are a subagent. Prioritize work and delegate writing and editing to implement workers. Own goals/tasks/comments/lane ledgers and the intake of DBC proof decisions. Manage handoffs and hot-path events. Decide publication and post-merge closure. Keep stop reports and goal re-entry current."
+description: "ALWAYS use this skill unless you are a subagent. Prioritize work, and give each write or edit task to an implement worker. Own goals/tasks/comments/lane ledgers and the intake of DBC proof decisions. Manage handoffs and hot-path events. Decide publication and post-merge closure. Keep stop reports and goal re-entry current."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

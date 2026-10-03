@@ -1,6 +1,6 @@
 ---
 name: self
-description: "ALWAYS use this skill for EVERY request first, before you plan or answer. This skill routes the role. Main agents that are not subagents are orchestrate. Subagents are implement (or one blind-lane MDScript). Explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, /self-troubleshoot, and /self-voice also route first. /self-learn is a user-invoked skill and never runs from a hook. /self-voice and /self-troubleshoot are skills whose bodies are in a linked MDScript. self-common is shared MDScripts/hooks, not a skill. HSM is a review blind lane, not a separate skill. Review composition stays on the composing process with per-lane fanout only."
+description: "ALWAYS use this skill for EVERY request first, before you plan or answer. This skill routes the role. Main agents that are not subagents are orchestrate. Subagents are implement (or one blind-lane MDScript). Explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, /self-troubleshoot, and /self-voice also route first. /self-learn is a user-invoked skill and never runs from a hook. /self-voice and /self-troubleshoot are skills whose bodies are in a linked MDScript. self-common is shared MDScripts/hooks, not a skill. HSM is a review blind lane, not a separate skill. The process that composes a review keeps that composition, with per-lane fanout only."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

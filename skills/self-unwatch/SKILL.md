@@ -1,6 +1,6 @@
 ---
 name: self-unwatch
-description: "ALWAYS use this skill when the user runs /self-unwatch, asks to stop a PR watch ('stop watching a PR'), or cancels self-watch. If loop_driver is harness-native, stop the harness-native loop. Otherwise, kill the detached ticker/sentinel. Mark the watch state inactive. Change the watch goal MDScript."
+description: "ALWAYS use this skill when the user runs /self-unwatch, asks to stop a PR watch (`stop watching a PR`), or cancels self-watch. If loop_driver is harness-native, stop the harness-native loop. Otherwise, kill the detached ticker/sentinel. Mark the watch state inactive. Change the watch goal MDScript."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
