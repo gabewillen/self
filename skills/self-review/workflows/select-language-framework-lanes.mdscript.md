@@ -36,7 +36,7 @@
 
 ## Detect Framework Lanes
 
-* if React is present in deps, imports, or UI app paths under review
+* if React is present in the dependencies, the imports, or the UI app paths under review
   * set `{{candidate_lane}}` to `eng-react`
   * set `{{candidate_entry}}` to `{{blind_reviewers_root}}/eng-react.mdscript.md#eng-react-blind-review`
   * set `{{candidate_reason}}` to `React in scope`
@@ -54,7 +54,7 @@
   * set `{{candidate_entry}}` to `{{blind_reviewers_root}}/eng-dart.mdscript.md#eng-dart-blind-review`
   * set `{{candidate_reason}}` to `Flutter implies Dart rules`
   * run [Add Lane](select-review-lanes.mdscript.md#add-lane)
-* if Hono is present in deps or route app paths
+* if Hono is present in the dependencies or the route app paths
   * set `{{candidate_lane}}` to `eng-hono`
   * set `{{candidate_entry}}` to `{{blind_reviewers_root}}/eng-hono.mdscript.md#eng-hono-blind-review`
   * set `{{candidate_reason}}` to `Hono in scope`
