@@ -71,7 +71,10 @@
 * if infrastructure or services are involved, include the expected local resource path
 * include the expected tests
 * if the lane claims real-resource artifacts, include the expected real-resource artifacts
-* include the implementer-owned review gate, which is necessary only before a PR/MR create or merge
+* include the implementer-owned review gate
+* include `self_review_requested: {{self_review_requested}}`
+  * set this value only from an explicit user request or from the answer of the user
+  * if the user did not ask for a self-review and did not answer the question, leave this value empty
 * include the MR/PR goal rule, no execution subdelegation, and no portfolio chat management
 * include the attribution, the parent agent, and the reporting path back to this orchestrator
 * include `model: {{required_model}}`, `reasoning: {{required_reasoning}}`, and `model_selection_basis: {{model_selection_basis}}`
@@ -91,7 +94,7 @@
 * include the GitLab sudo alias rule for `-implementor` and `-reviewer` public writes
 * include the rule that project control-plane comment MDScripts come before mirrored public GitLab writes
 * tell the implementer that it owns execution
-* tell the implementer that it owns the self-review composition, with per-lane blind fanout, only before a PR/MR create or merge
+* tell the implementer that it owns the self-review composition, with per-lane blind fanout, only if `self_review_requested` is `true`
 * tell the implementer that this orchestrator owns coordination, lane state, permission boundaries, final decision reports, and orchestrator-owned goals
 * tell the implementer not to delegate the full `/self-review` skill to a nested subagent
 * tell the implementer to delegate only lane MDScripts

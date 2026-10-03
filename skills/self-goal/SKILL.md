@@ -100,6 +100,7 @@ description: "ALWAYS use this skill when you run a goal loop (/goal or /self-goa
 * if the artifacts or the `{{primary_user_action}}` proof are incomplete
   * change the completion_gate notes in `{{goal_mdscript}}` to show the current gaps
   * [Pursue Goal](#pursue-goal)
+* set `{{self_review_requested}}` to `true`, because the user started this goal loop and its verdict closes the goal
 * run [Compose Multi-Lane Review](workflows/compose-multi-lane-review.mdscript.md#compose-multi-lane-review)
   * this workflow execs a multi-lane adversarial blind review
   * the lanes are always-on rules + security + completeness, and the selected eng-* language/framework lanes from vendored gabewillen/rules

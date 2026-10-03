@@ -880,6 +880,7 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/model-reasoning-contract.mdscript.md",
     "workflows/file-task-comments.mdscript.md",
     "workflows/update-living-skills.mdscript.md",
+    "workflows/self-review-consent.mdscript.md",
     "workflows/load-operating-context.mdscript.md",
     "hooks/self-lib.ts",
     "adapters/claude/hooks.json",

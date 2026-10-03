@@ -1,6 +1,6 @@
 ---
 name: self-implement
-description: "ALWAYS use this skill when you write or edit anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. State the scoped DBC claim. Select and apply the vendored engineering-rules packs that the review eng-* lanes check (impl-core, impl-dbc, language/framework, optional impl-hsm). Prove the work with real paths. Compose multi-lane review in this process with per-lane blind fanout only. Report before you stop."
+description: "ALWAYS use this skill when you write or edit anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. State the scoped DBC claim. Select and apply the vendored engineering-rules packs that the review eng-* lanes check (impl-core, impl-dbc, language/framework, optional impl-hsm). Prove the work with real paths. If the user asks for a self-review, compose the multi-lane review in this process with per-lane blind fanout only. Report before you stop."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -24,7 +24,7 @@ description: "ALWAYS use this skill when you write or edit anything: code, docs,
 * before you say that a created reviewer, worker, or helper chat thread is terminal, superseded, or cleanly handed off
   * run [Cleanup Created Threads](../self-common/workflows/thread-cleanup.mdscript.md#cleanup-created-threads)
 * find `{{objective}}`, `{{repository}}`, `{{tracker}}`, `{{branch}}`, `{{merge_target}}`, `{{granted_permissions}}`, `{{forbidden_actions}}`, `{{done_state}}`, `{{claim_scope}}`, and `{{contract_preconditions}}` in the orchestrator delegation
-* find `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{missing_precondition}}`, `{{proof_needed}}`, `{{review_gate}}`, `{{parent_agent}}`, and `{{orchestrator_reporting_path}}` in the orchestrator delegation
+* find `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{missing_precondition}}`, `{{proof_needed}}`, `{{review_gate}}`, `{{self_review_requested}}`, `{{parent_agent}}`, and `{{orchestrator_reporting_path}}` in the orchestrator delegation
 * if `{{orchestrator_reporting_path}}` is set
   * set `{{parent_reporting_path}}` to `{{orchestrator_reporting_path}}`
 * before this implementer stops for any reason, report back to `{{parent_reporting_path}}`
@@ -130,14 +130,9 @@ description: "ALWAYS use this skill when you write or edit anything: code, docs,
 
 ## Use Multi-Lane Review
 
-* if this lane will create or change a pull/merge request
-  * set `{{self_review_required}}` to `true`
-* if a merge into the target branch is in scope, or a person asks for that merge
-  * set `{{self_review_required}}` to `true`
+* run [Decide Self Review](../self-common/workflows/self-review-consent.mdscript.md#decide-self-review)
 * if `{{self_review_required}}` is not `true`
-  * set `{{self_review_required}}` to `false`
-  * skip multi-lane self-review for this completion
-  * record `review_gate=not-required-until-pr-or-merge` in the task evidence
+  * record `review_gate={{review_gate}}` in the task evidence
   * do not start review rounds
   * continue with [Commit Atomically](#commit-atomically)
 * if `{{self_review_required}}` is `true`

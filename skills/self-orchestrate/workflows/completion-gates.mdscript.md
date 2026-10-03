@@ -69,15 +69,12 @@
 
 ## Verify Review Gate For Change Type
 
-* if the lane creates or changes a pull/merge request
-  * set `{{self_review_required}}` to `true`
-* if someone requested a merge into the target branch, or the merge is in scope
-  * set `{{self_review_required}}` to `true`
-* if neither condition applies
-  * set `{{self_review_required}}` to `false`
+* run [Decide Self Review](../../self-common/workflows/self-review-consent.mdscript.md#decide-self-review)
+* if `{{review_gate}}` is `awaiting-user-self-review-decision`
+  * stop
 * if `{{self_review_required}}` is `false`
-  * accept `review_gate=not-required-until-pr-or-merge` as a valid review gate for non-PR completion
-  * for local implementation-only completion, do not ask for multi-lane self-review sign-offs
+  * accept `review_gate={{review_gate}}` as a valid review gate
+  * do not ask for multi-lane self-review sign-offs
   * continue to the next completion check
 * if `{{self_review_required}}` is `true`
   * if the change is MDScript-only, documentation-only, or instruction-only

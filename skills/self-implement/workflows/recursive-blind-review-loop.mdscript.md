@@ -3,14 +3,8 @@
 ## Use Multi-Lane Review
 
 * if `{{self_review_required}}` is empty
-  * if this lane will create or change a pull/merge request
-    * set `{{self_review_required}}` to `true`
-  * if a merge into the target branch is in scope, or a person asks for that merge
-    * set `{{self_review_required}}` to `true`
-  * if `{{self_review_required}}` is still empty
-    * set `{{self_review_required}}` to `false`
+  * run [Decide Self Review](../../self-common/workflows/self-review-consent.mdscript.md#decide-self-review)
 * if `{{self_review_required}}` is `false`
-  * set `{{review_gate}}` to `not-required-until-pr-or-merge`
   * set `{{proof_decision}}` to empty for the review
   * do not spawn reviewers
   * return to the caller
