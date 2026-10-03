@@ -2,34 +2,45 @@
 
 ## Prepare MR Or PR
 
-* set `{{self_review_required}}` to `true` because this step creates or updates a pull/merge request
-* if multi-lane self-review has not completed for the current head with an accepted review gate for this PR/MR create or update
+* set `{{self_review_required}}` to `true`, because this step creates or changes a pull/merge request
+* if multi-lane self-review is not complete for the current head with an accepted review gate for this PR/MR change
   * run [Use Multi-Lane Review](recursive-blind-review-loop.mdscript.md#use-multi-lane-review)
-  * if the review gate is blocked, stop and report the blocker before opening or updating the PR/MR
-* create or update the issue and MR/PR required by `{{tracker}}`, `{{repository}}`, and local instructions
+  * if the review gate is blocked
+    * report the blocker before you open or change the PR/MR
+    * stop
+* create or change the issue and the MR/PR that `{{tracker}}`, `{{repository}}`, and the local instructions make necessary
 
 * run [Resolve GitLab Sudo Alias](../../self-common/workflows/gitlab-sudo-alias.mdscript.md#resolve-gitlab-sudo-alias) with `{{self_role}}` set to `implementer`
 
-* run [Use GitLab Sudo Alias Before Public Write](../../self-common/workflows/gitlab-sudo-alias.mdscript.md#use-gitlab-sudo-alias-before-public-write) before writing any GitLab issue text, review response, or comment from this worker role
+* before you write GitLab issue text, a review response, or a comment from this worker role
+  * run [Use GitLab Sudo Alias Before Public Write](../../self-common/workflows/gitlab-sudo-alias.mdscript.md#use-gitlab-sudo-alias-before-public-write)
 
-* run [Commit Atomically](commit-atomically.mdscript.md#commit-atomically) before pushing the head this MR/PR will carry
+* before you push the head that this MR/PR will carry
+  * run [Commit Atomically](commit-atomically.mdscript.md#commit-atomically)
 
-* keep MR/PR title, description, commits, evidence links, review status, and residual risk current
+* keep the MR/PR title, description, commits, evidence links, review status, and residual risk current
 
-* do not leave an MR/PR in draft once ready unless an explicit blocker, missing proof, user instruction, or repository rule requires draft
+* if the MR/PR is ready, and no explicit blocker, absent proof, user instruction, or repository rule makes draft necessary
+  * do not leave the MR/PR in draft
 
-* do not keep an MR/PR in draft solely because CI/CD or checks are pending or failing
+* do not keep an MR/PR in draft only because CI/CD or checks are pending or failed
 
-* report check state separately and treat it as a default-branch merge blocker only when default-branch merge is the requested next action
+* report the check state separately
+* if the delegation asks for a default-branch merge as the next action
+  * treat the check state as a default-branch merge blocker
+* if the delegation does not ask for a default-branch merge as the next action
+  * do not treat the check state as a default-branch merge blocker
 
-* identify implementation agent, review agent, leased reviewer, and goal-resumed lane identities whose MR/PR comments the orchestrator should watch
+* find the implementation agent, review agent, leased reviewer, and goal-resumed lane identities
+* tell the orchestrator to watch the MR/PR comments of these identities
 
-* if CI/CD, checks, review requests, reviewer grades, or unresolved discussions are pending after creating or updating the MR/PR
+* if CI/CD, checks, review requests, reviewer grades, or unresolved discussions are pending after you create or change the MR/PR
   * run [Create MR Monitor Goal](mr-monitor.mdscript.md#create-mr-monitor-goal)
   * record the ten-minute goal resume/check state in the lane ledger or handoff
-  * do not create an external automation unless the user explicitly requests one
+  * if the user does not explicitly ask for an external automation
+    * do not create an external automation
 
-* if push, public comment, CI rerun, or MR/PR creation authority is missing
-  * set `{{blocker}}` to the exact missing authority
+* if you do not have the authority for a push, public comment, CI rerun, or MR/PR creation
+  * set `{{blocker}}` to the exact authority that is absent
   * set `{{stop_reason}}` to `authority-boundary`
   * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)

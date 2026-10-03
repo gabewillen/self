@@ -69,24 +69,24 @@ if (!/non-negotiable.*`\{\{contract_postconditions\}\}`|non-negotiable `\{\{cont
   fail("implementation-contract must mark OTEL as non-negotiable contract postcondition/invariant");
 }
 
-if (!/require cardinality analysis for every new or changed OTEL/.test(contractText)) {
-  fail("implementation-contract must require cardinality analysis for OTEL signals");
+if (!/do a cardinality analysis for each new or changed OTEL/.test(contractText)) {
+  fail("implementation-contract must do a cardinality analysis for OTEL signals");
 }
 
 if (!/emit telemetry through OpenTelemetry \(OTEL\)/.test(contractText)) {
   fail("Implement Narrowly must require emit telemetry through OpenTelemetry (OTEL)");
 }
 
-if (!/analyze cardinality of every new or changed OTEL/.test(contractText)) {
+if (!/analyze the cardinality of each new or changed OTEL/.test(contractText)) {
   fail("Implement Narrowly must analyze OTEL cardinality");
 }
 
-if (!/verify OpenTelemetry \(OTEL\) instrumentation/.test(verifyText)) {
-  fail("verify-real-proof must verify OpenTelemetry (OTEL) instrumentation");
+if (!/make sure that OpenTelemetry \(OTEL\) instrumentation/.test(verifyText)) {
+  fail("verify-real-proof must make sure that OpenTelemetry (OTEL) instrumentation covers changed paths");
 }
 
-if (!/verify cardinality was analyzed for every new or changed OTEL/.test(verifyText)) {
-  fail("verify-real-proof must verify OTEL cardinality analysis");
+if (!/make sure a cardinality analysis exists for each new or changed OTEL/.test(verifyText)) {
+  fail("verify-real-proof must make sure an OTEL cardinality analysis exists");
 }
 
 if (!/# CORE-OBS-001 MUST OpenTelemetry Telemetry/.test(coreText)) {
@@ -110,7 +110,7 @@ if (!/treat unanalyzed cardinality or unbounded high-cardinality keys left unbou
 }
 
 // OTEL-omit recovery: set blocker → repair → re-enter Define Implementation Contract
-const omitIdx = contractText.indexOf("if the planned edit omits OTEL instrumentation");
+const omitIdx = contractText.indexOf("if the planned edit does not include OTEL instrumentation");
 if (omitIdx < 0) {
   fail("implementation-contract missing OTEL-omit recovery condition");
 }
@@ -128,7 +128,7 @@ if (!/\[Define Implementation Contract\]\(#define-implementation-contract\)/.tes
 }
 
 // verify missing-OTEL recovery re-enters Verify Real Proof
-const missIdx = verifyText.indexOf("if OTEL telemetry is missing");
+const missIdx = verifyText.indexOf("if the OTEL telemetry is absent");
 if (missIdx < 0) {
   fail("verify-real-proof missing OTEL-missing recovery condition");
 }
@@ -138,7 +138,7 @@ if (!/\[Verify Real Proof\]\(#verify-real-proof\)/.test(missWindow)) {
 }
 
 // cardinality recovery re-enters
-const cardIdx = contractText.indexOf("if the planned OTEL instrumentation lacks cardinality analysis");
+const cardIdx = contractText.indexOf("if the planned OTEL instrumentation has no cardinality analysis");
 if (cardIdx < 0) {
   fail("implementation-contract missing OTEL cardinality-analysis recovery condition");
 }
@@ -149,7 +149,7 @@ if (!/\[Define Implementation Contract\]\(#define-implementation-contract\)/.tes
   );
 }
 
-const vcardIdx = verifyText.indexOf("if cardinality analysis is missing");
+const vcardIdx = verifyText.indexOf("if the cardinality analysis is absent");
 if (vcardIdx < 0) {
   fail("verify-real-proof missing cardinality-analysis recovery condition");
 }

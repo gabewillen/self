@@ -2,7 +2,8 @@
 
 ## Define Implementation Contract
 
-* state objective, done state, accepted inputs, promised outputs, blockers, proof artifacts, tests, review gate, watcher requirement, and remaining authority before editing
+* before you edit, state the objective, done state, accepted inputs, promised outputs, blockers, and proof artifacts
+* before you edit, state the tests, review gate, watcher requirement, and the authority that remains
 
 * if the objective is a bug, regression, outage, flake, or other reported failure
   * [Require A Reproduction Before Fixing](#require-a-reproduction-before-fixing)
@@ -13,70 +14,86 @@
 
 * set `{{contract_preconditions}}`, `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{proof_supplied}}`, `{{proof_not_claimed}}`, `{{remaining_blockers}}`, and `{{authority_needed}}`
 
-* do not ask reviewers for vague `ready` when the actual claim is source-health, CI repair, audit completion, blocker-note completion, publication, live proof, merge readiness, close readiness, release readiness, or deployment readiness
+* if the actual claim is source-health, CI repair, audit completion, blocker-note completion, publication, or live proof
+  * do not ask reviewers for a vague `ready`
+* if the actual claim is merge readiness, close readiness, release readiness, or deployment readiness
+  * do not ask reviewers for a vague `ready`
 
-* if the requested done state is broader than the proof available
+* if the done state that the delegation asks for is broader than the available proof
   * claim only the narrower scope
   * name the broader blocker in `{{remaining_blockers}}`
 
-* if any precondition depends on infrastructure, services, providers, targets, hardware, network, storage, media, browser, or runtime resources
+* if a precondition depends on infrastructure, services, providers, targets, hardware, network, storage, media, browser, or runtime resources
   * [Resolve Local Resource Path](#resolve-local-resource-path)
 
-* if every precondition exists and the proof path passes
+* if each precondition exists and the proof path passes
   * report `Proven for {{claim_scope}}`
   * stop
 
-* if a precondition, resource, safe target, credential, hardware, network path, or authority is missing after the local resource path is absent, unsafe, or exhausted
-  * set `{{proof_decision}}` to `Blocked for {{claim_scope}}`
-  * set `{{blocker}}` to the exact missing precondition
-  * set `{{stop_reason}}` to `blocked`
-  * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
+* if the local resource path is absent or unsafe, or you tried all of its options
+  * if a precondition, resource, safe target, credential, hardware, network path, or authority is still absent
+    * set `{{proof_decision}}` to `Blocked for {{claim_scope}}`
+    * set `{{blocker}}` to the exact precondition that is absent
+    * set `{{stop_reason}}` to `blocked`
+    * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 
-* if proof is stale, incomplete, failing, over budget, unclear, or mismatched to the contract while preconditions are available
-  * repair the proof instead of reporting blocked
+* if preconditions are available and the proof is stale, incomplete, failed, over budget, unclear, or does not match the contract
+  * do not report blocked
+  * repair the proof
   * run [Verify Real Proof](verify-real-proof.mdscript.md#verify-real-proof)
 
-* if an available local resource path was skipped
-  * repair that gap instead of reporting blocked
+* if you skipped an available local resource path
+  * do not report blocked
+  * repair that gap
   * run [Verify Real Proof](verify-real-proof.mdscript.md#verify-real-proof)
 
 * for async, lifecycle, retry, timeout, command-surface, target-scope, coordination, or user-visible behavior
   * model explicit states, events, guards, typed inputs, typed outputs, failures, metrics, ownership, rollback, and teardown
 
-* for code work that changes runtime behavior, services, APIs, workers, or external boundaries
-  * set OTEL telemetry on the changed control paths, failure paths, and external boundaries as a non-negotiable `{{contract_postconditions}}` and `{{contract_invariants}}` requirement
-  * require OpenTelemetry (OTEL) APIs or SDK for those signals when the language has one
+* if the code work changes runtime behavior, services, APIs, workers, or external boundaries
+  * put OTEL telemetry on the changed control paths, failure paths, and external boundaries
+  * make that telemetry a non-negotiable `{{contract_postconditions}}` and `{{contract_invariants}}` requirement
+  * if the language has OpenTelemetry (OTEL) APIs or an SDK
+    * use those OpenTelemetry (OTEL) APIs or that SDK for those signals
   * do not accept a non-OTEL custom telemetry stack as a substitute for the same signals
-  * require cardinality analysis for every new or changed OTEL metric dimension, span attribute, resource attribute, log attribute, and event label under CORE-OBS-002
-  * record whether each OTEL label or attribute key is bounded or unbounded as part of the contract evidence
-  * if the planned edit omits OTEL instrumentation for those paths
+  * do a cardinality analysis for each new or changed OTEL metric dimension, span attribute, and resource attribute under CORE-OBS-002
+  * do a cardinality analysis for each new or changed OTEL log attribute and event label under CORE-OBS-002
+  * in the contract evidence, record if each OTEL label or attribute key is bounded or unbounded
+  * if the planned edit does not include OTEL instrumentation for those paths
     * set `{{blocker}}` to `OTEL telemetry is non-negotiable for code implementation; missing instrumentation on changed paths`
     * repair the contract and implementation plan to include OTEL on the changed control paths, failure paths, and external boundaries
     * [Define Implementation Contract](#define-implementation-contract)
-  * if the planned OTEL instrumentation lacks cardinality analysis
+  * if the planned OTEL instrumentation has no cardinality analysis
     * set `{{blocker}}` to `OTEL cardinality analysis is required; missing analysis of label and attribute keys`
-    * repair the contract to include cardinality analysis for each new or changed OTEL signal
+    * repair the contract to include a cardinality analysis for each new or changed OTEL signal
     * [Define Implementation Contract](#define-implementation-contract)
 
-* for work that replaces, renames, or migrates code that is pre-1.0 and not deployed to a production or user-facing environment
-  * set removal of the replaced path, its tests, its configuration, and its documentation in the same change as a `{{contract_postconditions}}` requirement under LOCAL-CUT-001
-  * treat a retained old path as allowed only when a released or deployed consumer depends on it today
-  * record that consumer and the condition that retires the old path as contract evidence when a path is retained
-  * if the planned edit keeps a deprecated shim, compatibility alias, legacy fallback, version-suffixed duplicate, gating flag, or unreferenced file without a named released or deployed consumer
-    * set `{{blocker}}` to `pre-1.0 and undeployed code requires a hard cutover; planned edit leaves deprecated or unused legacy code`
-    * repair the contract and implementation plan to delete the replaced path in the same change
-    * [Define Implementation Contract](#define-implementation-contract)
+* if the work replaces, renames, or migrates pre-1.0 code that is not in a production or user-facing environment
+  * under LOCAL-CUT-001, add the removal of the replaced path, its tests, its configuration, and its documentation to `{{contract_postconditions}}`
+  * make that removal occur in the same change
+  * if no released or deployed consumer depends on the old path today
+    * do not keep the old path
+  * if you keep an old path
+    * record its consumer and the condition that retires it as contract evidence
+  * if the planned edit keeps a deprecated shim, compatibility alias, legacy fallback, version-suffixed duplicate, gating flag, or unreferenced file
+    * if no named released or deployed consumer depends on that item
+      * set `{{blocker}}` to `pre-1.0 and undeployed code requires a hard cutover; planned edit leaves deprecated or unused legacy code`
+      * repair the contract and implementation plan to delete the replaced path in the same change
+      * [Define Implementation Contract](#define-implementation-contract)
 
 * if the system already knows a fact through structured data, typed state, product contracts, telemetry, or events
-  * use deterministic code or product state instead of asking a model to reconstruct it
+  * use deterministic code or product state
+  * do not ask a model to reconstruct that fact
 
 ## Require A Reproduction Before Fixing
 
 * if `{{troubleshoot_pass_active}}` is `true` or `{{red_confirmed}}` is `true`
-  * set `{{proof_path}}` to the handed-down `{{repro_command}}` and treat `{{repro_test_path}}` as the reproduction this lane must not modify
+  * set `{{proof_path}}` to the handed-down `{{repro_command}}`
+  * treat `{{repro_test_path}}` as the reproduction that this lane must not change
   * return to the caller
-* if the delegation carries a reproduction, meaning a failing command, test, or artifact check for this failure
-  * set `{{proof_path}}` to that reproduction and `{{red_confirmed}}` to `true`
+* if the delegation gives a reproduction (a command, test, or artifact check that fails for this failure)
+  * set `{{proof_path}}` to that reproduction
+  * set `{{red_confirmed}}` to `true`
   * return to the caller
 * set `{{troubleshoot_pass_active}}` to `true`
 * if `{{skills_root}}` is empty and `{{implement_skill_root}}` is set
@@ -86,45 +103,56 @@
 * if `{{skills_root}}` is empty
   * set `{{blocker}}` to `skills_root unresolved; cannot run self-troubleshoot`
   * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
-* run `/mdscript-exec {{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md#troubleshoot-reported-issue` to obtain a red reproduction before editing any fix
-* do not fix a failure this lane has not reproduced
+* before you edit a fix, run `/mdscript-exec {{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md#troubleshoot-reported-issue` to get a red reproduction
+* do not fix a failure that this lane did not reproduce
 
 ## Resolve Local Resource Path
 
-* identify the repo-local stack, bootstrap, preflight, dev server, compose profile, fixture target, or safe local resource path that can satisfy the precondition
+* find a local path that can satisfy the precondition, for example:
+  * the repo-local stack, bootstrap, preflight, or dev server
+  * a compose profile, a fixture target, or a different safe local resource path
 
-* set `{{local_resource_path}}` to that path when it exists
+* if that path exists
+  * set `{{local_resource_path}}` to that path
 
 * if no such path exists
   * set `{{local_resource_path}}` to absent
-  * record the searched files or commands
+  * record the files or commands that you searched
 
-* do not treat missing infrastructure as blocked until this local path has been used, shown unsafe, or shown unable to satisfy the precondition
+* until you use this local path, or show that it is unsafe or cannot satisfy the precondition
+  * do not report absent infrastructure as blocked
 
 ## Implement Narrowly
 
-* make the least invasive change that satisfies `{{objective}}` and preserves local architecture
+* make the smallest change that satisfies `{{objective}}`
+* keep the local architecture
 
 * prefer explicit contracts, typed events, deterministic transforms, reversible paths, and observable boundaries
 
-* for code work that changes runtime behavior, services, APIs, workers, or external boundaries
+* if the code work changes runtime behavior, services, APIs, workers, or external boundaries
   * emit telemetry through OpenTelemetry (OTEL) on the changed control paths, failure paths, and external boundaries
-  * analyze cardinality of every new or changed OTEL metric dimension, span attribute, resource attribute, log attribute, and event label before completing the edit
-  * bound or reject unbounded high-cardinality label and attribute keys before ship
-  * treat missing OTEL instrumentation or missing cardinality analysis as a release-blocking construction defect, not a deferred nicety
+  * analyze the cardinality of each new or changed OTEL metric dimension, span attribute, and resource attribute
+  * analyze the cardinality of each new or changed OTEL log attribute and event label
+  * do these cardinality analyses before you complete the edit
+  * before ship, bound or reject unbounded high-cardinality label and attribute keys
+  * treat absent OTEL instrumentation or an absent cardinality analysis as a release-blocking construction defect, not a deferred nicety
 
-* for work that replaces, renames, or migrates code that is pre-1.0 and not deployed to a production or user-facing environment
-  * move every call site to the replacement in this same change
+* if the work replaces, renames, or migrates pre-1.0 code that is not in a production or user-facing environment
+  * move each call site to the replacement in this same change
   * delete the replaced path in this same change
-  * delete the replaced path's tests, configuration, documentation, and now-unreferenced files with it
+  * delete the tests, configuration, documentation, and now-unreferenced files of the replaced path with it
   * do not introduce `@deprecated`, `DEPRECATED`, `legacy`, `old`, or backwards-compatibility markers for that code
-  * treat deprecated, legacy, or unreferenced code left behind as a release-blocking construction defect, not a deferred cleanup
+  * treat deprecated, legacy, or unreferenced code that you leave behind as a release-blocking construction defect, not a deferred cleanup
 
-* when the bug or contract is general (every event schema, every JSON hop, every selection), fix the shared mechanism — never an ad-hoc branch that only makes one name, one stimulus, or one product work
+* if the bug or contract is general (every event schema, every JSON hop, every selection)
+  * fix the shared mechanism
+  * do not add an ad-hoc branch that makes only one name, one stimulus, or one product work
 
-* do not invent conversion helpers or special-case rebuilds that paper over a broken generic path; construct or validate through the type or schema that already owns the contract
+* do not invent conversion helpers or special-case rebuilds that hide a broken generic path
+* construct or validate through the type or schema that already owns the contract
 
-* hold every MUST and MUST NOT constraint from selected packs in `{{impl_rule_packs}}` while editing; those packs load the same `self-review/references/engineering-rules/*.rules.md` files the matching `eng-*` review lanes will check later
+* when you edit, keep each MUST and MUST NOT constraint from the selected packs in `{{impl_rule_packs}}`
+* these packs load the same `self-review/references/engineering-rules/*.rules.md` files that the related `eng-*` review lanes check later
 
 * if `{{impl_rule_packs}}` is empty and the work is code
   * run [Select Implementation Rules](select-implementation-rules.mdscript.md#select-implementation-rules)
@@ -132,14 +160,14 @@
 
 * do not make unrelated refactors or metadata churn
 
-* if user or orchestrator changes the objective
-  * update the implementation contract
+* if the user or the orchestrator changes the objective
+  * change the implementation contract
   * [Define Implementation Contract](#define-implementation-contract)
 
 * if the claim scope changes
-  * update `{{claim_scope}}`, `{{proof_claim}}`, `{{contract_preconditions}}`, `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{proof_supplied}}`, `{{proof_not_claimed}}`, and `{{remaining_blockers}}`
+  * change `{{claim_scope}}`, `{{proof_claim}}`, `{{contract_preconditions}}`, `{{contract_postconditions}}`, `{{contract_invariants}}`, `{{proof_path}}`, `{{local_resource_path}}`, `{{proof_supplied}}`, `{{proof_not_claimed}}`, and `{{remaining_blockers}}`
   * [Define Implementation Contract](#define-implementation-contract)
 
-* if in-scope paths or languages change enough that selected packs are stale
+* if the in-scope paths or languages change so much that the selected packs are stale
   * run [Select Implementation Rules](select-implementation-rules.mdscript.md#select-implementation-rules)
   * run [Apply Selected Engineering Rules](apply-selected-engineering-rules.mdscript.md#apply-selected-engineering-rules)

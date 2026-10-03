@@ -16,18 +16,18 @@
 * if `{{review_cycle}}` is `recursive-code`, every lane reviewer is closed or deleted, and `{{blocking_findings}}` is empty
   * [Require Final Cumulative Proven](#require-final-cumulative-proven)
 
-* if the aggregate grade is non-proven and names a missing precondition, resource, access, authority, safe target, or source truth
+* if the aggregate grade is non-proven and names an absent precondition, resource, access, authority, safe target, or source truth
   * set `{{review_gate}}` to `Blocked for {{claim_scope}}`
-  * set `{{blocker}}` to the exact missing review prerequisite
+  * set `{{blocker}}` to the exact review prerequisite that is absent
   * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 
 ## Repair Single Non Code Findings
 
-* fix or reconcile every real issue returned by the single non-code review
+* fix or reconcile each real issue that the single non-code review returned
 
-* rerun the direct validation, render, pipeline, route, or black-box proof required by `{{claim_scope}}`
+* rerun the direct validation, render, pipeline, route, or black-box proof that `{{claim_scope}}` must have
 
-* if the required direct proof fails after repair
+* if the necessary direct proof fails after the repair
   * set `{{blocker}}` to the failed direct proof
   * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 
@@ -45,7 +45,7 @@
 
 * if `{{review_remediation_jump}}` is set and fits `{{granted_permissions}}`
   * continue from that MDScript heading as the next implementer action
-  * stop this decide path until that jump re-enters [Start Review Round](recursive-blind-review-loop.mdscript.md#start-review-round)
+  * stop this decide path until that jump goes back into [Start Review Round](recursive-blind-review-loop.mdscript.md#start-review-round)
 
 * refresh tests for the repaired change
 

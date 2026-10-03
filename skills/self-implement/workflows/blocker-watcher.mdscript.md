@@ -2,40 +2,54 @@
 
 ## Create Blocker Watcher
 
-* if this lane is not blocked by an issue, MR, PR, review thread, external ticket, missing authority, missing resource, upstream dependency, or a CI/check failure that is currently blocking an authorized default-branch merge decision
+* examine this lane for these items that can block it:
+  * an issue, MR, PR, review thread, or external ticket
+  * authority that this lane does not have, or a resource that is not available
+  * an upstream dependency
+  * a CI/check failure that blocks an authorized default-branch merge decision now
+* if none of these items blocks this lane
   * return to the caller
 
-* if CI/check state is failing or pending but the lane is not waiting on an authorized default-branch merge
+* if the CI/check state is failed or pending, and the lane does not wait on an authorized default-branch merge
   * run [Create MR Monitor Goal](mr-monitor.mdscript.md#create-mr-monitor-goal)
-  * return to the caller after the MR monitor path owns the pending checks
+  * after the MR monitor path owns the pending checks, return to the caller
 
-* create or maintain a MDScript goal that watches the blocking item until it closes, resolves, changes state, receives a relevant comment, or reaches the explicit unblock condition
+* create or keep a MDScript goal that watches the blocking item until one of these events occurs:
+  * the item closes, resolves, or changes state
+  * the item gets a related comment
+  * the item gets to the explicit unblock condition
 
 * run [Write Goal MDScript](../../self-common/workflows/goal-mdscript.mdscript.md#write-goal-mdscript)
 
-* do not call `automation_update` or any automation tool for project control-plane orchestration unless the user explicitly requests external automation
+* if the user does not explicitly ask for external automation
+  * do not call `automation_update` or an automation tool for project control-plane orchestration
 
-* write the goal body as MDScript-oriented instructions, not prose-only polling
+* write the goal body as MDScript instructions, not as prose-only polls
 
 * give routine blocker watcher resumes `/mdscript-exec {{goal_mdscript}}#resume-goal`
 
-* include the blocking item, unblock condition, lane id, orchestrator reporting path, current branch, MR/PR link, `{{goal_mdscript}}`, and next `/mdscript-exec` implementer re-entry command in the goal state
+* write the blocking item, the unblock condition, the lane id, and the orchestrator reporting path in the goal state
+* write the current branch, the MR/PR link, `{{goal_mdscript}}`, and the next `/mdscript-exec` implementer re-entry command in the goal state
 
-* on routine wakeup, refresh the blocking item, live MR/PR, CI, review, discussion, tracker, and ledger state
+* on a routine wakeup, refresh the blocking item, live MR/PR, CI, review, discussion, tracker, and ledger state
 
-* on routine wakeup, execute only the changed hot-path action
+* on a routine wakeup, execute only the changed hot-path action
 
-* when the blocker clears
+* if the blocker clears
   * continue with `/mdscript-exec {{skills_root}}/self-implement/SKILL.md#inspect-current-state`
   * message the orchestrator with `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
 
-* when the blocker changes but does not clear
-  * update the orchestrator with the new state, the next watcher check time, and any useful jump such as `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#monitor-implementer-lane`
+* if the blocker changes but does not clear
+  * tell the orchestrator the new state, the next watcher check time, and a useful jump
+  * use a jump such as `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#monitor-implementer-lane`
 
-* when the blocker needs a coordinator decision
+* if the blocker needs a coordinator decision
   * message the orchestrator with `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/handle-worker-exec-jump.mdscript.md#handle-worker-exec-jump`
 
-* before the blocker watcher stops for cleared, paused, obsolete, blocked, interrupted, tool-failed, authority-boundary, or watcher-terminal state
+* before the blocker watcher stops for a cleared, paused, obsolete, blocked, interrupted, or tool-failed state
+  * set `{{stop_reason}}` to the exact reason
+  * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
+* before the blocker watcher stops for an authority-boundary or watcher-terminal state
   * set `{{stop_reason}}` to the exact reason
   * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 

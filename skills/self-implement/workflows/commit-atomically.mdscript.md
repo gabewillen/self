@@ -14,16 +14,18 @@
 ## Stage One Logical Change
 
 * stage only the paths or hunks that belong to `{{commit_group}}`
-* do not stage with `git add -A`, `git add .`, or `git commit -a` while any dirty path outside `{{commit_group}}` remains
-* run `git diff --staged` to confirm the staged diff contains that logical change and nothing else
-* if the staged diff carries formatting sweeps, drive-by refactors, dependency bumps, or unrelated fixes
+* if a dirty path outside `{{commit_group}}` remains
+  * do not stage with `git add -A`, `git add .`, or `git commit -a`
+* run `git diff --staged`
+* make sure that the staged diff has that logical change and nothing else
+* if the staged diff has format sweeps, drive-by refactors, dependency bumps, or unrelated fixes
   * unstage the paths or hunks that do not belong to `{{commit_group}}`
   * [Stage One Logical Change](#stage-one-logical-change)
 * [Verify Commit Stands Alone](#verify-commit-stands-alone)
 
 ## Verify Commit Stands Alone
 
-* identify the build, test, or check command that governs `{{commit_group}}`
+* find the build, test, or check command that governs `{{commit_group}}`
 * set `{{commit_check}}` to that command
 * if `{{commit_check}}` is empty
   * record that no check governs this change on the file task
@@ -37,8 +39,9 @@
 ## Write Commit Message
 
 * write a subject that states the one logical change in `{{commit_group}}`
-* write a body that states why the change was made and what it affects
-* do not write `wip`, `fixup`, `oops`, `address review`, or `fix typo` as the message of a commit that will be pushed
+* write a body that states why you made the change and what it affects
+* if you will push the commit
+  * do not write `wip`, `fixup`, `oops`, `address review`, or `fix typo` as its message
 * do not narrate the process, the agent, the session, or the order of edits in the message
 * run `git commit` with that message
 * [Commit Remaining Groups](#commit-remaining-groups)
@@ -49,8 +52,9 @@
 * if `{{commit_groups}}` still holds an uncommitted group
   * set `{{commit_group}}` to the next group in `{{commit_groups}}`
   * [Stage One Logical Change](#stage-one-logical-change)
-* run `git status --porcelain` to confirm no logical change was left uncommitted or half-staged
-* if a checkpoint commit that will be pushed remains in the unpushed range
-  * squash or amend it into the commit it belongs to before pushing
-* do not rewrite commits that are already pushed to a shared branch
+* run `git status --porcelain`
+* make sure that no logical change stays uncommitted or half-staged
+* if the unpushed range has a checkpoint commit that you will push
+  * before the push, squash or amend it into the commit that it belongs to
+* do not rewrite commits that are already on a shared branch
 * return to the caller with the commits created

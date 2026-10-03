@@ -42,7 +42,7 @@
 
 ## Detect Framework Packs
 
-* if React is present in deps, imports, or UI app paths under edit
+* if React is present in deps, imports, or UI app paths that you edit
   * set `{{candidate_pack}}` to `impl-react`
   * set `{{candidate_entry}}` to `{{impl_rules_root}}/impl-react.mdscript.md#impl-react-apply`
   * set `{{candidate_rules}}` to `{{engineering_rules_root}}/react.rules.md`

@@ -9,7 +9,8 @@
   * return to the caller
 * if `{{impl_rule_packs}}` is still empty and the work is code
   * set `{{blocker}}` to `no implementation rule packs selected for code work`
-  * stop and report the empty selection
+  * report the empty selection
+  * stop
 * set `{{impl_rules_phase}}` to `hold`
 * set `{{impl_packs_remaining}}` to a copy of `{{impl_rule_packs}}`
 * set `{{impl_packs_applied}}` to an empty list
@@ -39,10 +40,12 @@
 * set `{{pack_entry}}` to `{{impl_pack_entrypoints}}.{{impl_pack}}`
 * if `{{pack_entry}}` is empty
   * set `{{blocker}}` to `missing entrypoint for impl pack {{impl_pack}}`
-  * stop and report the missing entrypoint
+  * report the absent entrypoint
+  * stop
 * run `/mdscript-exec {{pack_entry}}`
-* append `{{impl_pack}}` to `{{impl_packs_applied}}` when not already present
-* if the pack returned standing rule violations
+* if `{{impl_packs_applied}}` does not have `{{impl_pack}}`
+  * append `{{impl_pack}}` to `{{impl_packs_applied}}`
+* if the pack returned rule violations that are still open
   * append each violation to `{{impl_rule_violations}}`
 * [Apply Next Pack](#apply-next-pack)
 
@@ -62,8 +65,8 @@
 
 ## Repair Rule Violations
 
-* fix the implementation narrowly so `{{repair_target}}` no longer violates its rule id
-* do not broaden scope beyond the claim while repairing rule violations
+* fix the implementation narrowly so that `{{repair_target}}` no longer violates its rule id
+* while you repair rule violations, do not make the scope broader than the claim
 * remove the repaired violation from `{{impl_rule_violations}}`
 * if more violations remain in `{{impl_rule_violations}}`
   * set `{{repair_target}}` to the next violation
