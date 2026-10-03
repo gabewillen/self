@@ -26,7 +26,7 @@ completed_at: "{{completed_at}}"
 
 * treat `{{source_worktree_root}}` as the exact reviewed source worktree
 
-* treat `{{current_review_tree}}` as the last tree inspected by a completed reviewer
+* treat `{{current_review_tree}}` as the last tree that a completed reviewer examined
 
 * treat `{{merge_target}}` and `{{merge_base}}` as the cumulative review boundary
 
@@ -36,7 +36,9 @@ completed_at: "{{completed_at}}"
 
 * bind `{{reviewer_identity}}` to model `{{required_model}}`, reasoning `{{required_reasoning}}`, and basis `{{model_selection_basis}}`
 
-* record `{{blocking_severities}}` as the round threshold and preserve `{{residual_findings}}` as non-blocking findings
+* record `{{blocking_severities}}` as the round threshold
+
+* keep `{{residual_findings}}` as findings that do not block
 
 ## Resume
 
@@ -52,8 +54,9 @@ completed_at: "{{completed_at}}"
 
 * set `{{merge_target}}` to the recorded `reviewed_merge_target`
 
-* execute `/mdscript-exec {{review_skill_root}}/workflows/rolling-code-review.mdscript.md#resolve-review-baseline`
+* run `/mdscript-exec {{review_skill_root}}/workflows/rolling-code-review.mdscript.md#resolve-review-baseline`
 
 ## Recovery
 
-* if the reviewed tree, repository identity, merge target, or merge base cannot be verified, execute [Resume](#resume)
+* if you cannot examine the reviewed tree, the repository identity, the merge target, or the merge base
+  * [Resume](#resume)

@@ -2,7 +2,8 @@
 
 ## Check Indirection
 
-* set `{{layers}}` to every wrapper, forwarder, alias, re-export, adapter, facade, helper, subclass, interface, factory, config hop, or MDScript state the change adds, keeps, or moves
+* set `{{layers}}` to each layer that the change adds, keeps, or moves
+* include each wrapper, forwarder, alias, re-export, adapter, facade, helper, subclass, interface, factory, config hop, and MDScript state
 * set `{{examined_layers}}` to an empty list
 * if `{{layers}}` is empty
   * [Check Ceremony](#check-ceremony)
@@ -12,10 +13,16 @@
 
 * set `{{layer}}` to the first entry of `{{layers}}` that is not in `{{examined_layers}}`
 * append `{{layer}}` to `{{examined_layers}}`
-* run a search for every call site of `{{layer}}` in the current tree and set `{{call_sites}}` to the result
-* run a search for every implementer of `{{layer}}` in the current tree and set `{{implementers}}` to the result
-* set `{{computes}}` to `true` when `{{layer}}` derives a value, branches, validates, enforces an invariant, converts a type, or absorbs a failure its caller would otherwise handle
-* set `{{removes_duplication}}` to `true` when `{{call_sites}}` holds two or more sites that would each repeat the same logic without `{{layer}}`
+* search the current tree for each call site of `{{layer}}`
+* set `{{call_sites}}` to the result
+* search the current tree for each implementer of `{{layer}}`
+* set `{{implementers}}` to the result
+* if `{{layer}}` derives a value, branches, validates, enforces an invariant, or converts a type
+  * set `{{computes}}` to `true`
+* if `{{layer}}` absorbs a failure that its caller must handle without the layer
+  * set `{{computes}}` to `true`
+* if `{{call_sites}}` holds two or more sites that each repeat the same logic without `{{layer}}`
+  * set `{{removes_duplication}}` to `true`
 * if `{{computes}}` is `true`
   * [Next Layer](#next-layer)
 * if `{{removes_duplication}}` is `true`
@@ -24,11 +31,14 @@
 
 ## Record Indirection Finding
 
-* set `{{severity}}` to `P1` when `{{layer}}` hides a failure path, an error, or a control-flow decision from its callers
-* set `{{severity}}` to `P2` when it does not
+* if `{{layer}}` hides a failure path, an error, or a control-flow decision from its callers
+  * set `{{severity}}` to `P1`
+* if `{{layer}}` does not hide these items
+  * set `{{severity}}` to `P2`
 * set `{{direct_call}}` to the call that replaces `{{layer}}` at its call sites
 * add a finding with `{{severity}}`, `{{layer}}`, `{{call_sites}}`, and `{{direct_call}}`
-* ask the author to name the second call site or the computation when neither is visible in the diff
+* if the diff does not show the second call site or the computation
+  * ask the author to name the second call site or the computation
 * reject `for consistency`, `so we can swap it later`, `to keep the API stable`, `for testability`, and `it matches the other module` as the answer
 * [Next Layer](#next-layer)
 
@@ -51,7 +61,7 @@
   * an override that only calls its parent
   * a `try`/`catch` that rethrows unchanged, or an error wrapped with no added context
   * a type that wraps one field and adds no invariant
-  * a test that asserts a wrapper forwards rather than asserting behavior
+  * a test that asserts that a wrapper forwards, and does not assert behavior
 * [Guard Against False Removal](#guard-against-false-removal)
 
 ## Guard Against False Removal
