@@ -190,6 +190,92 @@ for (const [abs, doc] of parsed.entries()) {
   }
 }
 
+// ASD-STE100 language gate (mdscript spec "Language: ASD-STE100"). Only the
+// rules a script can decide are checked here: sentence length (STE-001),
+// unapproved words (STE-002), and contractions (STE-006). Passive voice, -ing
+// forms, noun clusters, and condition order stay with the review lanes.
+// Headings and link text are state names and durable re-entry anchors, so they
+// count as technical names; code spans, variables, link targets, comments, and
+// fenced blocks are exempt and count as one word each.
+const STE_INSTRUCTION_WORDS = 20;
+const STE_DESCRIPTIVE_WORDS = 25;
+const STE_BANNED = [
+  [/\bperform(s|ed|ing)?\b/i, "do"],
+  [/\bensur(e|es|ed|ing)\b/i, "make sure"],
+  [/\bverif(y|ies|ied|ying|ication|ications)\b/i, "examine, make sure"],
+  [/\bconfirm(s|ed|ing)?\b/i, "make sure, examine"],
+  [/\binfer(s|red|ring)?\b/i, "find"],
+  [/\bdetermin(e|es|ed|ing)\b/i, "find"],
+  [/\bobtain(s|ed|ing)?\b/i, "get"],
+  [/\bretriev(e|es|ed|ing)\b/i, "get"],
+  [/\bprovid(e|es|ed|ing)\b/i, "give"],
+  [/\bsuppl(y|ies|ied|ying)\b/i, "give"],
+  [/\brequir(e|es|ed|ing)\b/i, "must, is necessary"],
+  [/\butiliz(e|es|ed|ing)\b/i, "use"],
+  [/\bproceed(s|ed|ing)?\b/i, "continue, go"],
+  [/\battempt(s|ed|ing)?\b/i, "try"],
+  [/\bmodif(y|ies|ied|ying)\b/i, "change"],
+  [/\bupdat(e|es|ing)\b/i, "change"],
+  [/\badditional(ly)?\b/i, "more"],
+  [/\bprior to\b/i, "before"],
+  [/\bsubsequent(ly)?\b/i, "after"],
+  [/\bterminat(e|es|ed|ing)\b/i, "stop"],
+  [/\babort(s|ed|ing)?\b/i, "stop"],
+  [/\bsufficient(ly)?\b/i, "enough"],
+  [/\badequate(ly)?\b/i, "enough"],
+  [/\bapproximately\b/i, "about"],
+  [/\bassist(s|ed|ing)?\b/i, "help"],
+  [/\bshould\b/i, "must, or a command"],
+];
+const STE_CONTRACTION = /\b[A-Za-z]+n't\b|\b[A-Za-z]+'(re|ve|ll|m|d)\b|\b(it|that|there|what|here|let|who|where)'s\b/i;
+
+function steText(raw) {
+  return raw
+    .replace(/<!--.*?-->/g, " ")
+    .replace(/`[^`]*`/g, " CODE ")
+    .replace(/\{\{[^}]+\}\}/g, " VAR ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, " LINK ")
+    .replace(/https?:\/\/\S+/g, " URL ")
+    .replace(/(^|\s)[~./]?[\w.-]*\/[\w./<>*#-]*/g, " PATH ")
+    .replace(/\b[\w]+(?:[-_][\w]+)+\b/g, " NAME ")
+    .replace(/\/[a-z][\w-]*/g, " CMD ");
+}
+
+function steCheck(file, line, raw, limit) {
+  const text = steText(raw);
+  for (const [re, use] of STE_BANNED) {
+    const m = text.match(re);
+    if (m) add({ file, line, level: ERROR, rule: "STE-002", message: `"${m[0]}" is not ASD-STE100; use ${use}` });
+  }
+  const c = text.match(STE_CONTRACTION);
+  if (c) add({ file, line, level: ERROR, rule: "STE-006", message: `contraction "${c[0]}"; write the full words` });
+  for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+    const words = sentence.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
+    if (words > limit)
+      add({ file, line, level: ERROR, rule: "STE-001", message: `${words}-word sentence exceeds the ASD-STE100 limit of ${limit}; divide it` });
+  }
+}
+
+for (const [abs, doc] of parsed.entries()) {
+  if (!doc.isMdscript) continue;
+  const fm = doc.text.match(/^---\n([\s\S]*?)\n---/);
+  const desc = fm?.[1].match(/^description:\s*"?(.*?)"?\s*$/m);
+  if (desc) steCheck(abs, doc.lines.findIndex((l) => l.startsWith("description:")) + 1, desc[1], STE_DESCRIPTIVE_WORDS);
+  let inComment = false;
+  for (const { line, text: l } of doc.body) {
+    if (inComment) { if (l.includes("-->")) inComment = false; continue; }
+    if (l.includes("<!--") && !l.includes("-->")) { inComment = true; continue; }
+    if (/^#/.test(l) || !l.trim()) continue;
+    if (/^\s*\|/.test(l)) {
+      if (/^\s*\|[\s:|-]+\|\s*$/.test(l)) continue;
+      for (const cell of l.split("|").slice(1, -1)) steCheck(abs, line, cell, STE_DESCRIPTIVE_WORDS);
+      continue;
+    }
+    const bullet = /^\s*([*-]|\d+[.)])\s/.test(l);
+    steCheck(abs, line, l.replace(/^\s*([*->]|\d+[.)])\s*/, ""), bullet ? STE_INSTRUCTION_WORDS : STE_DESCRIPTIVE_WORDS);
+  }
+}
+
 const errors = findings.filter((f) => f.level === "error");
 const warns = findings.filter((f) => f.level === "warn");
 if (asJson) {
