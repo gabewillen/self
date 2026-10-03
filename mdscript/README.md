@@ -17,17 +17,23 @@ Three things have special meaning: `##` headings are states, `{{variables}}` are
 filled in as the workflow runs, and Markdown links jump between states or into
 other files. Everything else is plain natural-language instructions the LLM
 **executes** (not narrates). States run top-to-bottom unless a link redirects.
+All MDScript text is written in
+[ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/): short
+imperative sentences, approved words, one instruction per sentence (see
+[spec.md](spec.md#language-asd-ste100)).
 
 ```markdown
 ## Select Branch
 
 * if `{{branch}}` is empty
-  * ask the user which branch to deploy
+  * ask the user for the `{{branch}}` to deploy
   * [Select Branch](#select-branch)
 
 ## Run Checks
 * run `npm run typecheck`
-  * if it fails, stop and report the errors
+* if the typecheck fails
+  * tell the user the errors
+  * stop
 ```
 
 The full execution rules (variables, links, control flow, heading entry points,
@@ -142,7 +148,7 @@ and the call interface, for both agents and people.
 
 ## Install the MDScript skills
 
-The **mdscript-exec** skill executes MDScript workflows. The **mdscript-write** skill helps you author new Agent Skills whose `SKILL.md` bodies are executable MDScript. The **mdscript-review** skill reviews MDScript for authoring and execution-contract violations with circuit breakers that stop remaining gates on P0 findings or a P1 threshold. Install the repo with the [skills CLI](https://github.com/vercel-labs/skills) to get the skills:
+The **mdscript-exec** skill executes MDScript workflows. The **mdscript-write** skill helps you author new Agent Skills whose `SKILL.md` bodies are executable MDScript. The **mdscript-review** skill reviews MDScript for authoring, execution-contract, and ASD-STE100 language violations with circuit breakers that stop remaining gates on P0 findings or a P1 threshold. Install the repo with the [skills CLI](https://github.com/vercel-labs/skills) to get the skills:
 
 ```bash
 # List available skills in this repo
@@ -178,7 +184,7 @@ mdscript-exec .mdscript/returns/deploy-branch-select-branch-20260625T170000.md
 
 ```markdown
 ## Do Work
-* perform the requested workflow step
+* do the workflow step that the user asked for
 ```
 ````
 

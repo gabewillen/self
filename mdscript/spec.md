@@ -84,10 +84,10 @@ and the same links remain click-navigable for a human browsing the repository.
 ## Setup Feature Name
 
 * if `{{feature_name}}` is empty
-  * infer `{{feature_name}}` from the input
+  * find `{{feature_name}}` in the input
 
 * if `{{feature_path}}` already exists
-  * ask the user to provide a different feature name
+  * ask the user for a different `{{feature_name}}`
     * [Setup Feature Name](#setup-feature-name)
 
 ## Create Feature File
@@ -97,18 +97,77 @@ and the same links remain click-navigable for a human browsing the repository.
 ## Natural Language
 
 Everything except headings, variables, and links is written in natural language.
-The LLM interprets instructions using its language understanding:
+That natural language must be ASD-STE100 Simplified Technical English (see
+[Language: ASD-STE100](#language-asd-ste100)). The LLM interprets instructions
+using its language understanding:
 
 ```markdown
-* if `{{product_path}}` doesn't exist
-  * create `{{product_path}}` directory
+* if `{{product_path}}` does not exist
+  * create the `{{product_path}}` directory
 
-* infer `{{use_cases}}` list from the input
+* find the `{{use_cases}}` list in the input
 
-* ask the user if they want to continue
+* ask the user for `{{continue_decision}}`
 ```
 
 No keywords, no operators, no formal syntax - just clear instructions.
+
+## Language: ASD-STE100
+
+All MDScript text must be written in
+[ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/) (STE).
+STE has a controlled vocabulary and strict writing rules. Short, simple
+instructions with one meaning per word make execution more reliable, especially
+on small or local models, and make workflows easier to translate and review.
+
+The rules apply to every instruction bullet, prompt, description, and prose
+sentence in an MDScript file, including YAML `description` values and return
+scripts. They do not apply to `{{variables}}`, link targets, code spans, fenced
+code blocks, file paths, commands, YAML keys, or quoted output. When counting
+words, count each code span, variable, or link as one word.
+
+MDScript uses these STE rules:
+
+| Rule | Requirement |
+| --- | --- |
+| Vocabulary | Use STE approved words with their approved meanings only. Technical names (`return script`, `circuit`, `state`) and technical verbs for computer processes (`run`, `commit`, `deploy`, `parse`) are permitted. |
+| One meaning | Use one word for one meaning, and the same word for the same thing everywhere in the workflow. |
+| Procedural length | Keep each instruction sentence to 20 words or fewer. |
+| Descriptive length | Keep each descriptive sentence to 25 words or fewer, and each paragraph to six sentences or fewer. |
+| One instruction | Write one instruction per sentence and one action per bullet. |
+| Command form | Write instructions in the imperative (command) form. |
+| Active voice | Use the active voice in instructions. |
+| Condition first | Put the condition before the action: "If X, do Y." |
+| Simple tenses | Use the simple present, simple past, or future tense only. Do not use the `-ing` form of a verb, except in a technical name. |
+| Noun clusters | Do not use more than three nouns in a noun cluster. |
+| Articles | Use articles (`a`, `an`, `the`) or demonstratives (`this`, `these`) where possible. |
+| Contractions | Do not use contractions (`do not`, not `don't`). |
+| Warnings | Start a warning or caution with a short command. |
+
+Common replacements for words that STE does not approve:
+
+| Do not use | Use |
+| --- | --- |
+| perform, execute (as a general verb) | do |
+| ensure, verify, confirm (as "check") | make sure, examine |
+| infer, determine | find |
+| obtain, retrieve | get |
+| provide, supply (as "give") | give |
+| require | must, is necessary |
+| utilize | use |
+| proceed | continue, go |
+| attempt | try |
+| modify, update (as "change") | change |
+| additional | more |
+| prior to, subsequent to | before, after |
+| terminate, abort | stop |
+| sufficient, adequate | enough |
+| approximately | about |
+| assist | help |
+| should | must (for a requirement), or a command |
+
+The official ASD-STE100 dictionary is the authority for approved words and
+meanings. The `mdscript-review` skill checks these rules in its `language` gate.
 
 ## Execution
 
@@ -157,8 +216,8 @@ The return script should be executable MDScript, for example:
 ## Resume
 
 * restore saved variables and context from this return script
-* apply the user's latest answer to `{{branch}}`
-* continue by executing [Select Branch](../examples/deploy-branch.md#select-branch)
+* set `{{branch}}` to the latest answer from the user
+* execute [Select Branch](../examples/deploy-branch.md#select-branch)
 ```
 
 The user-facing prompt must end with the executable resume command for that

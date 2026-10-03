@@ -1,116 +1,125 @@
 ---
 name: mdscript-write
-description: "ALWAYS use to create skills or repeatable agent workflows as executable MDScript."
+description: "ALWAYS use this skill to write skills or repeatable agent workflows as executable MDScript in ASD-STE100."
 ---
 
 # MDScript Skill Writer
 
-You ARE the author: create the skill files yourself with your tools; do not
-delegate the authoring to another tool or agent. Use this skill to write MDScript
-workflows and MDScript-backed Agent Skills. Do not interpret this SKILL.md as
-MDScript; these are authoring instructions for producing files that use MDScript
-syntax.
+You are the author. Use your tools to write the skill files. Do not give the
+authoring task to a different tool or agent. Use this skill to write MDScript
+workflows and Agent Skills that use MDScript. This SKILL.md is not MDScript. It
+gives the instructions to write files that use MDScript syntax.
 
-Author for the executor. Generated workflows are run by `mdscript-exec`, often on
-a small or local model executing one tool call per step. Two design choices
-decide whether that execution succeeds, so they are not optional:
+Write for the executor. The `mdscript-exec` skill runs the workflows that you
+write. Frequently, a small or local model runs them with one tool call for each
+step. These three design rules are mandatory:
 
-- Write each step as ONE discrete, tool-executable action (run, read, create,
-  edit, ask, confirm, deploy, verify, notify, roll back), never a paragraph that
-  bundles several actions or merely narrates intent.
-- Make every failure, retry, and recovery path an EXPLICIT `[State](#anchor)`
-  link. Executors reliably skip branches that are only implied in prose; an
-  unwritten recovery branch will not be run.
+- Write each step as ONE action that a tool can do, for example run, read,
+  create, edit, ask, or deploy. Do not put many actions in one step. Do not
+  write a step that only describes an intention.
+- Write each failure, retry, and recovery path as an EXPLICIT `[State](#anchor)`
+  link. Executors usually do not do a branch that the text only implies.
+- Write all MDScript text in ASD-STE100 Simplified Technical English (STE).
+  Short sentences with approved words decrease the errors of small models.
+
+## Write In ASD-STE100
+
+Write each instruction, prompt, description, and sentence of the MDScript in
+STE. Use only approved words, the command form, and the active voice. Put the
+condition first. Write one instruction in each sentence, with 20 words or fewer.
+Do not use `-ing` verb forms or contractions. Before you write, read
+[the STE rules in reference.md](reference.md#write-in-asd-ste100).
 
 ## Understand The Request
 
-Treat the user's request after `/mdscript-write` as the skill purpose. If the
-purpose is missing, ask what the generated skill or workflow should accomplish.
+The text after `/mdscript-write` is the purpose of the skill. If there is no
+purpose, ask the user what the skill or workflow must do.
 
-Infer:
+Find these values:
 
-- `skill_name`: lowercase hyphenated name, at most 64 characters
-- `skill_description`: third-person description of what the skill does and when
-  to use it
-- `input_variable`: the primary value the workflow reads from user input
-- `workflow_states`: ordered `##` state headings needed to accomplish the
-  workflow
+- `skill_name`: a lowercase name with hyphens, 64 characters or fewer
+- `skill_description`: a third-person STE description of what the skill does
+  and when to use it
+- `input_variable`: the primary value that the workflow gets from the user input
+- `workflow_states`: the `##` state headings that the workflow must have, in
+  sequence
 
-If the name is ambiguous or collides with an existing skill, propose two or
-three concrete names and ask the user to choose.
+If the name is not clear, or a skill with the same name exists, give the user
+two or three possible names. Ask the user to select one.
 
-## Choose The Output Location
+## Select The Output Location
 
-Use an explicit location if the user provides one. Otherwise write the skill to
-`~/.agents/skills/<skill_name>/`. This is the only default; do not ask the user
-to choose personal or project scope, and do not select an agent-specific skills
-directory.
+If the user gives a location, use it. If not, write the skill to
+`~/.agents/skills/<skill_name>/`. This is the only default location. Do not ask
+the user to select a personal or project scope. Do not select a skills directory
+for one specific agent.
 
 ## Design The MDScript Workflow
 
-Draft concise states using MDScript conventions:
+Write short states with these MDScript conventions:
 
-- Use `##` headings as sequential states and stable `mdscript-exec` entry
+- Use `##` headings as sequential states and as stable `mdscript-exec` entry
   points.
-- Use `{{variables}}` for inferred, remembered, or input-derived values.
+- Use `{{variables}}` for values that you find, remember, or get from the input.
 - Use `[State Title](#state-title)` links for branches, loops, and retries.
-- Use file links for external scripts or templates, such as
+- Use file links for external scripts or templates, for example
   `[Template](templates/service.template.md)`.
-- Use natural language instructions only; do not invent formal syntax beyond
+- Use only STE instructions. Do not make new formal syntax. The only syntax is
   headings, variables, and links.
 
-Treat headings as public cross-agent communication targets. Another agent can
-be told to continue the workflow with `/mdscript-exec path/to/SKILL.md#heading`.
-Make headings durable, descriptive, and unique enough to be referenced from
-another thread or handoff.
+Headings are public targets for other agents. An agent can tell a different
+agent to continue the workflow with `/mdscript-exec path/to/SKILL.md#heading`.
+Make each heading durable, clear, and unique. Use STE approved words or
+technical names in headings.
 
-For any state that asks the user for input, confirmation, or a decision, make the
-resume target and answer binding obvious. `mdscript-exec` writes a return
-MDScript before prompting and ends the prompt with
-`mdscript-exec <return-script-path>`. The return script carries variables and
-context forward, usually resuming at the current state. Use an explicit
-`[State](#anchor)` link when the answer should resume somewhere else.
-Write prompt instructions so the requested variable or decision is explicit; the
-executor needs that name when it creates the return script.
+A state can ask the user for input, a confirmation, or a decision. In that
+state, make the resume target and the variable for the answer clear. Before the
+prompt, `mdscript-exec` writes a return MDScript. The prompt ends with
+`mdscript-exec <return-script-path>`. The return script keeps the variables and
+the context, and usually continues at the current state. If the answer must
+continue at a different state, write an explicit `[State](#anchor)` link. Give
+the name of the variable or decision in each prompt instruction.
 
-Include guard states where they reduce ambiguity or risk: missing input,
-confirm-before-destructive-action, validation failures, retry loops, and
-recovery branches.
+Add guard states where they decrease risk or confusion. Examples are input that
+is not there, confirmation before a step that deletes data, failed checks,
+retry loops, and recovery branches.
 
-Target fewer than 200 lines for every generated MDScript, including `SKILL.md`
-and linked sub-scripts. When a file approaches 200 lines, split focused states
-into linked MDScripts so the executor loads context naturally as it follows the
-workflow. Move examples, rationale, and reference material to linked reference
-files instead of spending the workflow's line budget on background prose.
+Keep each MDScript that you write, including `SKILL.md` and linked sub-scripts,
+to fewer than 200 lines. If a file gets near 200 lines, move focused states into
+linked MDScripts. Move examples, reasons, and reference text to linked reference
+files.
 
-Treat 500 lines as an exceptional hard ceiling, not a normal target. Do not add
-an `ALWAYS READ THE ENTIRE FILE` comment as a substitute for decomposition; use
-such a directive only when the selected executor explicitly supports it and the
-workflow truly depends on whole-file context.
+The limit of 500 lines is an exceptional hard limit, not a usual target. Do not
+add an `ALWAYS READ THE ENTIRE FILE` comment as an alternative to decomposition.
+Use that comment only if the executor supports it and the workflow cannot work
+without the full file.
 
-Before writing files, show the user a brief outline of proposed states and key
-variables when the design is non-trivial. Apply requested changes before
-writing.
+If the design is not simple, show the user a short outline of the states and
+the key variables before you write the files. Make the changes that the user
+asks for before you write the files.
 
 ## Decompose Reusable Steps
 
-Extract a step into its own MDScript file and link to it when the step is reused
-by more than one workflow, is useful to run on its own, or is large enough to
-crowd the parent. Keep a step inline when it runs once and only here. A linked
-file is read and executed in place, so decomposition costs no extra syntax: the
-link is the call, and the same link stays click-navigable for a human browsing
-the repository.
+Move a step into a separate MDScript file and link to it in these conditions:
 
-Aim for a few focused, sub-200-line scripts rather than one long file or a swarm
-of tiny ones. Give each sub-script durable headings so it can serve as an
-`mdscript-exec` entry point too, and let parents share a sub-script instead of
-duplicating its steps.
+- More than one workflow uses the step.
+- The step is useful as a workflow by itself.
+- The step is so large that it fills too much of the parent file.
+
+Keep a step in the parent file if only that workflow uses it one time. The
+executor reads and executes a linked file at the location of the link. The link
+is the call, and a human can also click the link to read the file.
+
+Write a small number of focused sub-scripts. Keep each sub-script below 200
+lines. Do not write one long file or many very small files. Give each sub-script
+durable headings so that it is also an `mdscript-exec` entry point. If two
+parent workflows use the same steps, link one shared sub-script. Do not copy
+the steps.
 
 ## Write The Skill Files
 
-Create the selected skill directory and write `SKILL.md` with valid YAML
-frontmatter followed by an MDScript body. Generated MDScript skills should use
-this shape:
+Create the skill directory. Write `SKILL.md` with correct YAML frontmatter and
+an MDScript body. Use this shape for an MDScript skill:
 
 ```markdown
 ---
@@ -120,65 +129,66 @@ description: {{skill_description}}
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
-## Setup
+## Get Input
 
 * if `{{input_variable}}` is empty
   * ask the user for `{{input_variable}}`
-* set `{{derived_value}}` to a value computed from `{{input_variable}}`
+* set `{{derived_value}}` to a value from `{{input_variable}}`
 
 ## Run Checks
 
 * run `the validation command`
-  * if it fails, fix the issue and [Run Checks](#run-checks)
+* if the command fails
+  * correct the problem
+  * [Run Checks](#run-checks)
 
-## Apply Change
+## Make The Change
 
-* confirm with the user before the destructive step
-  * if declined, stop and report why
+* ask the user for `{{change_approved}}` before the change
+* if `{{change_approved}}` is `no`
+  * tell the user that you did not make the change
+  * stop
 * make the change
-* verify the result
-  * if verification fails, undo the change, notify the user, and
-    [Setup](#setup)
+* examine the result
+* if the result is not correct
+  * roll back the change
+  * tell the user about the failure
+  * [Get Input](#get-input)
 ```
 
-Use clean `## Heading` states (the heading text IS the state name and the
-`mdscript-exec` entry point). Do not invent `## State:` prefixes, a `## variables`
-block, or any structure beyond headings, `{{variables}}`, and links. One concrete
-action per bullet. Every failure path ends in an explicit `[State](#anchor)` link
-or an explicit stop, never an implied "otherwise".
+Use clean `## Heading` states. The heading text is the state name and the
+`mdscript-exec` entry point. Do not use `## State:` prefixes, a `## variables`
+block, or other structure. Write one action in each bullet. End each failure
+path with an explicit `[State](#anchor)` link or an explicit stop. Do not write
+an implied "otherwise".
 
-Use the GitHub raw `spec.md` link in the execution header for publishable skills
-so the workflow still works when copied into another repo or personal skill folder.
+For a skill that you will publish, use the GitHub raw `spec.md` link in the
+execution header. Then the workflow continues to work if a user copies it into
+a different repository or skill folder.
 
-If the workflow needs templates, examples, or helper scripts, create them under
-the generated skill directory and link to them from the MDScript body.
+Create templates, examples, and helper scripts in the skill directory. Link to
+them from the MDScript body.
 
-## Validate The Output
+## Examine The Output
 
-Confirm the generated skill has:
+Make sure that the skill has these items:
 
-- valid YAML frontmatter with `name` and `description`
-- the MDScript execution header requiring `mdscript-exec` or reading the
-  MDScript spec
-- clean `## Heading` states only, no `## State:` prefixes or a `## variables`
-  block or any invented syntax beyond headings, variables, and links
-- `##` states that match the approved outline
-- durable heading names that can be used as `mdscript-exec` entry points
-- prompt-heavy states name the variable or decision being requested clearly
-  enough for a return script to carry the answer forward; use an explicit
-  `[State](#anchor)` link when the answer should resume outside the current
-  state
-- one discrete, tool-executable action per bullet, not bundled or narrated
-- every failure, retry, and recovery path written as an explicit
-  `[State](#anchor)` link (or an explicit stop), never only implied in prose
-- every MDScript targets fewer than 200 lines, with crowded states extracted
-  into directly linked sub-scripts before relying on the 500-line hard ceiling
-- reusable or shared steps extracted into linked sub-scripts rather than duplicated
+- correct YAML frontmatter with `name` and an STE `description`
+- the MDScript execution header that tells the agent to use `mdscript-exec` or
+  to read the MDScript spec
+- only clean `## Heading` states, with no new syntax
+- `##` states that agree with the outline that the user approved
+- durable headings that are correct `mdscript-exec` entry points
+- prompt states that give the variable or decision for the answer
+- one action that a tool can do in each bullet
+- an explicit `[State](#anchor)` link or stop for each failure, retry, and
+  recovery path
+- fewer than 200 lines in each MDScript, and shared steps in linked sub-scripts
+- STE text in each instruction, prompt, and description
 
-Tell the user the generated skill path, normal invocation form, heading-entry
-form, and any supporting files created.
+Tell the user the path of the skill, the usual command to use it, the command
+to start at a heading, and the supporting files that you created.
 
 ## Reference
 
-For MDScript syntax, control flow, publishing notes, and examples, read
-[reference.md](reference.md) when details are needed.
+For syntax, control flow, STE rules, and examples, read [reference.md](reference.md).
