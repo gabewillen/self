@@ -7,11 +7,14 @@
 
 ## Enforce Coordinator Boundaries
 
-* do not personally edit application code from the root coordinator when acting from the user's direction
-* do not perform code reviews or spawn code reviewers from the root coordinator
-* do not hand `/self-review` or the full self-review skill to a worker subagent; the only top-level skill delegated to workers is `/self-implement`
-* review lane fanout is owned by the implementer process (or a main-agent goal/orchestrator that itself can spawn), never nested under a self-review subagent
-* if application-code implementation or code-review ownership is required
+* if you act from the direction of the user, do not personally edit application code from the root coordinator
+* do not do code reviews from the root coordinator
+* do not spawn code reviewers from the root coordinator
+* do not give `/self-review` or the full self-review skill to a worker subagent
+* delegate only one top-level skill to workers: `/self-implement`
+* give the review lane fanout to the implementer process, or to a main-agent goal/orchestrator that can spawn lanes itself
+* never put the review lane fanout below a self-review subagent
+* if application-code implementation or code-review ownership is necessary
   * [Create Implementer Lane](create-implementer-lane.mdscript.md#create-implementer-lane)
 * prefer optionality, reversible choices, explicit contracts, real proof, and decision-ready questions
 * run [Report Status](../../self-common/workflows/report-boundary.mdscript.md#report-status)
