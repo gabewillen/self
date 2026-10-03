@@ -1,44 +1,44 @@
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
-## Evaluate Circuit
+## Examine Circuit
 
-* recompute `{{p0_count}}`, `{{p1_count}}`, and `{{p2_count}}` from `{{findings}}`
-* if any unwaived finding has rule id starting with `LEN-`
+* count the `{{findings}}` again to set `{{p0_count}}`, `{{p1_count}}`, and `{{p2_count}}`
+* if a finding that is not waived has a rule id that starts with `LEN-`
   * set `{{circuit}}` to `open`
   * set `{{trip_gate}}` to `{{current_gate}}`
   * set `{{trip_reason}}` to `line-count violation in gate {{current_gate}}`
-  * stop this state so the caller routes to [Trip Circuit Breaker](#trip-circuit-breaker)
-* if any finding in `{{findings}}` has severity `P0` and is not waived
+  * stop this state, so that the caller goes to [Trip Circuit Breaker](#trip-circuit-breaker)
+* if a finding that is not waived has severity `P0`
   * set `{{circuit}}` to `open`
   * set `{{trip_gate}}` to `{{current_gate}}`
   * set `{{trip_reason}}` to `P0 violation in gate {{current_gate}}`
-  * stop this state so the caller routes to [Trip Circuit Breaker](#trip-circuit-breaker)
-* if `{{p1_count}}` is greater than or equal to `{{p1_trip_threshold}}`
+  * stop this state, so that the caller goes to [Trip Circuit Breaker](#trip-circuit-breaker)
+* if `{{p1_count}}` is equal to or more than `{{p1_trip_threshold}}`
   * set `{{circuit}}` to `open`
   * set `{{trip_gate}}` to `{{current_gate}}`
   * set `{{trip_reason}}` to `P1 threshold {{p1_trip_threshold}} reached at gate {{current_gate}}`
-  * stop this state so the caller routes to [Trip Circuit Breaker](#trip-circuit-breaker)
-* leave `{{circuit}}` closed when neither trip condition holds
+  * stop this state, so that the caller goes to [Trip Circuit Breaker](#trip-circuit-breaker)
+* if no trip condition is true, keep `{{circuit}}` closed
 
 ## Trip Circuit Breaker
 
 * set `{{circuit}}` to `open`
 * set `{{verdict}}` to `fail`
-* set `{{gates_skipped}}` to every full-mode gate after `{{trip_gate}}`
-* do not run any further review gates
+* set `{{gates_skipped}}` to each full-mode gate after `{{trip_gate}}`
+* do not run more review gates
 * [Report Verdict](#report-verdict)
 
 ## Grade Pass
 
 * if `{{circuit}}` is `open`
   * [Report Verdict](#report-verdict)
-* if any unwaived finding has rule id starting with `LEN-`
+* if a finding that is not waived has a rule id that starts with `LEN-`
   * set `{{verdict}}` to `fail`
   * [Report Verdict](#report-verdict)
-* if `{{p0_count}}` is greater than `0`
+* if `{{p0_count}}` is more than `0`
   * set `{{verdict}}` to `fail`
   * [Report Verdict](#report-verdict)
-* if `{{p1_count}}` is greater than `0`
+* if `{{p1_count}}` is more than `0`
   * set `{{verdict}}` to `pass-with-findings`
   * [Report Verdict](#report-verdict)
 * set `{{verdict}}` to `pass`
@@ -46,21 +46,24 @@
 
 ## Report Verdict
 
-* order `{{findings}}` by severity `P0`, then `P1`, then `P2`, then file path and line
-* report `Verdict: {{verdict}}`
-* report `Circuit: {{circuit}}`
+* sort `{{findings}}` by severity `P0`, `P1`, and `P2`, then by file path and line
+* tell the user `Verdict: {{verdict}}`
+* tell the user `Circuit: {{circuit}}`
 * if `{{circuit}}` is `open`
-  * report `Trip gate: {{trip_gate}}`
-  * report `Trip reason: {{trip_reason}}`
-  * report `Gates skipped: {{gates_skipped}}`
-* report counts `P0={{p0_count}}` `P1={{p1_count}}` `P2={{p2_count}}`
+  * tell the user `Trip gate: {{trip_gate}}`
+  * tell the user `Trip reason: {{trip_reason}}`
+  * tell the user `Gates skipped: {{gates_skipped}}`
+* tell the user the counts `P0={{p0_count}}` `P1={{p1_count}}` `P2={{p2_count}}`
 * if `{{line_counts}}` is not empty
-  * report each measured file and its exact `wc -l` line count against soft limit `{{soft_line_limit}}` (default 200) and hard limit `{{hard_line_limit}}` (default 500)
-* for each finding, report rule id, severity, file, line or heading, evidence quote, and fix hint from the violations catalog
+  * show each measured file and its exact `wc -l` line count
+  * show the soft limit `{{soft_line_limit}}` and the hard limit `{{hard_line_limit}}`
+* for each finding, show the rule id, severity, file, line or heading, evidence quote, and fix hint
 * if `{{verdict}}` is `pass`
-  * report that every run gate closed without trip, every measured MDScript is under the soft line limit, and no residual findings remain
+  * tell the user that no gate tripped and each MDScript is below the soft line limit
+  * tell the user that there are no other findings
 * if `{{verdict}}` is `pass-with-findings`
-  * report residual non-blocking findings and that the circuit stayed closed
+  * show the findings that do not block, and tell the user that the circuit stayed closed
 * if `{{verdict}}` is `fail`
-  * report the smallest repair entrypoint: fix the listed findings in `{{target_paths}}`, then re-run `/mdscript-review {{target}}`
+  * tell the user to correct the findings in `{{target_paths}}`
+  * tell the user to run `/mdscript-review {{target}}` again
 * stop

@@ -1,31 +1,35 @@
 ---
 name: mdscript-review
 description: >-
-  Review MDScript workflows and MDScript-backed skills for authoring and
-  execution-contract violations, with circuit breakers that open on P0 findings
-  or a P1 threshold and stop remaining gates. Use when the user invokes
-  /mdscript-review, asks to review MDScript, lint an MDScript skill, or check a
-  workflow for missing headers, multi-action bullets, implied recovery branches,
-  dead links, unset path variables, hard line-count limits (under 200 soft / 500
-  hard, measured with wc -l), or prompt return-script gaps.
+  Reviews MDScript workflows and MDScript skills for authoring violations and
+  execution-contract violations. Circuit breakers open on a P0 finding or a P1
+  threshold, and stop the gates that follow. Use this skill when the user types
+  /mdscript-review or asks you to review or lint MDScript. It finds headers that
+  are not there, bullets with many actions, implied recovery branches, dead
+  links, and path variables that are not set. It also finds prompt
+  return-script gaps and line counts above the limits (soft 200, hard 500,
+  measured with wc -l). It also finds text that is not ASD-STE100 Simplified
+  Technical English.
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
-## Resolve Target
+## Find Target
 
 * if `{{target}}` is empty
-  * infer `{{target}}` from the user request (file path, skill name, or directory)
+  * find `{{target}}` in the user request (a file path, skill name, or directory)
 * if `{{target}}` is still empty
-  * ask the user for `{{target}}` (path to an MDScript file, skill directory, or glob)
+  * ask the user for `{{target}}` (the path of an MDScript file, a skill directory, or a glob)
 * set `{{skill_root}}` to this skill directory
-* set `{{review_mode}}` to `full` unless the user asked for a single gate
-* if the user named a single gate such as structure, actions, branches, links, variables, line-budget, or prompts
+* set `{{review_mode}}` to `full`
+* if the user gave one gate name, for example structure, actions, branches, links, variables, line-budget, prompts, or language
   * set `{{review_mode}}` to that gate name
-* resolve `{{target_paths}}` to every Markdown MDScript under `{{target}}` (the file itself when `{{target}}` is a file; otherwise `SKILL.md`, `*.md`, and linked workflows under that path)
+* if `{{target}}` is a file, set `{{target_paths}}` to that file
+* if `{{target}}` is a directory, set `{{target_paths}}` to its `SKILL.md`, its `*.md` files, and its linked workflows
 * if `{{target_paths}}` is empty
-  * stop and report that no MDScript files matched `{{target}}`
-* read [violations catalog](references/violations.md) and hold severities, rule ids, and trip rules for every gate
+  * tell the user that no MDScript files agree with `{{target}}`
+  * stop
+* read the [violations catalog](references/violations.md) and keep its severities, rule ids, and trip rules
 * [Initialize Circuit](#initialize-circuit)
 
 ## Initialize Circuit
@@ -63,7 +67,10 @@ description: >-
   * [Gate Line Budget](#gate-line-budget)
 * if `{{review_mode}}` is `prompts`
   * [Gate Prompts](#gate-prompts)
-* stop and report that `{{review_mode}}` is not a known gate
+* if `{{review_mode}}` is `language`
+  * [Gate Language](#gate-language)
+* tell the user that `{{review_mode}}` is not a known gate
+* stop
 
 ## Gate Structure
 
@@ -71,7 +78,7 @@ description: >-
   * run [Report Verdict](checks/circuit.md#report-verdict)
 * set `{{current_gate}}` to `structure`
 * run [Check Structure](checks/structure.md#check-structure)
-* run [Evaluate Circuit](checks/circuit.md#evaluate-circuit)
+* run [Examine Circuit](checks/circuit.md#examine-circuit)
 * if `{{circuit}}` is `open`
   * run [Trip Circuit Breaker](checks/circuit.md#trip-circuit-breaker)
 * if `{{review_mode}}` is `structure`
@@ -84,7 +91,7 @@ description: >-
   * run [Report Verdict](checks/circuit.md#report-verdict)
 * set `{{current_gate}}` to `line-budget`
 * run [Check Line Budget](checks/line-budget.md#check-line-budget)
-* run [Evaluate Circuit](checks/circuit.md#evaluate-circuit)
+* run [Examine Circuit](checks/circuit.md#examine-circuit)
 * if `{{circuit}}` is `open`
   * run [Trip Circuit Breaker](checks/circuit.md#trip-circuit-breaker)
 * if `{{review_mode}}` is `line-budget`
@@ -97,7 +104,7 @@ description: >-
   * run [Report Verdict](checks/circuit.md#report-verdict)
 * set `{{current_gate}}` to `actions`
 * run [Check Actions](checks/actions.md#check-actions)
-* run [Evaluate Circuit](checks/circuit.md#evaluate-circuit)
+* run [Examine Circuit](checks/circuit.md#examine-circuit)
 * if `{{circuit}}` is `open`
   * run [Trip Circuit Breaker](checks/circuit.md#trip-circuit-breaker)
 * if `{{review_mode}}` is `actions`
@@ -110,7 +117,7 @@ description: >-
   * run [Report Verdict](checks/circuit.md#report-verdict)
 * set `{{current_gate}}` to `branches`
 * run [Check Branches](checks/branches.md#check-branches)
-* run [Evaluate Circuit](checks/circuit.md#evaluate-circuit)
+* run [Examine Circuit](checks/circuit.md#examine-circuit)
 * if `{{circuit}}` is `open`
   * run [Trip Circuit Breaker](checks/circuit.md#trip-circuit-breaker)
 * if `{{review_mode}}` is `branches`
@@ -123,7 +130,7 @@ description: >-
   * run [Report Verdict](checks/circuit.md#report-verdict)
 * set `{{current_gate}}` to `links`
 * run [Check Links](checks/links.md#check-links)
-* run [Evaluate Circuit](checks/circuit.md#evaluate-circuit)
+* run [Examine Circuit](checks/circuit.md#examine-circuit)
 * if `{{circuit}}` is `open`
   * run [Trip Circuit Breaker](checks/circuit.md#trip-circuit-breaker)
 * if `{{review_mode}}` is `links`
@@ -136,7 +143,7 @@ description: >-
   * run [Report Verdict](checks/circuit.md#report-verdict)
 * set `{{current_gate}}` to `variables`
 * run [Check Variables](checks/variables.md#check-variables)
-* run [Evaluate Circuit](checks/circuit.md#evaluate-circuit)
+* run [Examine Circuit](checks/circuit.md#examine-circuit)
 * if `{{circuit}}` is `open`
   * run [Trip Circuit Breaker](checks/circuit.md#trip-circuit-breaker)
 * if `{{review_mode}}` is `variables`
@@ -149,7 +156,20 @@ description: >-
   * run [Report Verdict](checks/circuit.md#report-verdict)
 * set `{{current_gate}}` to `prompts`
 * run [Check Prompts](checks/prompts.md#check-prompts)
-* run [Evaluate Circuit](checks/circuit.md#evaluate-circuit)
+* run [Examine Circuit](checks/circuit.md#examine-circuit)
+* if `{{circuit}}` is `open`
+  * run [Trip Circuit Breaker](checks/circuit.md#trip-circuit-breaker)
+* if `{{review_mode}}` is `prompts`
+  * run [Grade Pass](checks/circuit.md#grade-pass)
+* [Gate Language](#gate-language)
+
+## Gate Language
+
+* if `{{circuit}}` is `open`
+  * run [Report Verdict](checks/circuit.md#report-verdict)
+* set `{{current_gate}}` to `language`
+* run [Check Language](checks/language.md#check-language)
+* run [Examine Circuit](checks/circuit.md#examine-circuit)
 * if `{{circuit}}` is `open`
   * run [Trip Circuit Breaker](checks/circuit.md#trip-circuit-breaker)
 * run [Grade Pass](checks/circuit.md#grade-pass)

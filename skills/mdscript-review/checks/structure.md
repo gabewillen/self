@@ -4,15 +4,15 @@
 
 * for each path in `{{target_paths}}`
   * read the file
-  * if the file is presented as MDScript or is a skill workflow and has no execution header matching `mdscript-exec` or a linked MDScript `spec.md`
-    * append finding `HDR-001` P0 with file, near line 1, and fix from the violations catalog
-  * if any heading matches `## State:` or there is a `## variables` / `## Variables` declaration block
-    * append finding `STR-001` P0 with file, heading line, quoted heading, and fix from the catalog
-  * if the file has no `##` headings after frontmatter and the header
+  * if the file is MDScript or a skill workflow
+    * if the file has no execution header for `mdscript-exec` or a linked MDScript `spec.md`
+      * append finding `HDR-001` P0 with file, line 1, and fix from the violations catalog
+  * if a heading starts with `## State:`, or the file has a `## variables` or `## Variables` block
+    * append finding `STR-001` P0 with file, heading line, heading quote, and fix from the catalog
+  * if the file has no `##` headings after the frontmatter and the header
     * append finding `STR-002` P0 with file and fix from the catalog
-  * if the basename is `SKILL.md`
-    * if YAML frontmatter is missing `name` or `description`
-      * append finding `FM-001` P0 with file and fix from the catalog
-  * if substantial prose exists before the first `##` and no later states are executable bullets
+  * if the file name is `SKILL.md` and the YAML frontmatter has no `name` or no `description`
+    * append finding `FM-001` P0 with file and fix from the catalog
+  * if much text comes before the first `##` and the states after it have no executable bullets
     * append finding `STR-003` P1 with file and fix from the catalog
-* return to the caller with updated `{{findings}}`
+* go back to the caller with the updated `{{findings}}`
