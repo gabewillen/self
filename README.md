@@ -168,6 +168,8 @@ node ./scripts/test-script-integrity.mjs
 node ./scripts/test-gabe-to-self-cutover.mjs
 ```
 
+`validate-mdscript.mjs` also enforces the decidable part of the MDScript ASD-STE100 language rule: sentence length (`STE-001`), unapproved words (`STE-002`), and contractions (`STE-006`). Passive voice, `-ing` forms, noun clusters, and condition order stay with `/mdscript-review`.
+
 Install fails closed on missing multi-lane review assets or md5 drift across skill roots / hook paths.
 
 ---
