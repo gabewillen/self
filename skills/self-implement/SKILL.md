@@ -1,14 +1,18 @@
 ---
 name: self-implement
-description: "ALWAYS use this skill when you write or edit anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. State the scoped DBC claim. Select and apply the vendored engineering-rules packs that the review eng-* lanes check (impl-core, impl-dbc, language/framework, optional impl-hsm). Prove the work with real paths. If the user asks for a self-review, compose the multi-lane review in this process with per-lane blind fanout only. Report before you stop."
+description: "ALWAYS use this skill when you write or edit anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. Run it as a subagent, or as the main agent when the user chose direct implementation with no subagents. State the scoped DBC claim. Select and apply the vendored engineering-rules packs that the review eng-* lanes check (impl-core, impl-dbc, language/framework, optional impl-hsm). Prove the work with real paths. If the user asks for a self-review, compose the multi-lane review in this process with per-lane blind fanout only. Report before you stop."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Load Worker Context
 
-* use this skill only as a subagent or child process that an orchestrator assigns for write and edit work
-* do not run this skill as a parentless root role
+* use this skill as a subagent or child process that an orchestrator assigns for write and edit work
+* also use it on a main agent with no parent if the user chose `direct` in [Decide Execution Mode](../self-common/workflows/execution-mode.mdscript.md#decide-execution-mode)
+* if `{{execution_mode}}` is `direct` and this agent has no parent
+  * set `{{parent_reporting_path}}` to the user conversation
+  * find the contract fields in the user request, the repository state, and the local instructions
+  * if a necessary contract field is absent, ask the user for it
 * if `{{parent_agent}}` and `{{parent_reporting_path}}` and `{{orchestrator_reporting_path}}` are all empty
   * set `{{blocker}}` to `implement skill requires a parent orchestrator reporting path`
   * report that a parentless agent must use orchestrate, not implement
@@ -50,10 +54,14 @@ description: "ALWAYS use this skill when you write or edit anything: code, docs,
 ## Establish Worker Boundary
 
 * act as an implementer under a parent orchestrator, not as the root orchestrator and not as the user
+* if `{{execution_mode}}` is `direct`
+  * act as the main agent that does the work for the user, not as the user
+  * do the work in this process
+  * do not create execution subworkers, worker lanes, or child threads
 * own the execution inside `{{granted_permissions}}`
 * if the orchestrator does not explicitly grant that authority
   * do not create execution subworkers, manage portfolio chat threads, or delegate portfolio triage
-* if self-review is necessary (PR/MR create or merge only)
+* if the user explicitly asked for a self-review, or answered yes to [Decide Self Review](../self-common/workflows/self-review-consent.mdscript.md#decide-self-review)
   * own the self-review **composition** in this process
   * never spawn a subagent with a `/self-review` assignment or the full `self-review` skill
 * allow review subagents only as **per-lane** blind reviewers under `self-review/workflows/blind-reviewers/`

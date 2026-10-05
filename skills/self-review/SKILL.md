@@ -1,6 +1,6 @@
 ---
 name: self-review
-description: "ALWAYS use this skill when you review a change or claim: code, docs, MDScripts, configs, instructions, automations, publications, diffs, or readiness. Compose multi-lane blind review in this process, and never nest the full skill. Always run rules/security/completeness and the selected eng-* packs. If a state machine is in scope, also run deep hsm. Aggregate the independent lane sign-offs. Emit scoped Proven-for or Blocked-for verdicts."
+description: "Use this skill only when the user explicitly asks for a self-review, or answers yes when asked. Never start it from a skill rule, hook, or default. It reviews a change or claim: code, docs, MDScripts, configs, instructions, automations, publications, diffs, or readiness. Compose multi-lane blind review in this process, and never nest the full skill. Always run rules/security/completeness and the selected eng-* packs. If a state machine is in scope, also run deep hsm. Aggregate the independent lane sign-offs. Emit scoped Proven-for or Blocked-for verdicts."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -16,6 +16,7 @@ description: "ALWAYS use this skill when you review a change or claim: code, doc
     * set `{{blocker}}` to `review skill requires a parent implementer or orchestrator reporting path`
     * report that a parentless agent must use orchestrate, and compose review from orchestrate or implement
     * stop
+* run [Require Self Review Consent](../self-common/workflows/self-review-consent.mdscript.md#require-self-review-consent)
 * run [Select Configured Model And Reasoning](../self-common/workflows/model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning) with `{{self_role}}` set to `reviewer`
 * run [Resolve File Task Root](../self-common/workflows/file-task-comments.mdscript.md#resolve-file-task-root)
 * if the reviewed artifact has a file task

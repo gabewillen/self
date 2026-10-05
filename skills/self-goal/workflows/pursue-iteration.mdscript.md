@@ -3,11 +3,14 @@
 ## Pursue Iteration
 
 * read the `{{goal_mdscript}}` front matter, the latest `progress.jsonl` lines, and the `p_findings` / `remaining_gaps` of earlier reviewers
-* if independent work exists, plan a wave of ≥2 parallel tracks
+* if `{{execution_mode}}` is `direct`
+  * do the tracks one after the other in this process
+  * do not start worker subagents
+* if independent work exists and `{{execution_mode}}` is not `direct`, plan a wave of ≥2 parallel tracks
   * the tracks can explore, implement, test, diagnose, or capture proof
 * keep session records, merges, manifest changes, and the append-only `progress.jsonl` on the orchestrator
 * never delegate the full goal loop to one subagent
-* if the host supports it, start the independent worker subagents in one turn with `run_in_background: true`
+* if the host supports it and `{{execution_mode}}` is not `direct`, start the independent worker subagents in one turn with `run_in_background: true`
 * set the `Task`/`run_agents` model of each worker to `{{orchestrator_model}}`
 * give each worker the exact scope, success criteria, and commands
 * give each worker the artifact paths under `{{run_dir}}/artifacts/` and the evidence to return

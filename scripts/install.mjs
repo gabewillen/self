@@ -881,6 +881,7 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/file-task-comments.mdscript.md",
     "workflows/update-living-skills.mdscript.md",
     "workflows/self-review-consent.mdscript.md",
+    "workflows/execution-mode.mdscript.md",
     "workflows/load-operating-context.mdscript.md",
     "hooks/self-lib.ts",
     "adapters/claude/hooks.json",
@@ -1484,8 +1485,9 @@ function writeIntegrityReceipt(integrity, extra = {}) {
 
 const ROUTER_DIRECTIVE =
   "- ALWAYS enter through the `self` router skill. Run it first on every request, before " +
-  "planning or answering, and let it choose the role: any parentless main agent is a root " +
-  "orchestrator (self-orchestrate); subagents are self-implement (or a single blind-lane " +
+  "planning or answering, and let it choose the role: a parentless main agent asks the user " +
+  "whether to orchestrate with subagents (self-orchestrate) or implement directly with no " +
+  "subagents (self-implement); self-review runs only when the user asks for it; subagents are self-implement (or a single blind-lane " +
   "MDScript); explicit routes include self-watch, self-goal, self-automate, self-learn, " +
   "self-troubleshoot (red repro, root cause, fix, rerun), self-voice, and self-unwatch; " +
   "HSM is a self-review lane.";
@@ -1498,6 +1500,7 @@ const ROUTER_BLOCK_END = "<!-- /self-agents:router -->";
  * rather than silently rewritten away.
  */
 const SHIPPED_DIRECTIVES = [
+  "- ALWAYS enter through the `self` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (self-orchestrate); subagents are self-implement (or a single blind-lane MDScript); explicit routes include self-watch, self-goal, self-automate, self-learn, self-troubleshoot (red repro, root cause, fix, rerun), self-voice, and self-unwatch; HSM is a self-review lane.",
   "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane MDScript); explicit routes cover gabe-watch, gabe-goal, and gabe-automate; HSM is a gabe-review lane.",
   "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane MDScript); explicit routes cover gabe-watch, gabe-goal, gabe-automate, and gabe-learn (MDScript only); HSM is a gabe-review lane.",
   "- ALWAYS enter through the `gabe` router skill. Run it first on every request, before planning or answering, and let it choose the role: any parentless main agent is a root orchestrator (gabe-orchestrate); subagents are gabe-implement (or a single blind-lane MDScript); explicit routes cover gabe-watch, gabe-goal, gabe-hsm-review, and gabe-automate.",

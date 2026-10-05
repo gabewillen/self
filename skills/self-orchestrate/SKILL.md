@@ -1,13 +1,14 @@
 ---
 name: self-orchestrate
-description: "ALWAYS use this skill unless you are a subagent. Prioritize work, and give each write or edit task to an implement worker. Own goals/tasks/comments/lane ledgers and the intake of DBC proof decisions. Manage handoffs and hot-path events. Decide publication and post-merge closure. Keep stop reports and goal re-entry current."
+description: "ALWAYS use this skill unless you are a subagent or the user chose direct implementation with no subagents. Prioritize work, and give each write or edit task to an implement worker. Own goals/tasks/comments/lane ledgers and the intake of DBC proof decisions. Manage handoffs and hot-path events. Decide publication and post-merge closure. Keep stop reports and goal re-entry current."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Load Operating Context
 
-* use this skill as the default role for each agent that is not a subagent, with or without a parent
+* use this skill as the role for each agent that is not a subagent, with or without a parent
+* if `{{execution_mode}}` is `direct`, stop and report that a direct run uses implement, not orchestrate
 * if a parent agent spawned this agent for a write task, an edit task, or one blind review lane
   * report that subagents use implement (or one blind-lane MDScript), not orchestrate
   * stop

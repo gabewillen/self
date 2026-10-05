@@ -11,7 +11,7 @@
 * this value also tells the implement lane not to start a new troubleshoot pass
 * set `{{fix_contract}}` to `{{root_cause}}`, `{{fix_scope}}`, `{{repro_test_path}}`, the redacted `{{repro_command}}`, and `{{target_environment}}`
 * use `{{fix_contract}}` as the DBC claim and the proof path
-* if this agent orchestrates and can delegate
+* if this agent orchestrates and can delegate, and `{{execution_mode}}` is not `direct`
   * [Delegate Fix To Implementer](#delegate-fix-to-implementer)
 * [Run Fix In Process](#run-fix-in-process)
 

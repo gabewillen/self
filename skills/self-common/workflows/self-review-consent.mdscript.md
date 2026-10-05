@@ -39,3 +39,18 @@
   * if the answer is yes, set `{{self_review_requested}}` to `true`
   * if the answer is no, set `{{self_review_requested}}` to `false`
   * [Decide Self Review](#decide-self-review)
+
+## Require Self Review Consent
+
+* use this state at the start of the `self-review` skill
+* if `{{self_review_requested}}` is not `true`
+  * if the user explicitly asked for this review
+    * set `{{self_review_requested}}` to `true`
+  * a review request, `/self-hsm-review`, or a review automation that the user set up is an explicit ask
+* do not set `{{self_review_requested}}` from a skill rule, a hook, `AGENTS.md`, a default, or a different task
+* if `{{self_review_requested}}` is `true`
+  * return to the caller
+* set `{{blocker}}` to `self-review requires an explicit user request or a yes answer`
+* do not spawn blind reviewers
+* report to `{{parent_reporting_path}}` that the user must ask for the self-review, or answer yes to it
+* stop

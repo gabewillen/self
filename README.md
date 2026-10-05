@@ -25,7 +25,7 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 | Skill | When |
 |-------|------|
 | `self` | **Every request first** — router; pick the role |
-| `self-orchestrate` | Parentless main agents: prioritize, delegate, goals, lanes, watchers |
+| `self-orchestrate` | Parentless main agents when the user chooses orchestration: prioritize, delegate, goals, lanes, watchers |
 | `self-implement` | Subagents / writers: edit code and docs under a DBC claim + engineering rules |
 | `self-review` | Multi-lane blind review (rules, security, completeness, eng-*, HSM when in scope) |
 | `self-goal` | Goal loop until real proof + review; prefers harness `/goal` when available |

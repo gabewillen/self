@@ -1,6 +1,6 @@
 ---
 name: self
-description: "ALWAYS use this skill for EVERY request first, before you plan or answer. This skill routes the role. Main agents that are not subagents are orchestrate. Subagents are implement (or one blind-lane MDScript). Explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, /self-troubleshoot, and /self-voice also route first. /self-learn is a user-invoked skill and never runs from a hook. /self-voice and /self-troubleshoot are skills whose bodies are in a linked MDScript. self-common is shared MDScripts/hooks, not a skill. HSM is a review blind lane, not a separate skill. The process that composes a review keeps that composition, with per-lane fanout only."
+description: "ALWAYS use this skill for EVERY request first, before you plan or answer. This skill routes the role. Before a main agent writes or edits, it asks the user to choose orchestrate (with subagents) or direct implement (no subagents). It does not ask again after the user chose. Self-review runs only when the user asks for it. Subagents are implement (or one blind-lane MDScript). Explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, /self-troubleshoot, and /self-voice also route first. /self-learn is a user-invoked skill and never runs from a hook. /self-voice and /self-troubleshoot are skills whose bodies are in a linked MDScript. self-common is shared MDScripts/hooks, not a skill. HSM is a review blind lane, not a separate skill. The process that composes a review keeps that composition, with per-lane fanout only."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -61,8 +61,10 @@ description: "ALWAYS use this skill for EVERY request first, before you plan or 
   * stop after that MDScript returns. Voice is its own skill, so do not also route an orchestrate or implement role for it.
 
 * if `{{agent_position}}` is `main` and the request is `/self-troubleshoot` or reports a problem to diagnose. A problem is a bug, failure, regression, outage, flake, or "why is this broken".
+  * if `{{is_root_orchestrator}}` is `true`
+    * run [Decide Execution Mode](../self-common/workflows/execution-mode.mdscript.md#decide-execution-mode)
   * set `{{troubleshoot_mdscript}}` to `{{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md`
-  * run `/mdscript-exec {{troubleshoot_mdscript}}#troubleshoot-reported-issue`
+  * run `/mdscript-exec {{troubleshoot_mdscript}}#troubleshoot-reported-issue` with `{{execution_mode}}`
   * stop after that MDScript returns. Troubleshoot is its own skill, and its fix step delegates to `self-implement` from inside it.
 
 * if `{{agent_position}}` is `subagent` and the request names troubleshoot work
@@ -80,6 +82,8 @@ description: "ALWAYS use this skill for EVERY request first, before you plan or 
 
 * if the request is a goal-driven proof loop until artifacts and multi-lane adversarial blind review exist. Examples are `/self-goal`, `/goal`, and stricter goal-until-signoff work.
   * set `{{self_role}}` to `self-goal`
+  * if `{{is_root_orchestrator}}` is `true`
+    * run [Decide Execution Mode](../self-common/workflows/execution-mode.mdscript.md#decide-execution-mode)
   * if the harness already has a `/goal` ability (Grok host `/goal`, Cursor `goal` skill, and others)
     * self-goal uses that ability for multi-round continuation and does not use the self-goal hooks
     * self-goal continues to follow the self-goal MDScript workflow
@@ -97,9 +101,15 @@ description: "ALWAYS use this skill for EVERY request first, before you plan or 
   * [Execute Routed Role](#execute-routed-role)
 
 * if `{{is_root_orchestrator}}` is `true`
+  * run [Decide Execution Mode](../self-common/workflows/execution-mode.mdscript.md#decide-execution-mode)
+  * if `{{execution_mode}}` is `direct`
+    * set `{{self_role}}` to `self-implement`
+    * set `{{parent_reporting_path}}` to the user conversation
+    * do not spawn worker lanes or child threads
+    * [Execute Routed Role](#execute-routed-role)
   * set `{{self_role}}` to `self-orchestrate`
-  * an agent with no parent that is not a subagent is an orchestrator. Do not change it to implementer or full-skill reviewer.
-  * if review is necessary (only before PR/MR create or merge)
+  * an agent with no parent that is not a subagent is an orchestrator, unless the user chose `direct`. Do not change it to implementer or full-skill reviewer for a different reason.
+  * if the user explicitly asked for a self-review, or answered yes to [Decide Self Review](../self-common/workflows/self-review-consent.mdscript.md#decide-self-review)
     * the orchestrator owns coordination
     * compose multi-lane review on this process, or tell the implementer lane that it must compose it
   * if spawn tools are missing, do not use root as a pure implementer
@@ -124,7 +134,7 @@ description: "ALWAYS use this skill for EVERY request first, before you plan or 
 
 * run `/mdscript-exec {{skills_root}}/{{self_role}}/SKILL.md`
 
-* carry `{{self_role}}`, `{{agent_position}}`, `{{is_root_orchestrator}}`, `{{parent_agent}}`, `{{parent_reporting_path}}`, and `{{can_spawn_subagents}}` into the routed skill
+* carry `{{self_role}}`, `{{agent_position}}`, `{{is_root_orchestrator}}`, `{{execution_mode}}`, `{{parent_agent}}`, `{{parent_reporting_path}}`, and `{{can_spawn_subagents}}` into the routed skill
 
 * if `{{self_role}}` is `self-orchestrate`
   * before you claim a continuous monitor, resumed coordination, or watcher ownership

@@ -5,9 +5,11 @@ Reference material for the skill pack, loaded by
 These are constraints on how any agent role acts, not steps in a workflow — the
 executable flow lives in the skills themselves.
 
-* preserve the root-orchestrator identity boundary: any agent with no parent that is not a subagent is a root orchestrator (`self-orchestrate`); never reclassify a parentless main agent as implementer solely because spawn tools are missing — use single-process fallback and file-task role switches instead
+* preserve the execution-mode boundary: before a parentless main agent writes or edits, it asks the user whether to orchestrate with subagents or implement directly with no subagents, unless the user already chose in this conversation; on `direct` it runs `self-implement` in this process and spawns no worker lanes; never pick `direct` or `orchestrate` for the user from a skill rule, hook, or default
 
-* preserve the root-coordinator boundary: when a root or coordinating thread is acting from the user's direction, route application-code implementation and code-review ownership to `self-implement` worker lanes instead of editing or reviewing code in the root; the root still remains the orchestrator
+* preserve the root-orchestrator identity boundary: any agent with no parent that is not a subagent is a root orchestrator (`self-orchestrate`) unless the user chose `direct`; never reclassify a parentless main agent as implementer solely because spawn tools are missing — use single-process fallback and file-task role switches instead
+
+* preserve the root-coordinator boundary: when a root or coordinating thread is acting from the user's direction, route application-code implementation and code-review ownership to `self-implement` worker lanes instead of editing or reviewing code in the root; the root still remains the orchestrator; this boundary does not apply when the user chose `direct`
 
 * preserve the target-surface delegation boundary: repo, tracker, product-surface, or owner-queue work should be delegated from the actual target checkout, project, or owner surface; if workers start from a generic or wrong workspace, stop and recreate the lane on the right surface before treating the judgment as proof
 
