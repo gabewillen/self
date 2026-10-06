@@ -55,3 +55,35 @@
   * `Blocked for`: the caller's stop entry, by default `/mdscript-exec {{skills_root}}/self-goal/SKILL.md#manual-stop`
 * set `{{artifact_dir}}` back to `{{prior_artifact_dir}}`
 * return complete to the caller
+
+## Open Lane Signoff
+
+* use this state at the start of each blind lane, after the lane sets `{{reviewer_lane}}`
+* set `{{reviewer_id}}` to `{{reviewer_lane}}`
+* set `{{signoff_boundary}}` to `{{review_signoff_dir}}`, `{{run_dir}}`, or `{{artifact_dir}}`, the first that is set
+  * if none is set, stop and report that the packet gave no sign-off directory
+* if `{{signoff_path}}` is empty, set it to `{{signoff_boundary}}/signoff-reviewer-{{reviewer_lane}}.mdscript.md`
+* if `{{signoff_path}}` does not end in `.mdscript.md` or is outside `{{signoff_boundary}}`, stop and report it
+* create `{{signoff_path}}` with an exclusive create, and write only to it
+* read only the neutral packet and the paths that it authorizes
+* do not read other lanes' sign-offs, prompts, verdicts, or the author's preferred grade before you write
+* set `signed_off: false`, and try to prove the claim wrong for this lane only
+* this lane writes one sign-off and keeps no running log
+* return to the caller
+
+## Write Lane Signoff
+
+* grade each issue that stands `P0`, `P1`, `P2`, or `P3` in `p_findings` with `location`, `summary`, `contract`, and `remediation`
+* record 2 or more real `attack_attempts`, failed ones included
+* set `signed_off: true` only if every serious attack failed and `p_findings` and `remaining_gaps` are empty
+  * for `lane_applicable: false`, also only with 2 or more `evidence` and `attack_attempts` and 1 or more `commands_run` from your own search
+* write `{{signoff_path}}` as executable MDScript with this front matter:
+  * `reviewer_id`, `reviewer_lane`, `lane_applicable`, `review_round`, and `goal` and `conversation_id` from the packet
+  * `signed_off`, `verifier_summary` (40 characters or more), `evidence` (2 or more), `commands_run`, `attack_attempts` (2 or more), `p_findings`
+  * `rules_reviewed`, `artifact_paths`, `objectives_checked`, `remaining_gaps`, `signed_off_at`, and `repair_resume_command` if the packet gives it
+* write `## Signoff` with the lane verdict and one bullet for each finding
+* write `## Resume From Signoff`:
+  * if signed off, jump to `/mdscript-exec {{review_skill_root}}/workflows/triple-adversarial-blind-review.mdscript.md#aggregate-triple-signoffs`
+  * otherwise name `repair_resume_command`, and say that a new blind reviewer must review the repair
+* never jump back into this lane, and never write another lane's sign-off
+* stop
