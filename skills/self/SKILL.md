@@ -1,6 +1,6 @@
 ---
 name: self
-description: "ALWAYS use this skill for EVERY request first, before you plan or answer. This skill routes the role. Before a main agent writes or edits, it asks the user to choose orchestrate (with subagents) or direct implement (no subagents). It does not ask again after the user chose. Self-review runs only when the user asks for it. Subagents are implement (or one blind-lane MDScript). Explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, /self-troubleshoot, and /self-voice also route first. /self-learn is a user-invoked skill and never runs from a hook. /self-voice and /self-troubleshoot are skills whose bodies are in a linked MDScript. self-common is shared MDScripts/hooks, not a skill. HSM is a review blind lane, not a separate skill. The process that composes a review keeps that composition, with per-lane fanout only."
+description: "ALWAYS use this skill for EVERY request first, before you plan or answer. This skill routes the role. Every role does the least work that works (Ponytail). Before a main agent writes or edits, it asks the user to choose orchestrate (with subagents) or direct implement (no subagents). It does not ask again after the user chose. Self-review runs only when the user asks for it. Subagents are implement (or one blind-lane MDScript). Explicit /self-watch, /self-unwatch, /self-goal, /self-automate, /self-learn, /self-troubleshoot, and /self-voice also route first. /self-learn is a user-invoked skill and never runs from a hook. /self-voice and /self-troubleshoot are skills whose bodies are in a linked MDScript. self-common is shared MDScripts/hooks, not a skill. HSM is a review blind lane, not a separate skill. The process that composes a review keeps that composition, with per-lane fanout only."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -33,6 +33,8 @@ description: "ALWAYS use this skill for EVERY request first, before you plan or 
   * [Detect Agent Position](#detect-agent-position)
 
 * read [boundaries.md](references/boundaries.md) and hold every boundary it names for the routed role
+* hold the least-work ladder for the routed role
+  * before you add a step, an agent, a file, or text, run [Climb Least Work Ladder](../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder)
 
 * ask "What would the user do?" Use the current request, active local instructions, current evidence, and this installed skill family.
 

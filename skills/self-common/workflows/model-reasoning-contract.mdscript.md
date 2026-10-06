@@ -4,7 +4,11 @@
 
 * before you select, list the models that the current runtime actually offers
 * do not name a model from memory, habit, a previous session, or the choice of a different lane
-* set `{{required_model}}` to the best available model for this exact task
+* if the runtime cannot list its models
+  * set `{{required_model}}` to the model of the parent or of this process
+  * record that the runtime gave no model list
+* if the runtime lists its models, set `{{required_model}}` to the least capable available model that reliably satisfies this exact task
+  * this is the least-work ladder for models: do not pay for capability that the task does not use
   * judge the task on complexity, ambiguity, consequence, proof burden, and context size
   * also judge the task on tool needs, latency, and cost
 * set `{{required_reasoning}}` to the effort level that the task needs
@@ -13,8 +17,8 @@
 * set `{{model_selection_basis}}` to a short reason that is specific to the task
   * name the facts that made this model and this effort level the correct fit
 * if `{{self_role}}` is `orchestrator`
-  * prefer capability over raw speed
-  * prefer capability in multi-lane coordination, permission boundaries, long-context state, and reports that are ready for a decision
+  * use a higher tier only for multi-lane coordination, permission boundaries, or long-context state
+  * for a narrow coordination task, use the same lower tier as for other narrow work
 * if `{{self_role}}` is `implementer`
   * prefer capability in the exact change surface, its language and contracts, and the proof that the claim needs
   * for multi-file, cross-package, concurrency, security, or data-loss work, use a higher effort level

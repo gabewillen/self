@@ -49,6 +49,8 @@
   * set `{{root_cause}}` to empty
   * [Analyze Root Cause](#analyze-root-cause)
 * set `{{fix_scope}}` to the smallest change that removes `{{root_cause}}`
+* find each caller of the function that `{{fix_scope}}` changes
+* put the fix in the shared function that all callers use, not a guard in each caller (`PONY-READ-001`)
 * [Record Root Cause Analysis](#record-root-cause-analysis)
 
 ## Record Root Cause Analysis

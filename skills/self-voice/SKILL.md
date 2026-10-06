@@ -1,6 +1,6 @@
 ---
 name: self-voice
-description: "ALWAYS use this skill when you draft or check the agent voice. Use it for a Slack reply, a review comment, an issue or MR comment, a status report, or public text. Also use it when the user runs /self-voice. Write in the own voice of the agent from current evidence. Keep the authority boundary. Use a question instead of a correction where possible. Never claim that the user saw, approved, or promised a thing that they did not."
+description: "ALWAYS use this skill when you draft or check the agent voice. Use it for a Slack reply, a review comment, an issue or MR comment, a status report, or public text. Also use it when the user runs /self-voice. Write in the own voice of the agent from current evidence, with the fewest words that carry it (Ponytail). Keep the authority boundary. Use a question instead of a correction where possible. Never claim that the user saw, approved, or promised a thing that they did not."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

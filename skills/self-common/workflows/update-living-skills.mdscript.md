@@ -17,6 +17,9 @@
 * if the correction is only a one-time direction for this lane and does not change future agent behavior
   * record that no living skill change is necessary
   * return to the caller
+* make the smallest skill change that holds the rule
+  * change or delete an existing rule before you add a new rule
+  * add a new rule only if no existing rule can hold it
 * [Classify Rule Scope](#classify-rule-scope)
 
 ## Classify Rule Scope

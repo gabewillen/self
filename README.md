@@ -22,6 +22,8 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 
 ## How agents use it
 
+Every role does the least work that works. The pack adapts [Ponytail](https://github.com/DietrichGebert/ponytail) to agent work: skip the speculative, reuse what exists, do it in this process before adding a subagent, lane, file, or automation, use the least capable model that reliably works, and report skipped work with its trigger. It is never lazy about reading, real proof, safety, authority, or what the user asked for. See [least-work.mdscript.md](skills/self-common/workflows/least-work.mdscript.md) and, for code, [ponytail.rules.md](skills/self-review/references/engineering-rules/ponytail.rules.md).
+
 | Skill | When |
 |-------|------|
 | `self` | **Every request first** — router; pick the role |

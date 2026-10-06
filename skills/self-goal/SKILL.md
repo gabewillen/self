@@ -1,6 +1,6 @@
 ---
 name: self-goal
-description: "ALWAYS use this skill when you run a goal loop (/goal or /self-goal). Ask the user if a multi-lane self-review must close the goal; never imply it. Continue the loop until the proof artifacts exist. If the user asked for review, continue until it returns Proven-for with empty blocking findings. If a harness /goal ability is available, prefer it for multi-round continuation and skip the hooks of this skill. Keep the MDScript-only run state under runs/<run_id>/. Drive parallel subagent work with append-only logs."
+description: "ALWAYS use this skill when you run a goal loop (/goal or /self-goal). Ask the user if a multi-lane self-review must close the goal; never imply it. Do the least work that produces the proof (Ponytail). Continue the loop until the proof artifacts exist. If the user asked for review, continue until it returns Proven-for with empty blocking findings. If a harness /goal ability is available, prefer it for multi-round continuation and skip the hooks of this skill. Keep the MDScript-only run state under runs/<run_id>/. Drive parallel subagent work with append-only logs."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

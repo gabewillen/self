@@ -29,6 +29,11 @@
 
 ## Route Work Shape
 
+* before you route, run [Climb Least Work Ladder](../../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder) for the lanes and threads that the route adds
+* if the request does not write or edit anything, for example a question, an investigation, or research
+  * answer or investigate in this process
+  * do not create a lane, a thread, or a goal
+  * [Execute Coordinator Work](execute-coordinator-work.mdscript.md#execute-coordinator-work)
 * if a project control-plane task names three or more independent workstreams, modules, surfaces, owners, proof paths, or separable objective groups
   * before a direct root implementer starts, create child-orchestrator file tasks for those workstreams
   * before a child implementer starts, create or refresh one MDScript goal under `~/.agents/projects/{{project_name}}/goals` for each orchestrator
@@ -43,6 +48,11 @@
   * if the root can safely complete the work
     * [Execute Coordinator Work](execute-coordinator-work.mdscript.md#execute-coordinator-work)
 * if the work is one bounded execution lane with one primary repository, ticket, MR/PR, implementation objective, or proof boundary
+  * [Create Implementer Lane](create-implementer-lane.mdscript.md#create-implementer-lane)
+* if the work has two to five independent objectives that do not need their own lane ledger
+  * create one implementer lane for each objective
+  * start the lanes that do not overlap in parallel
+  * do not create a child orchestrator for them
   * [Create Implementer Lane](create-implementer-lane.mdscript.md#create-implementer-lane)
 * if the work spans many repositories, ticket groups, product boundaries, release trains, incident areas, or independent objectives
   * if these parts need their own lane ledger

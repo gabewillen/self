@@ -1,6 +1,6 @@
 ---
 name: self-automate
-description: "ALWAYS use this skill before you call automation_update. Also use it before you create, change, review, or hand off monitors, reminders, PR/MR watchers, blocker watchers, lane wakeups, or thread follow-ups. If the current harness has a built-in automation/loop, use it. Otherwise, design MDScript-driven automations with an exact mdscript-exec re-entry, role boundary, cadence, owner, and stop condition. Also give each one an evidence/reporting contract and a file-task source of truth. Never invent a custom ticker when the harness already gives loops or automations."
+description: "ALWAYS use this skill before you call automation_update. Also use it before you create, change, review, or hand off monitors, reminders, PR/MR watchers, blocker watchers, lane wakeups, or thread follow-ups. Do not create an automation for work that this process can do now (Ponytail). If the current harness has a built-in automation/loop, use it. Otherwise, design MDScript-driven automations with an exact mdscript-exec re-entry, role boundary, cadence, owner, and stop condition. Also give each one an evidence/reporting contract and a file-task source of truth. Never invent a custom ticker when the harness already gives loops or automations."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
@@ -26,6 +26,11 @@ description: "ALWAYS use this skill before you call automation_update. Also use 
 
 ## Prefer Harness Native Automation
 
+* run [Climb Least Work Ladder](../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder) for the automation
+* if the work is a one-time action that this process can do now
+  * do the action now
+  * do not create an automation
+  * return to the caller
 * before you create a custom ticker, detached interval process, or external cron
   * find if the current harness already has automations, scheduled tasks, reminders, native watchers, or equivalent loops
 * if that built-in mechanism can own the cadence and invoke the exact `{{mdscript_reentry}}`

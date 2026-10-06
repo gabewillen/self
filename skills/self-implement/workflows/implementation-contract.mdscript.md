@@ -127,6 +127,7 @@
 * make the smallest change that satisfies `{{objective}}`
 * keep the local architecture
 * hold the `PONY-*` rules of the `impl-ponytail` pack: read first, then climb the ladder to the least code that works
+* for each new file, helper subagent, or dependency, run [Climb Least Work Ladder](../../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder)
 * if `{{ponytail_level}}` is empty
   * set `{{ponytail_level}}` to the level that the user named in this conversation: `lite`, `full`, `ultra`, or `off`
   * if the user did not name a level, set `{{ponytail_level}}` to `full`

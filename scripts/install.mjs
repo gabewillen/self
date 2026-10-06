@@ -884,6 +884,7 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/file-task-comments.mdscript.md",
     "workflows/update-living-skills.mdscript.md",
     "workflows/self-review-consent.mdscript.md",
+    "workflows/least-work.mdscript.md",
     "workflows/execution-mode.mdscript.md",
     "workflows/load-operating-context.mdscript.md",
     "hooks/self-lib.ts",

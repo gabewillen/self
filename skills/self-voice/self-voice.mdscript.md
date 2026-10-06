@@ -18,6 +18,9 @@ description: "Routed MDScript for agent-voice drafts (Slack, review comments, pu
   * [Use Natural Slack Cadence](#use-natural-slack-cadence)
 * write or change `{{self_voice_response}}` in the agent voice from current evidence only
 * put the draft in this order: decision, status, strongest evidence or proof gap, uncertainty, then next action
+* use the fewest words that carry these items (Ponytail)
+* do not write prose that the reader did not ask for
+* if the explanation is longer than the result, cut the explanation
 * remove each lead-in about the skill, the authority model, the evidence model, or why the reply is agent-shaped
 * keep examined facts factual
 * if a question decreases confrontation and keeps the evidence equally strong

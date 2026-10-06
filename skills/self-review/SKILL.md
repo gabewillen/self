@@ -1,6 +1,6 @@
 ---
 name: self-review
-description: "Use this skill only when the user explicitly asks for a self-review, or answers yes when asked. Never start it from a skill rule, hook, or default. It reviews a change or claim: code, docs, MDScripts, configs, instructions, automations, publications, diffs, or readiness. Compose multi-lane blind review in this process, and never nest the full skill. Always run rules/security/completeness and the selected eng-* packs. If a state machine is in scope, also run deep hsm. Aggregate the independent lane sign-offs. Emit scoped Proven-for or Blocked-for verdicts."
+description: "Use this skill only when the user explicitly asks for a self-review, or answers yes when asked. Never start it from a skill rule, hook, or default. It reviews a change or claim: code, docs, MDScripts, configs, instructions, automations, publications, diffs, or readiness. Select only the lanes that the change needs (least work). Compose multi-lane blind review in this process, and never nest the full skill. Always run rules/security/completeness and the selected eng-* packs. If a state machine is in scope, also run deep hsm. Aggregate the independent lane sign-offs. Emit scoped Proven-for or Blocked-for verdicts."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

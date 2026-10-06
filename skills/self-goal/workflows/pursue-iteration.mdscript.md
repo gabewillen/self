@@ -6,7 +6,9 @@
 * if `{{execution_mode}}` is `direct`
   * do the tracks one after the other in this process
   * do not start worker subagents
-* if independent work exists and `{{execution_mode}}` is not `direct`, plan a wave of ≥2 parallel tracks
+* run [Climb Least Work Ladder](../../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder) for each track
+* if independent work exists and `{{execution_mode}}` is not `direct`
+  * plan one parallel track for each independent piece of work, and no more
   * the tracks can explore, implement, test, diagnose, or capture proof
 * keep session records, merges, manifest changes, and the append-only `progress.jsonl` on the orchestrator
 * never delegate the full goal loop to one subagent

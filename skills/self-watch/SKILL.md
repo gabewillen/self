@@ -1,6 +1,6 @@
 ---
 name: self-watch
-description: "ALWAYS use this skill on /self-watch or for an interval PR watch (`PR babysitting`) for review comments, CI repair, or base-branch drift. Use the harness built-in loop/automation if one exists. If not, arm one detached ticker fallback with a standing grant to fix/push/resolve until /self-unwatch or PR merge/close occurs. Select fast or high-effort models by the repair difficulty. Keep the state only in the goals/self-watch-<N>.mdscript.md file."
+description: "ALWAYS use this skill on /self-watch or for an interval PR watch (`PR babysitting`) for review comments, CI repair, or base-branch drift. Use the harness built-in loop/automation if one exists. If not, arm one detached ticker fallback with a standing grant to fix/push/resolve until /self-unwatch or PR merge/close occurs. Make the smallest fix that clears each finding (Ponytail). Select fast or high-effort models by the repair difficulty. Keep the state only in the goals/self-watch-<N>.mdscript.md file."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

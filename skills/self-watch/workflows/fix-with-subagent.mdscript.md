@@ -4,6 +4,9 @@
 
 * if `{{pending_fixes}}` is empty
   * return to the caller
+* if `{{pending_fixes}}` has one easy fix and this process can make it
+  * make the fix in this process
+  * do not spawn a fixer
 * put easy fixes that do not overlap into parallel waves
 * keep hard fixes that overlap in series
 * for each fix item in the current wave

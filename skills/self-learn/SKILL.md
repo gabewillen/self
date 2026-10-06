@@ -1,6 +1,6 @@
 ---
 name: self-learn
-description: "ALWAYS use this skill when the user runs /self-learn or explicitly asks for a living-skills reflection pass. Scan only direct user corrections from this conversation. Restate what the user said. Change the project or global skill rules for each scope. This skill never runs automatically. Learn is user-invoked, not a Stop hook."
+description: "ALWAYS use this skill when the user runs /self-learn or explicitly asks for a living-skills reflection pass. Scan only direct user corrections from this conversation. Restate what the user said. Make the smallest change to the project or global skill rules for each scope (Ponytail). This skill never runs automatically. Learn is user-invoked, not a Stop hook."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->

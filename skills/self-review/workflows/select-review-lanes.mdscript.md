@@ -45,6 +45,7 @@
 ## Classify Review Artifact
 
 * select only the lanes that the in-scope paths and the packet signals need, not the full lane set
+* apply [Climb Least Work Ladder](../../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder) to each lane that is not always-on
 * set `{{code_paths_in_scope}}` to the in-scope paths that are executable source, or build and config files for executable source
 * set `{{doc_paths_in_scope}}` to the in-scope MDScript, documentation, plan, task, comment, and publication paths
 * set `{{code_change_is_data_only}}` to `false`

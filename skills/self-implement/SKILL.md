@@ -1,6 +1,6 @@
 ---
 name: self-implement
-description: "ALWAYS use this skill when you write or edit anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. Run it as a subagent, or as the main agent when the user chose direct implementation with no subagents. State the scoped DBC claim. Select and apply the vendored engineering-rules packs that the review eng-* lanes check (impl-core, impl-dbc, language/framework, optional impl-hsm). Prove the work with real paths. If the user asks for a self-review, compose the multi-lane review in this process with per-lane blind fanout only. Report before you stop."
+description: "ALWAYS use this skill when you write or edit anything: code, docs, configs, tests, MDScripts, scripts, or other artifacts. Run it as a subagent, or as the main agent when the user chose direct implementation with no subagents. State the scoped DBC claim. Select and apply the vendored engineering-rules packs that the review eng-* lanes check (impl-core, impl-dbc, language/framework, optional impl-hsm). Build the least code that works (Ponytail). Prove the work with real paths. If the user asks for a self-review, compose the multi-lane review in this process with per-lane blind fanout only. Report before you stop."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
