@@ -72,6 +72,14 @@ description: "ALWAYS use this skill for EVERY request first, before you plan or 
   * set `{{self_role}}` to `self-implement`. It holds the reproduce-before-fix gate. If the delegation has no reproduction, it enters the troubleshoot MDScript itself.
   * [Execute Routed Role](#execute-routed-role)
 
+* if the request is an over-engineering review, an over-engineering audit, "what can we delete", or `/ponytail-review` or `/ponytail-audit`
+  * run [Report Over Engineering](../self-review/workflows/over-engineering-report.mdscript.md#report-over-engineering)
+  * stop after that report. It is a one-shot report, not a multi-lane self-review.
+
+* if the request asks for the `ponytail:` shortcut ledger, or is `/ponytail-debt`
+  * run [Report Shortcut Ledger](../self-review/workflows/over-engineering-report.mdscript.md#report-shortcut-ledger)
+  * stop after that report
+
 * if the request is HSM/SML hard-rule review, hierarchical state machine audit, or `/self-hsm-review`
   * set `{{self_role}}` to `self-review`
   * set `{{hsm_in_scope}}` to `true`

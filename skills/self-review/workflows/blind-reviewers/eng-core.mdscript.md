@@ -4,7 +4,8 @@
 
 * set `{{reviewer_lane}}` to `eng-core`
 * set `{{rules_pack}}` to `core`
-* set `{{extra_rules_files}}` to `local.rules.md`, the local rules that a re-vendor must not remove
+* set `{{extra_rules_files}}` to `local.rules.md` and `ponytail.rules.md`, the local rules that a re-vendor must not remove
+* for each finding under a `PONY-*` rule, write one line in the over-engineering form of [Write Finding Line](../over-engineering-report.mdscript.md#write-finding-line)
 * if the diff adds or changes OpenTelemetry (OTEL) instrumentation, metrics, spans, attributes, or labels
   * attack missing or incomplete cardinality analysis under CORE-OBS-002 before any sign-off
   * make sure that the evidence marks each new or changed item as bounded or unbounded

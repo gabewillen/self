@@ -26,7 +26,7 @@ Each uses the shared reviewer [engineering-rules.mdscript.md](../workflows/blind
 
 | Lane id | Entrypoint | Rule file | Select when |
 | --- | --- | --- | --- |
-| `eng-core` | `eng-core.mdscript.md#eng-core-blind-review` | `core.rules.md` | Code, PR/MR, or branch readiness review |
+| `eng-core` | `eng-core.mdscript.md#eng-core-blind-review` | `core.rules.md`, `local.rules.md`, `ponytail.rules.md` | Code, PR/MR, or branch readiness review |
 | `eng-dbc` | `eng-dbc.mdscript.md#eng-dbc-blind-review` | `dbc.rules.md` | Code review, or claim/packet names contract, DBC, proof, API boundary, schema, IDL |
 | `eng-patterns` | `eng-patterns.mdscript.md#eng-patterns-blind-review` | `patterns.rules.md` | Actor, RTC, HSM pattern, pipeline, or ECS signals in scope |
 | `eng-rust` | `eng-rust.mdscript.md#eng-rust-blind-review` | `rust.rules.md` | `*.rs`, `Cargo.toml`, `Cargo.lock`, `.cargo/` |
@@ -57,3 +57,7 @@ When HSM is in scope, both `eng-hsm` (rules checklist) and `hsm` (semantic audit
 - `{{forced_lanes}}` — comma-separated lane ids the caller requires in addition to selected ones
 - `{{excluded_lanes}}` — comma-separated lane ids never to spawn
 - Explicit request for a language or framework name forces that engineering lane when the rule file exists
+
+## One-shot over-engineering reports
+
+A user request for an over-engineering review, an over-engineering audit, or the `ponytail:` shortcut ledger runs [over-engineering-report.mdscript.md](../workflows/over-engineering-report.mdscript.md) in the requesting process. It spawns no lanes, applies no fixes, and is not a multi-lane self-review.

@@ -8,7 +8,7 @@ Rule files are **not** duplicated. Resolve each pack's `{{rules_file}}` under `s
 
 | Pack id | Entrypoint | Rule file | Select when |
 | --- | --- | --- | --- |
-| `impl-core` | `workflows/engineering-rules/impl-core.mdscript.md#impl-core-apply` | `core.rules.md` | Any code, PR/MR, or implementation edit |
+| `impl-core` | `workflows/engineering-rules/impl-core.mdscript.md#impl-core-apply` | `core.rules.md`, `local.rules.md`, `ponytail.rules.md` | Any code, PR/MR, or implementation edit |
 | `impl-dbc` | `workflows/engineering-rules/impl-dbc.mdscript.md#impl-dbc-apply` | `dbc.rules.md` | Code work, or claim names contract, DBC, proof, API, schema, IDL |
 
 ## Conditional architecture packs

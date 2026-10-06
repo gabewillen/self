@@ -26,8 +26,8 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 |-------|------|
 | `self` | **Every request first** — router; pick the role |
 | `self-orchestrate` | Parentless main agents when the user chooses orchestration: prioritize, delegate, goals, lanes, watchers |
-| `self-implement` | Subagents / writers: edit code and docs under a DBC claim + engineering rules |
-| `self-review` | Multi-lane blind review (rules, security, completeness, eng-*, HSM when in scope) |
+| `self-implement` | Subagents, or the main agent in direct mode: edit code and docs under a DBC claim + engineering rules, including the Ponytail least-code rules |
+| `self-review` | Multi-lane blind review, only when the user asks (rules, security, completeness, eng-*, HSM when in scope); one-shot over-engineering review, audit, and `ponytail:` ledger |
 | `self-goal` | Goal loop until real proof + review; prefers harness `/goal` when available |
 | `self-watch` / `self-unwatch` | Interval PR babysit with a standing repair grant |
 | `self-automate` | Design MDScript-backed automations before automation tools |
@@ -41,7 +41,7 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 |------|------|
 | `self-common/` | Shared MDScripts, templates, hook library — linked by other skills |
 
-Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-troubleshoot`, `/self-unwatch`.
+Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-troubleshoot`, `/self-unwatch`, `/ponytail-review`, `/ponytail-audit`, `/ponytail-debt`.
 
 Both `self-voice` and `self-troubleshoot` keep their body in a linked `*.mdscript.md`; `SKILL.md` is the entry the harness lists.
 
@@ -213,3 +213,5 @@ Humans: treat this repo as the agents’ shared memory of *how* to work—not a 
 ## License
 
 MIT
+
+The Ponytail rules (`skills/self-review/references/engineering-rules/ponytail.rules.md`) and the over-engineering report are adapted from [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail), MIT License, Copyright (c) 2026 DietrichGebert.

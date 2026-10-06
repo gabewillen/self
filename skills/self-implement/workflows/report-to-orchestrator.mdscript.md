@@ -7,6 +7,7 @@
 * run [Resolve File Task Root](../../self-common/workflows/file-task-comments.mdscript.md#resolve-file-task-root)
 
 * set the final result to the contract, what changed, the proof path and its outcome, and the residual risk
+* add each item that you skipped as `skipped: <item>, add when <trigger>`, and each `ponytail:` comment that you added
 * add the next executable step for the next owner to the final result
 * run [Log Progress](../../self-common/workflows/mdscript-artifact.mdscript.md#log-progress) with the final result
 * set the running log's front matter `status` to `done`, `blocked`, or `handed-off` to match `{{stop_reason}}`

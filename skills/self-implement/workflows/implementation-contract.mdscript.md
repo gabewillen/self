@@ -126,6 +126,22 @@
 
 * make the smallest change that satisfies `{{objective}}`
 * keep the local architecture
+* hold the `PONY-*` rules of the `impl-ponytail` pack: read first, then climb the ladder to the least code that works
+* if `{{ponytail_level}}` is empty
+  * set `{{ponytail_level}}` to the level that the user named in this conversation: `lite`, `full`, `ultra`, or `off`
+  * if the user did not name a level, set `{{ponytail_level}}` to `full`
+* if `{{ponytail_level}}` is `lite`
+  * build what the user asked for
+  * name the shorter alternative in one line, and let the user select
+* if `{{ponytail_level}}` is `ultra`
+  * prefer deletion to addition
+  * ship the shortest version, and question the rest of the requirement in the same report
+* if `{{ponytail_level}}` is `off`
+  * do not apply `PONY-LADDER-001`, `PONY-DEL-001`, or `PONY-OUT-001`
+  * continue to apply `PONY-READ-001`, `PONY-KEEP-001`, and `PONY-CHECK-001`
+* if the request is complex
+  * ship the shorter version, and ask in the same report if the user needs the full version
+  * do not stop for an answer that has a safe default
 
 * prefer explicit contracts, typed events, deterministic transforms, reversible paths, and observable boundaries
 

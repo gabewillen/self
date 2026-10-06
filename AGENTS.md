@@ -11,6 +11,7 @@
 - Keep authority scoped to the exact artifact, target, head, decision, and proof named. A narrower proof, clean local tree, or previous approval does not authorize a broader claim or action.
 - Keep typed records, tool logs, tracker state, review state, metrics, dashboards, and other owner records authoritative over summaries, model narration, or inferred labels.
 - Preserve provenance in training, evaluation, and automation loops. Human input, proxy output, automation output, synthetic replay, and tool traces must remain distinguishable.
+- Build the least code that works. Read and trace the problem first, then reuse, the standard library, the platform, or an installed dependency before new code. Never simplify away validation, data-loss handling, security, accessibility, or anything the user asked for. Mark each deliberate shortcut with a `ponytail:` comment that names its limit and upgrade trigger. These rules adapt [Ponytail](https://github.com/DietrichGebert/ponytail) and live in `self-review/references/engineering-rules/ponytail.rules.md`.
 - When a runtime depends on a provider, dependency, hardware path, release, or backend, verify the actual runtime path rather than inferring equivalence from API shape or local setup.
 
 ## Proof and Review
