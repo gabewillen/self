@@ -6,7 +6,7 @@
  *   node scripts/test-self-implement-install.mjs
  *   node scripts/test-self-implement-install.mjs ~/.agents/skills/self-implement
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,30 +19,9 @@ const reviewRules = join(pkgRoot, "skills", "self-review", "references", "engine
 const required = [
   "SKILL.md",
   "workflows/select-implementation-rules.mdscript.md",
-  "workflows/select-language-framework-rules.mdscript.md",
   "workflows/apply-selected-engineering-rules.mdscript.md",
   "workflows/engineering-rules/apply-engineering-rules.mdscript.md",
   "references/implementation-rules-catalog.md",
-];
-
-const implPacks = [
-  "core",
-  "dbc",
-  "patterns",
-  "rust",
-  "python",
-  "typescript",
-  "go",
-  "cpp",
-  "dart",
-  "react",
-  "flutter",
-  "hono",
-  "pulumi",
-  "webcomponents",
-  "xstate",
-  "sml",
-  "hsm",
 ];
 
 const ruleFiles = [
@@ -65,9 +44,6 @@ const ruleFiles = [
   "hsm",
 ];
 
-for (const pack of implPacks) {
-  required.push(`workflows/engineering-rules/impl-${pack}.mdscript.md`);
-}
 
 const missing = required.filter((rel) => !existsSync(join(root, rel)));
 if (missing.length) {
@@ -88,7 +64,15 @@ if (missingRules.length) {
   process.exit(1);
 }
 
-// relative path from each impl pack entrypoint must resolve to shared rules
+// the one rule-pack catalog must name every shared rule file
+const catalog = readFileSync(join(root, "references", "implementation-rules-catalog.md"), "utf8");
+const uncataloged = ruleFiles.filter((r) => !catalog.includes(`\`${r}.rules.md\``));
+if (uncataloged.length) {
+  console.error("[test-self-implement-install] catalog does not name:", uncataloged.join(", "));
+  process.exit(1);
+}
+
+// relative path from the shared apply workflow must resolve to shared rules
 const relRules = join(
   root,
   "workflows",
@@ -103,12 +87,12 @@ const relRules = join(
 );
 if (!existsSync(relRules)) {
   console.error(
-    "[test-self-implement-install] relative path from impl packs to self-review rules broken:",
+    "[test-self-implement-install] relative path from the shared apply workflow to self-review rules broken:",
     relRules,
   );
   process.exit(1);
 }
 
 console.log(
-  `[test-self-implement-install] ok ${root} (${implPacks.length} impl packs, ${ruleFiles.length} shared rules)`,
+  `[test-self-implement-install] ok ${root} (${ruleFiles.length} cataloged rule packs)`,
 );

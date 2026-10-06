@@ -79,7 +79,7 @@ description: "ALWAYS use this skill before you call automation_update. Also use 
   * `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#handle-merge-or-close-decision`
 * common implementer re-entry points include:
   * `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`
-  * `/mdscript-exec {{skills_root}}/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
+  * `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-blocker-watcher`
   * `/mdscript-exec {{skills_root}}/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator`
 * if another agent must continue at a specific point after the automation fires
   * include that exact `/mdscript-exec` jump in the automation report body

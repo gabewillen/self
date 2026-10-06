@@ -854,11 +854,8 @@ const REQUIRED_SKILL_ASSETS = {
   "self-implement": [
     "SKILL.md",
     "workflows/select-implementation-rules.mdscript.md",
-    "workflows/select-language-framework-rules.mdscript.md",
     "workflows/apply-selected-engineering-rules.mdscript.md",
     "workflows/engineering-rules/apply-engineering-rules.mdscript.md",
-    "workflows/engineering-rules/impl-core.mdscript.md",
-    "workflows/engineering-rules/impl-dbc.mdscript.md",
     "references/implementation-rules-catalog.md",
   ],
   "self-watch": [

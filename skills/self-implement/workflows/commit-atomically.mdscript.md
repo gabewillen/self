@@ -2,59 +2,14 @@
 
 ## Commit Atomically
 
-* run `git status --porcelain` to list every dirty path in the working tree
-* run `git diff` and `git diff --staged` to read the actual content of those changes
-* group the dirty paths into one list per logical change under LOCAL-GIT-001
-* set `{{commit_groups}}` to that list of logical changes
-* set `{{commit_group}}` to the first group in `{{commit_groups}}` that is not yet committed
-* if `{{commit_group}}` is empty
-  * return to the caller with nothing left to commit
-* [Stage One Logical Change](#stage-one-logical-change)
-
-## Stage One Logical Change
-
-* stage only the paths or hunks that belong to `{{commit_group}}`
-* if a dirty path outside `{{commit_group}}` remains
-  * do not stage with `git add -A`, `git add .`, or `git commit -a`
-* run `git diff --staged`
-* make sure that the staged diff has that logical change and nothing else
-* if the staged diff has format sweeps, drive-by refactors, dependency bumps, or unrelated fixes
-  * unstage the paths or hunks that do not belong to `{{commit_group}}`
-  * [Stage One Logical Change](#stage-one-logical-change)
-* [Verify Commit Stands Alone](#verify-commit-stands-alone)
-
-## Verify Commit Stands Alone
-
-* find the build, test, or check command that governs `{{commit_group}}`
-* set `{{commit_check}}` to that command
-* if `{{commit_check}}` is empty
-  * record that no check governs this change on the file task
-  * [Write Commit Message](#write-commit-message)
-* run `{{commit_check}}` against the tree this commit would produce
-* if `{{commit_check}}` fails
-  * repair the change so the commit stands alone
-  * [Stage One Logical Change](#stage-one-logical-change)
-* [Write Commit Message](#write-commit-message)
-
-## Write Commit Message
-
-* write a subject that states the one logical change in `{{commit_group}}`
-* write a body that states why you made the change and what it affects
-* if you will push the commit
-  * do not write `wip`, `fixup`, `oops`, `address review`, or `fix typo` as its message
-* do not narrate the process, the agent, the session, or the order of edits in the message
-* run `git commit` with that message
-* [Commit Remaining Groups](#commit-remaining-groups)
-
-## Commit Remaining Groups
-
-* remove the committed group from `{{commit_groups}}`
-* if `{{commit_groups}}` still holds an uncommitted group
-  * set `{{commit_group}}` to the next group in `{{commit_groups}}`
-  * [Stage One Logical Change](#stage-one-logical-change)
-* run `git status --porcelain`
-* make sure that no logical change stays uncommitted or half-staged
-* if the unpushed range has a checkpoint commit that you will push
-  * before the push, squash or amend it into the commit that it belongs to
-* do not rewrite commits that are already on a shared branch
-* return to the caller with the commits created
+* read `git status --porcelain`, `git diff`, and `git diff --staged`
+* group the dirty paths into one group for each logical change (LOCAL-GIT-001)
+* for each group:
+  * stage only its paths or hunks, never `git add -A`, `git add .`, or `git commit -a` over a mixed tree
+  * make sure that `git diff --staged` holds that change and nothing else
+  * run the check that governs it on the tree that this commit makes, and repair the change if it fails
+  * commit with a subject that states the change and a body that says why
+  * do not write `wip`, `fixup`, `oops`, or process narration in a message that you will push
+* make sure that nothing stays uncommitted or half-staged
+* squash checkpoint commits before the push, and never rewrite commits on a shared branch
+* return to the caller

@@ -80,7 +80,7 @@ description: "Use this skill for a main agent when the user chose to orchestrate
 * if the worker reports `Proven for {{claim_scope}}`, [Confirm Implementer Completion Gates](#confirm-implementer-completion-gates)
 * if the worker is blocked
   * if it names no local resource path that it tried, send it `/mdscript-exec {{skills_root}}/self-implement/workflows/verify-real-proof.mdscript.md#verify-real-proof`
-  * if the block needs a watcher, send it `/mdscript-exec {{skills_root}}/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
+  * if the block needs a watcher, send it `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-blocker-watcher`
   * if the user or an owner must decide, [Stop At Boundary](#stop-at-boundary)
 * send each steer with an exact implementer jump, and record it in the ledger
 * [Report](#report)
