@@ -2,166 +2,117 @@
 
 ## Resolve File Task Root
 
-* if `{{source_repo_root}}` is empty
-  * if a current work repository exists, set `{{source_repo_root}}` to its root
-* if `{{source_repo_root}}` is set
-  * resolve `{{source_repo_root}}` to an absolute canonical path
-* set `{{agents_root}}` to `$AGENTS_HOME`, or to `~/.agents` if `$AGENTS_HOME` is not set
-* resolve `{{agents_root}}` to an absolute path
-* set `{{repo_root}}` to `{{agents_root}}` for installed skill and workflow entry points
-* find `{{project_name}}` in this order: the explicit project name, the configured project identity, the basename of the source repository
-* change `{{project_name}}` to a stable lowercase slug that is safe in a path
+* set `{{source_repo_root}}` to the absolute root of the current work repository, if one exists
+* set `{{agents_root}}` to `$AGENTS_HOME`, or `~/.agents`
+* set `{{repo_root}}` to `{{agents_root}}`
+* set `{{project_name}}` to a path-safe lowercase slug of the explicit project name, the configured identity, or the repository basename
 * set `{{file_task_root}}` to `{{agents_root}}/projects/{{project_name}}`
-* set `{{task_dir}}` to `{{file_task_root}}/tasks`
-* set `{{comment_dir}}` to `{{file_task_root}}/comments`
-* set `{{goal_dir}}` to `{{file_task_root}}/goals`
-* set `{{plan_dir}}` to `{{file_task_root}}/plans`
-* set `{{instruction_dir}}` to `{{file_task_root}}/instructions`
-* set `{{return_dir}}` to `{{file_task_root}}/returns`
-* set `{{artifact_dir}}` to `{{file_task_root}}/artifacts`
+* set `{{task_dir}}`, `{{comment_dir}}`, `{{goal_dir}}`, `{{plan_dir}}`, `{{instruction_dir}}`, `{{return_dir}}`, and `{{artifact_dir}}` to `tasks`, `comments`, `goals`, `plans`, `instructions`, `returns`, and `artifacts` under it
 * set `{{ledger_file}}` to `{{file_task_root}}/lane-ledger.jsonl`
-* use `{{source_repo_root}}` only as the surface of the affected implementation or evidence
-* under `{{file_task_root}}`, create each missing parent directory for tasks, comments, goals, and plans
-* under `{{file_task_root}}`, create each missing parent directory for instructions, returns, artifacts, and the ledger
-  * if the creation of a directory fails, stop and report the exact path and error
-* do not write control-plane tasks, comments, plans, or goals of the agent into `{{source_repo_root}}`
-* do not write control-plane instructions, artifacts, or lane ledgers of the agent into `{{source_repo_root}}`
+* create the directories that are missing
+  * if a create fails, stop and report the path and error
+* do not write these control-plane records into `{{source_repo_root}}`
 
 ## Ensure File Task
 
 * run [Resolve File Task Root](#resolve-file-task-root)
-* read [file-task contract](../references/file-task-contract.md)
-* read [file-task template](../templates/file-task.mdscript.md)
 * set `{{task_file}}` to `{{task_dir}}/{{task_id}}.mdscript.md`
-* if `scripts/self_task.py` exists
-  * run `python3 scripts/self_task.py task` for this lane
-  * if the command fails
-    * write `{{task_file}}` directly from the template and contract
-    * [Verify File Task](#verify-file-task)
-* if `scripts/self_task.py` does not exist
-  * write `{{task_file}}` from the template and contract
-  * [Verify File Task](#verify-file-task)
-* [Verify File Task](#verify-file-task)
-
-## Verify File Task
-
-* examine `{{task_file}}` for the MDScript execution header after the YAML front matter
-  * if the header is missing, [Repair File Task](#repair-file-task)
-* examine `{{task_file}}` for each front-matter field that the contract makes necessary
-  * if a field is missing, [Repair File Task](#repair-file-task)
-* examine `{{task_file}}` for the exact body headings `## Objective`, `## Contract`, `## Current State`, and `## Evidence`
-  * if a heading is missing, [Repair File Task](#repair-file-task)
-* examine `{{task_file}}` for the exact body headings `## Open Questions` and `## Next Action`
-  * if a heading is missing, [Repair File Task](#repair-file-task)
-* examine `## Next Action` for one single action and an exact `/mdscript-exec` continuation or an explicit stop
-  * if the section is not valid, [Repair File Task](#repair-file-task)
-* return to the caller
-
-## Repair File Task
-
-* rewrite missing front-matter fields and body headings in `{{task_file}}` from the contract and template
-* [Verify File Task](#verify-file-task)
-* if the examination fails again after one repair, stop and report the exact missing fields or headings
+* write it from the [file-task template](../templates/file-task.mdscript.md)
+* make sure that it has the execution header, the template front matter, and `## Objective`, `## Contract`, `## Current State`, `## Evidence`, `## Open Questions`, and `## Next Action`
+* make sure that `## Next Action` has one action and an exact `/mdscript-exec` continuation or a stop
+* if a check fails, repair it one time, then stop and report the missing parts
 
 ## Add File Comment
 
 * run [Resolve File Task Root](#resolve-file-task-root)
-* read [file-comment contract](../references/file-comment-contract.md)
-* read [file-comment template](../templates/file-comment.mdscript.md)
-* set `{{comment_task_dir}}` to `{{comment_dir}}/{{task_id}}`
-* if `{{comment_task_dir}}` is missing, create it
-  * if the creation fails, stop and report the exact path and error
-* set `{{comment_file}}` to `{{comment_task_dir}}/<timestamp>-<role>-<short-slug>.mdscript.md`
-  * write `<timestamp>` in UTC as `YYYYMMDDTHHMMSSZ`
-* write `{{comment_file}}` from the template and contract
-  * if the write fails, stop and report the exact path and error
-* [Verify File Comment](#verify-file-comment)
-
-## Verify File Comment
-
-* examine `{{comment_file}}` for the MDScript execution header after the YAML front matter
-  * if the header is missing, [Repair File Comment](#repair-file-comment)
-* examine `{{comment_file}}` for each front-matter field that the contract makes necessary
-  * if a field is missing, [Repair File Comment](#repair-file-comment)
-* examine `{{comment_file}}` for the exact body headings `## Summary`, `## Evidence`, `## Questions`, `## Next`, and `## Stop Report`
-  * if a heading is missing, [Repair File Comment](#repair-file-comment)
-* examine `## Next` for one single action and an exact continuation or stop
-  * if the section is not valid, [Repair File Comment](#repair-file-comment)
-* do not edit or delete earlier comments to change the history
-* return to the caller
-
-## Repair File Comment
-
-* rewrite missing front-matter fields and body headings in `{{comment_file}}` from the contract and template
-* [Verify File Comment](#verify-file-comment)
-* if the examination fails again after one repair, stop and report the exact missing fields or headings
+* set `{{comment_file}}` to `{{comment_dir}}/{{task_id}}/<UTC YYYYMMDDTHHMMSSZ>-<role>-<slug>.mdscript.md`
+* write it from the [file-comment template](../templates/file-comment.mdscript.md)
+* write a comment for each delegation, handoff, grade, question, answer, fix, blocker, stop, decision, and thread cleanup
+* make sure that it has the execution header, the template front matter, and `## Summary`, `## Evidence`, `## Questions`, `## Next`, and `## Stop Report`
+* if a check fails, repair it one time, then stop and report the missing parts
+* do not edit or delete earlier comments
 
 ## Ensure File Plan
 
 * run [Resolve File Task Root](#resolve-file-task-root)
+* set `{{plan_id}}` to a stable slug for the plan
 * set `{{plan_file}}` to `{{plan_dir}}/{{plan_id}}.mdscript.md`
-* write or change `{{plan_file}}` as executable MDScript with the execution header
-  * if the write fails, stop and report the exact path and error
-* write stable `##` states for the context, the ordered actions, the examination, the recovery from failure, and the end
-* write one single action in each plan bullet, and make sure that a tool can execute it
-* link each branch, retry, recovery, and handoff to an explicit MDScript state
-* at each point where the plan pauses, delegates, or resumes, include the exact `/mdscript-exec {{plan_file}}#<next-state>` command
-* if the MDScript plan exists, do not keep a duplicate plan in prose only
-* return to the caller
+* write `{{plan_file}}` as executable MDScript, with one action for each bullet and each branch as a state link
+* at each pause, delegation, or resume, write the exact `/mdscript-exec <plan>#<state>` command
+* do not keep a second copy of the plan in prose
 
 ## Ensure File Instruction
 
+* if the instruction belongs in a `SKILL.md` or workflow file, return to the caller
 * run [Resolve File Task Root](#resolve-file-task-root)
-* if the instruction already belongs in an MDScript `SKILL.md` or workflow file
-  * return to the caller
+* set `{{instruction_id}}` to a stable slug for the instruction
 * set `{{instruction_file}}` to `{{instruction_dir}}/{{instruction_id}}.mdscript.md`
-* write or change `{{instruction_file}}` as executable MDScript with the execution header
-  * if the write fails, stop and report the exact path and error
-* write stable `##` states to apply, examine, recover, and report the instruction
-* write one single action in each instruction bullet, and make sure that a tool can execute it
-* link each condition, failure, retry, recovery, and authority prompt to an explicit MDScript state or return script
-* in each handoff that depends on the instruction, include the exact `/mdscript-exec {{instruction_file}}#<entry-state>` command
-* for work in the shape of an agent task, do not create durable instruction files in prose only
-* return to the caller
+* write `{{instruction_file}}` as executable MDScript
+* put its entry command in each handoff that depends on it
 
 ## Read File Task Packet
 
 * run [Resolve File Task Root](#resolve-file-task-root)
-* execute or read the named MDScript state in the current task file
-* read all open comment MDScripts for that task
-* if a parent task MDScript exists, read it
-* read the active plan or instruction MDScripts for the lane
-* read the lane ledger entries for the lane
-* if the review is a first review or a final cumulative review
-  * start from the diff of the current branch against the merge target
-  * add the task file, the related comments, and the neutral support code or artifacts
-* if the review is a repair review
-  * start from the diff between the tree of the last completed review and the current tree
-  * add the task file, the open requirements, and the neutral support code or artifacts
-* if the assignment is not explicitly a reconciliation
-  * do not use old comments, generated summaries, or earlier reviewer conclusions as the first frame for a new blind review
-* return to the caller
+* read the current task file, its open comments, and its parent task
+* read its active plan and instruction files, and its lane-ledger entries
+* for a first or final review, start from the branch diff against the merge target
+* for a repair review, start from the diff since the last completed review
+* unless the task is a reconciliation, do not frame a blind review with old comments or earlier verdicts
 
 ## Sync File Task Proof State
 
-* run [Sync File Task Proof State](file-task-lane-state.mdscript.md#sync-file-task-proof-state)
+* before a review request or a `Proven for {{claim_scope}}` claim, change each affected task:
+  * `Current State` and `Evidence` match the current source, proof results, and open comments
+  * `Next Action` names the next owner's current action
+* make sure that each child orchestrator has a parent-visible rollup stop comment that matches [stop-report fields](../references/stop-report-fields.md)
+  * if one is missing, stop and report the child task id
+* before reviewer comments count, make sure that a `review_round=start` comment comes after the latest repair or failed grade
+* set each goal status to the lane phase, and append a lane-ledger entry for each child rollup
+* if `scripts/self_task.py validate` exists, run it
+* if a record is stale, repair it one time, then stop and report the stale task ids
 
 ## Classify File Workstream Fanout
 
-* run [Classify File Workstream Fanout](file-task-lane-state.mdscript.md#classify-file-workstream-fanout)
+* count the workstreams, modules, repositories, surfaces, owners, and proof paths that you can test apart
+* if the count is three or more
+  * create one child-orchestrator task and one goal MDScript for each before any implementer task
+  * do not put them in one implementer only because they share a repository or test suite
 
 ## Use Single Process Fallback
 
-* run [Use Single Process Fallback](file-task-lane-state.mdscript.md#use-single-process-fallback)
+* if thread or subagent tools exist, return to the caller
+* before you switch roles in this process, add a file comment
+  * name the source role, the target role, the target task, the grants, and the forbidden actions
+  * name the proof path and the stop rule
+* continue at the target role's entry point, and write later comments as that role
+* do not use the fallback to go around a gate for authority, identity, merge, release, deployment, or live proof
+* if the next action is local, bounded, and granted, do it now
 
 ## Maintain File Lane Ledger
 
-* run [Maintain File Lane Ledger](file-task-lane-state.mdscript.md#maintain-file-lane-ledger)
+* run [Resolve File Task Root](#resolve-file-task-root)
+* for each lane state change, append one JSON object with the [lane-ledger fields](../references/lane-ledger-fields.md) to `{{ledger_file}}`
+* after a compaction, resume, or handoff, rebuild state before you act
+  * use the task, comment, plan, and goal files, and the ledger
+* record a child orchestrator by its thread id and title, not a subagent id
+* record the `/mdscript-exec <goal>#resume-goal` re-entry of each active, monitored lane
+* if a lane has no owner, parent, status, proof path, next action, or stop report
+  * stop before a readiness claim, and report the gap
 
 ## Report Stop To File Comments
 
-* run [Report Stop To File Comments](file-task-lane-state.mdscript.md#report-stop-to-file-comments)
+* set `{{stop_reason}}` to a reason from [stop-report fields](../references/stop-report-fields.md)
+* run [Add File Comment](#add-file-comment) as a parent-visible comment
+* put every stop field only under `## Stop Report`: the next owner, the next action, the blocker, and the continuation jump
+* if you ask for input, add `return_script=`, `resume_command=`, and the pending decision
+* for each terminal or superseded thread that you created, add `cleanup_status`
+* in a final decision, name how you handled each input that changed the proof path
+* if you cannot write the comment
+  * record the failure in the lane ledger
+  * report the blocker to the nearest parent, and stop
 
 ## Mirror External Tracker
 
-* run [Mirror External Tracker](file-task-lane-state.mdscript.md#mirror-external-tracker)
+* keep the file tasks and comments as the source of truth
+* if authority and identity allow it, mirror grades, questions, answers, fixes, evidence, and resolutions to the external tracker
+* otherwise stop and report the missing permission or alias

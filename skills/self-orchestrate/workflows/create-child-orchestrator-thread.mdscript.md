@@ -120,7 +120,7 @@
 
 ## Finalize Child Create
 
-* change the ledger with [Maintain Lane Ledger](../../self-common/workflows/lane-ledger.mdscript.md#maintain-lane-ledger)
+* change the ledger with [Maintain File Lane Ledger](../../self-common/workflows/file-task-comments.mdscript.md#maintain-file-lane-ledger)
 * run [Report Status](../../self-common/workflows/report-boundary.mdscript.md#report-status)
 
 ## Stop On Child Blocker

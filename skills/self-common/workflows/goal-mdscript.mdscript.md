@@ -3,101 +3,46 @@
 ## Resolve Goal MDScript
 
 * run [Resolve File Task Root](file-task-comments.mdscript.md#resolve-file-task-root)
-* set `{{goal_dir}}` to `{{file_task_root}}/goals`
-* set `{{goal_id}}` to a stable slug from `{{file_task_id}}` and the orchestration purpose, for example `<task-id>-goal`
+* set `{{goal_id}}` to a stable slug from `{{file_task_id}}` and the purpose, for example `<task-id>-goal`
 * set `{{goal_mdscript}}` to `{{goal_dir}}/{{goal_id}}.mdscript.md`
-* before you write a goal, create `{{goal_dir}}`
-  * if the create operation fails, stop and report the exact path and error
 
 ## Write Goal MDScript
 
-* use this goal MDScript as the running log for its lane
-  * this log satisfies the forward-progress boundary for `self-goal`, `self-watch`, `self-automate`, and each monitored orchestrator lane
-* include `## Done So Far` as the append-only record of the completed rounds and their evidence
-* include `## Next Steps` as the executable states that remain
-* change the two sections at each round or heartbeat that changes what is true, not only at the end
-
 * run [Resolve Goal MDScript](#resolve-goal-mdscript)
-* read [goal contract](../references/goal-contract.md)
-* read [goal template](../templates/goal.mdscript.md)
-* before you create child lanes, handoffs, monitor loops, or resumed coordination, do the next step
-* write one executable MDScript goal file for each active lane that an orchestrator owns
-  * if the goal file exists, write it again with the current state
-* if a parent fanout creates more than one child-orchestrator file task in one pass
-  * create the child goal MDScript files in the same pass
-  * do this before you execute child implementer work
-* if `scripts/self_task.py` exists
-  * run `python3 scripts/self_task.py goal`
-  * if the command fails
-    * write `{{goal_mdscript}}` directly from the template and contract
-    * [Verify Goal MDScript](#verify-goal-mdscript)
-* if `scripts/self_task.py` does not exist
-  * write `{{goal_mdscript}}` from the template and contract
-  * [Verify Goal MDScript](#verify-goal-mdscript)
-* [Verify Goal MDScript](#verify-goal-mdscript)
-
-## Verify Goal MDScript
-
-* make sure that `{{goal_mdscript}}` has the exact MDScript execution header after the YAML front matter
-  * if the header is not there, [Repair Goal MDScript](#repair-goal-mdscript)
-* make sure that each necessary front-matter field from the contract is there
-  * if a field is not there, [Repair Goal MDScript](#repair-goal-mdscript)
-* make sure that the exact body headings `## Goal Contract`, `## Resume Goal`, `## Hot Path`, and `## Stop` exist
-  * if a heading is not there, [Repair Goal MDScript](#repair-goal-mdscript)
-* make sure that each state body uses executable bullets, not prose paragraphs
-  * if a state has only prose, [Repair Goal MDScript](#repair-goal-mdscript)
-* make sure that `/mdscript-exec {{goal_mdscript}}#resume-goal` resolves to a real `## Resume Goal` state
-  * if it does not resolve, [Repair Goal MDScript](#repair-goal-mdscript)
-* run [Add File Comment](file-task-comments.mdscript.md#add-file-comment) as a comment that the parent can see
-  * name the goal file, the owner role, the next `/mdscript-exec {{goal_mdscript}}#resume-goal` command, and the stop condition
-* for a long or multi-workstream lane, write a `context-limit` checkpoint that the parent can see
-  * write it after the goal exists and before the next long phase or child fanout
-* for a long or multi-workstream lane, after you rebuild from file state, write a separate `compaction-resume` marker with `resumed=true`
-  * make sure that the parent can see the marker
-* if a goal API exists for the current agent, copy the objective of the MDScript goal into that API
-  * do this only after the project goal file exists
+* the goal MDScript is the running log of its lane
+  * change `## Done So Far` and `## Next Steps` at each round that changes what is true
+* write one goal for each active lane that an orchestrator owns, before child lanes, handoffs, or monitor loops
+  * if a fanout creates child orchestrators, write their goals in the same pass
+* write it from the [goal template](../templates/goal.mdscript.md)
+* make sure that it has the execution header, the template front matter, executable bullets, and `## Goal Contract`, `## Resume Goal`, `## Hot Path`, and `## Stop`
+* make sure that `/mdscript-exec {{goal_mdscript}}#resume-goal` resolves
+* if a check fails, repair it one time, then stop and report the missing parts
+* run [Add File Comment](file-task-comments.mdscript.md#add-file-comment) as a parent-visible comment
+  * name the goal file, the owner role, the resume command, and the stop condition
+* for a long or multi-workstream lane, add a parent-visible `context-limit` checkpoint before the next long phase
+* if the host has a goal API, copy the objective into it after the file exists
 * return to the caller
-
-## Repair Goal MDScript
-
-* write the front-matter fields and necessary body states that are not there into `{{goal_mdscript}}`
-  * use the contract and template as the source
-* [Verify Goal MDScript](#verify-goal-mdscript)
-* if the examination fails again after one repair, stop and report the exact fields or headings that are not there
 
 ## Resume Goal
 
-* on resumed coordination, a child-lane heartbeat, a monitor turn, or a continuation after compaction
-  * if the goal file exists and names the current lane, execute `/mdscript-exec {{goal_mdscript}}#resume-goal` first
-* compare the recorded `model`, `reasoning`, and `model_selection_basis` of the goal with [Select Configured Model And Reasoning](model-reasoning-contract.mdscript.md#select-configured-model-and-reasoning)
-* if the recorded role configuration is not there or not valid
-  * stop and report the exact model-contract blocker
-* if the resumed goal started from a return script
-  * before you get the live state again, apply the returned answer to the saved pending decision
-* get the current repo, tracker, MR/PR, CI, review, discussion, telemetry, and proof state again
-  * do this only after you read the goal
-* if the goal MDScript already holds the active contract, do not read or state the full context again
-  * this context includes the skill pack, automation, watcher, and ledger context
-* if a new human correction, scope change, project change, or source-of-truth conflict makes the goal not valid
+* run `/mdscript-exec {{goal_mdscript}}#resume-goal` first
+* if the recorded `model`, `reasoning`, or `model_selection_basis` is missing, stop and report it
+* if a return script started this resume, apply its answer to the pending decision
+* get the live repo, tracker, PR, CI, review, and proof state again
+* do not read the full skill stack again when the goal holds the contract
+* if a new user correction or a scope change makes the goal wrong
   * run [Write Goal MDScript](#write-goal-mdscript)
-  * before you act, stop and report that you wrote the goal again
+  * stop and report the change before you act
+* after a rebuild from file state, add a parent-visible `compaction-resume` comment with `resumed=true`
 * return to the caller
 
 ## Goal Stop Boundary
 
-* if the stop condition of the goal occurs, run [Add File Comment](file-task-comments.mdscript.md#add-file-comment) as a file comment that the parent can see
-* change the goal status to `done`, `blocked`, `paused`, `obsolete`, or the nearest exact terminal state
-* if a root orchestrator gets a terminal scoped claim
-  * before a final chat response, write the final comment of the root task that the parent can see
-* read [stop-report fields](../references/stop-report-fields.md)
-* put the terminal-root stop fields from that reference in the final comment
-* name or resolve each unexpected input that the parent can see and that affected the proof path
-  * this input includes a stale review, a target drift, or a reviewer disagreement that you handled
-* include the cleanup status for created terminal or superseded chat threads
-  * if cleanup is not complete, include an exact cleanup blocker and the next owner
-* if a different granted action remains
-  * before you leave the goal active, write that action into the goal
-* after the scoped claim is terminal, do not leave a goal active
-  * this rule does not apply if a different granted action remains and is in the goal
-* do not use an automation, a reminder, or a watcher that repeats in place of the project control-plane goal MDScript
+* when the stop condition occurs, run [Add File Comment](file-task-comments.mdscript.md#add-file-comment) as a parent-visible comment with the [stop-report fields](../references/stop-report-fields.md)
+* set the goal status to `done`, `blocked`, `paused`, or `obsolete`
+* for a terminal root claim, write the final root comment before the final chat reply
+* name how you handled each input that changed the proof path
+* name the cleanup status of each thread that you created
+* if a granted action remains, write it in the goal, and keep the goal active
+* otherwise do not leave the goal active
 * return to the caller

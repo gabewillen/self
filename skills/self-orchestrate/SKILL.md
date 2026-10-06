@@ -100,7 +100,7 @@ description: "ALWAYS use this skill unless you are a subagent or the user chose 
 
 ## Maintain Lane Ledger
 
-* run [Maintain Lane Ledger](../self-common/workflows/lane-ledger.mdscript.md#maintain-lane-ledger)
+* run [Maintain File Lane Ledger](../self-common/workflows/file-task-comments.mdscript.md#maintain-file-lane-ledger)
 
 * run [Maintain File Lane Ledger](../self-common/workflows/file-task-comments.mdscript.md#maintain-file-lane-ledger)
 

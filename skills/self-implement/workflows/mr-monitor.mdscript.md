@@ -99,7 +99,7 @@
 
 ## Arm External MR Automation
 
-* run [Require Automate Skill](../../self-common/workflows/automation-preflight.mdscript.md#require-automate-skill)
+* run [Load Automation Context](../../self-automate/SKILL.md#load-automation-context)
 
 * set `{{cadence}}` to `FREQ=MINUTELY;INTERVAL=10`
 
