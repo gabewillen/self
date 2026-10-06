@@ -19,7 +19,6 @@ const root = resolve(process.argv[2] || defaultRoot);
 const required = [
   "SKILL.md",
   "workflows/select-review-lanes.mdscript.md",
-  "workflows/select-language-framework-lanes.mdscript.md",
   "workflows/triple-adversarial-blind-review.mdscript.md",
   "workflows/blind-reviewers/engineering-rules.mdscript.md",
 "workflows/blind-reviewers/hsm.mdscript.md",
@@ -46,26 +45,6 @@ const required = [
   "references/engineering-rules/SOURCE.md",
 ];
 
-const engLanes = [
-  "core",
-  "dbc",
-  "patterns",
-  "rust",
-  "python",
-  "typescript",
-  "go",
-  "cpp",
-  "dart",
-  "react",
-  "flutter",
-  "hono",
-  "pulumi",
-  "webcomponents",
-  "xstate",
-  "sml",
-  "hsm",
-];
-
 const ruleFiles = [
   "core",
   "dbc",
@@ -86,9 +65,7 @@ const ruleFiles = [
   "hsm",
 ];
 
-for (const lane of engLanes) {
-  required.push(`workflows/blind-reviewers/eng-${lane}.mdscript.md`);
-}
+required.push("workflows/blind-reviewers/eng-core.mdscript.md");
 for (const r of ruleFiles) {
   required.push(`references/engineering-rules/${r}.rules.md`);
 }
@@ -110,19 +87,10 @@ if (nestedSkillManifests.length) {
   process.exit(1);
 }
 
-const engCount = readdirSync(join(root, "workflows", "blind-reviewers")).filter(
-  (n) => n.startsWith("eng-") && n.endsWith(".mdscript.md"),
-).length;
 const rulesCount = readdirSync(join(root, "references", "engineering-rules")).filter(
   (n) => n.endsWith(".rules.md"),
 ).length;
 
-if (engCount < engLanes.length) {
-  console.error(
-    `[test-self-review-install] FAIL: expected >= ${engLanes.length} eng-* lanes, found ${engCount}`,
-  );
-  process.exit(1);
-}
 if (rulesCount < ruleFiles.length) {
   console.error(
     `[test-self-review-install] FAIL: expected >= ${ruleFiles.length} *.rules.md, found ${rulesCount}`,
@@ -131,5 +99,5 @@ if (rulesCount < ruleFiles.length) {
 }
 
 console.log(
-  `[test-self-review-install] ok ${root} (${engCount} eng lanes, ${rulesCount} rules files)`,
+  `[test-self-review-install] ok ${root} (${rulesCount} rules files, eng-* lanes from the shared catalog)`,
 );
