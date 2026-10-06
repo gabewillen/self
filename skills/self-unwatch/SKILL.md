@@ -1,53 +1,31 @@
 ---
 name: self-unwatch
-description: "ALWAYS use this skill when the user runs /self-unwatch, asks to stop a PR watch (`stop watching a PR`), or cancels self-watch. If loop_driver is harness-native, stop the harness-native loop. Otherwise, kill the detached ticker/sentinel. Mark the watch state inactive. Change the watch goal MDScript."
+description: "ALWAYS use this skill when the user runs /self-unwatch, asks to stop a PR watch, or cancels self-watch. Stop the harness-native loop or kill the detached ticker, and mark the watch goal MDScript inactive."
 ---
 
 <!-- mdscript: use the mdscript-exec skill or read [spec.md](https://raw.githubusercontent.com/gabewillen/mdscript/main/spec.md) -->
 
 ## Unwatch
 
-* if the user message names a PR
-  * find `{{pr}}` in the user message
-* otherwise list the watches under `~/.agents/projects/*/goals/self-watch-*.mdscript.md` whose front matter has `watch_active: true`
-  * also list each legacy `~/.agents/projects/*/self-watch/pr-*.json` that is still marked active
-* if more than one watch is active and `{{pr}}` is empty
-  * ask which PR to unwatch (show the pr number, url, interval, and loop_pid)
-* if no watch is active
-  * report that there is nothing to unwatch
-  * stop
-* find `{{pr_number}}`, `{{repo}}`, `{{project_name}}`, and `{{watch_mdscript}}`
+* set `{{pr}}` from the user message, if it names a PR
+* otherwise list the files `~/.agents/projects/*/goals/self-watch-*.mdscript.md` with `watch_active: true`
+  * if none is active, report that nothing is watched, and stop
+  * if more than one is active, ask which PR to stop, with the number, URL, and interval
+* set `{{watch_mdscript}}`, `{{pr_number}}`, and `{{pr_url}}` from the selected watch
 * [Stop Watch Loop](#stop-watch-loop)
-* report that `/self-watch` for `{{pr_url}}` stopped and that the persistent loop will not tick again
+* report that the watch of `{{pr_url}}` stopped and will not tick again
 * stop
 
 ## Stop Watch Loop
 
-* if the `{{watch_mdscript}}` front matter is not loaded
-  * if `{{watch_mdscript}}` exists, read its front matter
-  * otherwise read the legacy `self-watch/pr-{{pr_number}}.json`
-* if the front matter has a loop driver, set `{{loop_driver}}` from it
-* if `{{loop_driver}}` is `harness-native`
-  * cancel or disable the harness-native automation/loop/reminder recorded for this watch
-  * if no custom ticker was armed, a ticker PID kill path is not necessary
-  * set these front matter fields on `{{watch_mdscript}}`: `watch_active: false`, terminal `status`, `resume_heading: stop-watch`, and `stopped_at`
-    * if the caller set `{{stop_reason}}`, set `stop_reason` to it
-    * otherwise set `stop_reason` to `user-unwatch`
-  * return to the caller
-* set `{{sentinel}}` from the front matter (default `AGENT_LOOP_TICK_self_watch_{{pr_number}}`)
-* if the front matter has them, set `{{ticker_pid}}`, `{{ticker_pgid}}`, `{{ticker_pid_file}}`, `{{tick_spool}}`, and `{{stop_file}}` from it
-* create `{{stop_file}}` first. The detached ticker then exits at the next interval, also if the kill path fails or the PID is stale.
-* if `{{ticker_pid}}` is set and that process still runs
-  * kill that PID
-  * kill its process group with `kill -- -{{ticker_pgid}}`
-* kill each remaining process whose command line contains `{{sentinel}}`. This stops orphaned tickers that continue to spool.
-* if a disposable tick listener shell is attached, stop it
-* if no process for this watch is alive, remove `{{ticker_pid_file}}`
-* keep `{{tick_spool}}` in place as the tick record
-* wait for the killed shell tasks, so that the harness consumes their stale completion notifications
-* before you report that the watch stopped, make sure that no process for `{{sentinel}}` remains
-* set these front matter fields on `{{watch_mdscript}}`: `watch_active: false`, terminal `status`, `resume_heading: stop-watch`, and `stopped_at`
-  * if the caller set `{{stop_reason}}`, set `stop_reason` to it
-  * otherwise set `stop_reason` to `user-unwatch`
-* clear the `notify_on_output` expectations for this sentinel
+* read the front matter of `{{watch_mdscript}}`
+* if `loop_driver` is `harness-native`, cancel the recorded harness loop
+* otherwise stop the ticker:
+  * create `stop_file` first, so the ticker exits at its next interval even if a kill fails
+  * kill `ticker_pid` and its group `-{{ticker_pgid}}` if it still runs
+  * kill each process whose command line has the `sentinel` (default `AGENT_LOOP_TICK_self_watch_{{pr_number}}`)
+  * stop an attached tick listener, and clear its `notify_on_output` expectations
+  * wait for the killed tasks, and make sure that no process for the sentinel remains
+  * remove `ticker_pid_file`, and keep `tick_spool` as the record
+* set `watch_active: false`, a terminal `status`, `resume_heading: stop-watch`, `stopped_at`, and `stop_reason` (`{{stop_reason}}`, or `user-unwatch`)
 * return to the caller
