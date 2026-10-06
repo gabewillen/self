@@ -45,7 +45,6 @@ Every role does the least work that works. The pack adapts [Ponytail](https://gi
 
 Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-troubleshoot`, `/self-unwatch`.
 
-Both `self-voice` and `self-troubleshoot` keep their body in a linked `*.mdscript.md`; `SKILL.md` is the entry the harness lists.
 
 Companion skills **`mdscript-exec`** and **`mdscript-write`** live in [gabewillen/mdscript](https://github.com/gabewillen/mdscript). Install pulls them beside this pack so every `<!-- mdscript: … -->` header resolves.
 
@@ -190,8 +189,8 @@ skills/
   self-automate/
   self-learn/           # user-invoked living-skills reflection (/self-learn)
   self-common/          # shared MDScripts + hooks (NOT a skill)
-  self-voice/           # agent-voice skill; body in self-voice.mdscript.md
-  self-troubleshoot/    # troubleshooting skill; body in self-troubleshoot.mdscript.md
+  self-voice/           # agent-voice skill
+  self-troubleshoot/    # troubleshooting skill
 scripts/
   install.mjs           # living install, hooks, cutover, integrity
   agent-home.mjs

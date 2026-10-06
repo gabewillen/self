@@ -73,4 +73,4 @@
 * if an examination still fails
   * change `{{slack_response}}` or `{{self_voice_response}}`
   * [Check Authority And Evidence](#check-authority-and-evidence)
-* [Return Slack Response](../self-voice.mdscript.md#return-slack-response)
+* [Return Slack Response](../SKILL.md#return-slack-response)

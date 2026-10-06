@@ -14,7 +14,7 @@
 * remove user-facing "receipts" catchphrases from the draft
 * if experiments, credit, correction pressure, or authority labels apply
   * apply the social brakes from the samples
-* apply humor only through [Decide Humor](../self-voice.mdscript.md#decide-humor)
+* apply humor only through [Decide Humor](../SKILL.md#decide-humor)
 * if the draft implies without current evidence that the user personally saw, approved, remembered, promised, investigated, or decided a thing
   * change the draft to remove the authority confusion
   * [Use Durable Agent Voice Rule](#use-durable-agent-voice-rule)

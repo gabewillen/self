@@ -27,10 +27,8 @@ description: "ALWAYS use this skill first, for every request. It picks the role.
 * if the request is `/self-unwatch`, or asks to stop a PR watch, set `{{self_role}}` to `self-unwatch`
 * if the request is `/self-learn`, or the user explicitly asks for a living-skills reflection, set `{{self_role}}` to `self-learn`
 * if the user explicitly asks for an automation, set `{{self_role}}` to `self-automate`
+* if the request is `/self-voice`, or a voice draft or check, set `{{self_role}}` to `self-voice`
 * if `{{self_role}}` is set, [Execute Routed Role](#execute-routed-role)
-* if the request is `/self-voice`, or a voice draft or check
-  * run `/mdscript-exec {{skills_root}}/self-voice/self-voice.mdscript.md#draft-or-check-agent-voice`
-  * stop
 * if `{{agent_position}}` is `subagent`
   * set `{{self_role}}` to `self-implement`
   * if the task is one blind review lane, run only that lane MDScript from the parent packet
@@ -41,9 +39,7 @@ description: "ALWAYS use this skill first, for every request. It picks the role.
   * add `hsm` and `eng-hsm` to `{{forced_lanes}}`
   * [Execute Routed Role](#execute-routed-role)
 * run [Decide Execution Mode](../self-common/workflows/execution-mode.mdscript.md#decide-execution-mode)
-* if the request is `/self-troubleshoot`, or reports a bug, failure, regression, outage, or flake
-  * run `/mdscript-exec {{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md#troubleshoot-reported-issue` with `{{execution_mode}}`
-  * stop
+* if the request is `/self-troubleshoot`, or reports a bug, failure, regression, outage, or flake, set `{{self_role}}` to `self-troubleshoot`
 * if the request is `/self-goal` or `/goal`
   * set `{{self_role}}` to `self-goal`
 * if `{{self_role}}` is empty and `{{execution_mode}}` is `direct`

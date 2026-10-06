@@ -39,7 +39,7 @@
 * if the delegation gives a reproduction that fails for this failure
   * set `{{proof_path}}` to it, set `{{red_confirmed}}` to `true`, and return to the caller
 * set `{{troubleshoot_pass_active}}` to `true`
-* run `/mdscript-exec {{skills_root}}/self-troubleshoot/self-troubleshoot.mdscript.md#troubleshoot-reported-issue` to get a red reproduction before you fix
+* run `/mdscript-exec {{skills_root}}/self-troubleshoot/SKILL.md#troubleshoot-reported-issue` to get a red reproduction before you fix
 * do not fix a failure that this lane did not reproduce
 
 ## Resolve Local Resource Path

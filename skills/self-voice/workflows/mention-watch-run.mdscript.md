@@ -11,7 +11,7 @@
   * set `{{automation_memory_path}}` to the memory file of the active automation record for the agent Slack mention watcher
 * if Slack tools fail before they return mention data
   * set `{{blocker}}` to the exact Slack connector error
-  * [Report Slack Blocker](../self-voice.mdscript.md#report-slack-blocker)
+  * [Report Slack Blocker](../SKILL.md#report-slack-blocker)
 * find recent mentions with a small overlap from the last successful scan in `{{automation_memory_path}}`
 * for each candidate mention
   * read the parent thread, nearby channel context, replies, and reactions
@@ -41,7 +41,7 @@
   * [Own Assigned Mention Thread](#own-assigned-mention-thread)
 * if the issue belongs in a monorepo or subtree-shaped workspace
   * tell the child thread that it must examine the relevant subtrees against upstream before the investigation
-* [Draft Agent Voice Response](../self-voice.mdscript.md#draft-agent-voice-response)
+* [Draft Agent Voice Response](../SKILL.md#draft-agent-voice-response)
 * post `{{slack_response}}` in the Slack thread or original conversation
 * if the same information is not already visible in the DM of the user
   * send exactly one concise DM to the user with these items:

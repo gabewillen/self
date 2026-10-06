@@ -870,7 +870,6 @@ const REQUIRED_SKILL_ASSETS = {
   ],
   "self-voice": [
     "SKILL.md",
-    "self-voice.mdscript.md",
     "workflows/durable-voice-rule.mdscript.md",
     "workflows/slack-style.mdscript.md",
     "workflows/mention-watch-run.mdscript.md",
@@ -878,7 +877,6 @@ const REQUIRED_SKILL_ASSETS = {
   ],
   "self-troubleshoot": [
     "SKILL.md",
-    "self-troubleshoot.mdscript.md",
     "workflows/reproduce-red-test.mdscript.md",
     "workflows/choose-environment.mdscript.md",
     "workflows/root-cause-analysis.mdscript.md",
