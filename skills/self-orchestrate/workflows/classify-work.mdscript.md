@@ -29,7 +29,6 @@
 
 ## Route Work Shape
 
-* before you route, run [Climb Least Work Ladder](../../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder) for the lanes and threads that the route adds
 * if the request does not write or edit anything, for example a question, an investigation, or research
   * answer or investigate in this process
   * do not create a lane, a thread, or a goal

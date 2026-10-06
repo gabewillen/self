@@ -57,3 +57,27 @@ See:
 - [CORE-DOC-001](core.rules.md#core-doc-001-must-not-keep-change-history-in-comments-and-docs)
 
 Rewriting already-pushed history to satisfy this rule is forbidden on a shared branch; correct it going forward instead.
+
+# LOCAL-LEAN-001 MUST Least Code That Works
+
+Read the task and trace each file it touches first. A small diff in the wrong place is a second defect.
+
+Then stop at the first option that works: skip a speculative need; reuse code in this repository; use the standard library; use a platform feature; use an installed dependency; write one line; only then write the minimum new code.
+
+Fix a bug once, in the shared function that all callers use, not with a guard in each caller.
+
+Do not add an interface with one implementation, a factory with one product, configuration for a constant, a wrapper that only delegates, scaffolding for a future need, or a dependency for a few lines.
+
+Non-trivial logic leaves one runnable check that fails when it breaks. A trivial one-line change needs none.
+
+Adapted from [Ponytail](https://github.com/DietrichGebert/ponytail) (MIT, Copyright (c) 2026 DietrichGebert).
+
+# LOCAL-LEAN-002 MUST NOT Simplify Away Safety
+
+Keep input validation at trust boundaries, error handling that prevents data loss, security measures, accessibility basics, hardware calibration settings, and anything the user asked for.
+
+This rule never relaxes a `MUST` rule in another pack.
+
+# LOCAL-LEAN-003 MUST Mark Deliberate Shortcuts
+
+Mark each deliberate simplification that has a known limit with a `ponytail:` comment that names the limit and the trigger to upgrade it, for example `# ponytail: global lock, use per-account locks if throughput matters`.

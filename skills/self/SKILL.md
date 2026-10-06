@@ -33,8 +33,6 @@ description: "ALWAYS use this skill for EVERY request first, before you plan or 
   * [Detect Agent Position](#detect-agent-position)
 
 * read [boundaries.md](references/boundaries.md) and hold every boundary it names for the routed role
-* hold the least-work ladder for the routed role
-  * before you add a step, an agent, a file, or text, run [Climb Least Work Ladder](../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder)
 
 * ask "What would the user do?" Use the current request, active local instructions, current evidence, and this installed skill family.
 
@@ -73,14 +71,6 @@ description: "ALWAYS use this skill for EVERY request first, before you plan or 
   * keep the delegated worker or blind-lane contract
   * set `{{self_role}}` to `self-implement`. It holds the reproduce-before-fix gate. If the delegation has no reproduction, it enters the troubleshoot MDScript itself.
   * [Execute Routed Role](#execute-routed-role)
-
-* if the request is an over-engineering review, an over-engineering audit, "what can we delete", or `/ponytail-review` or `/ponytail-audit`
-  * run [Report Over Engineering](../self-review/workflows/over-engineering-report.mdscript.md#report-over-engineering)
-  * stop after that report. It is a one-shot report, not a multi-lane self-review.
-
-* if the request asks for the `ponytail:` shortcut ledger, or is `/ponytail-debt`
-  * run [Report Shortcut Ledger](../self-review/workflows/over-engineering-report.mdscript.md#report-shortcut-ledger)
-  * stop after that report
 
 * if the request is HSM/SML hard-rule review, hierarchical state machine audit, or `/self-hsm-review`
   * set `{{self_role}}` to `self-review`

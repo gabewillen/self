@@ -13,6 +13,6 @@ Used by:
 - `self-review` blind eng-* lanes selected in `workflows/select-review-lanes.mdscript.md`
 - `self-implement` construction packs selected in `skills/self-implement/workflows/select-implementation-rules.mdscript.md` (`impl-*` entrypoints under `skills/self-implement/workflows/engineering-rules/`)
 
-`local.rules.md` holds locally authored rules that upstream does not carry. `ponytail.rules.md` is also locally authored: it adapts the rules of [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (MIT) and must survive a refresh untouched. `impl-core` and `eng-core` load both files. Never edit a vendored file to add one; a re-vendor would delete it silently.
+`local.rules.md` holds locally authored rules that upstream does not carry. Never edit a vendored file to add one; a re-vendor would delete it silently.
 
 Do not fork these files per role. Implement holds and rechecks the same rule text that review later attacks.

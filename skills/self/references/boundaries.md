@@ -5,7 +5,7 @@ Reference material for the skill pack, loaded by
 These are constraints on how any agent role acts, not steps in a workflow — the
 executable flow lives in the skills themselves.
 
-* preserve the least-work boundary: every role adapts [Ponytail](https://github.com/DietrichGebert/ponytail) to its own work; before it adds a step, subagent, lane, thread, file, automation, review lane, model tier, rule, or report text, it runs [Climb Least Work Ladder](../../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder) — skip the speculative, reuse what exists, do it in this process, use a host built-in, and only then add the smallest new item; it is never lazy about reading, real proof, safety, authority, consent, or anything the user, `AGENTS.md`, or a `MUST` rule asks for
+* preserve the least-work boundary (adapted from [Ponytail](https://github.com/DietrichGebert/ponytail)): before you add a step, subagent, lane, thread, file, automation, review lane, model tier, rule, or paragraph, skip it if it is speculative, reuse what exists, do it in this process, or use a host built-in; only then add the smallest new item; never cut reading, real proof, safety, authority, consent, or anything the user, `AGENTS.md`, or a `MUST` rule asks for; report skipped work as `skipped: <item>, add when <trigger>`
 
 * preserve the execution-mode boundary: before a parentless main agent writes or edits, it asks the user whether to orchestrate with subagents or implement directly with no subagents, unless the user already chose in this conversation; on `direct` it runs `self-implement` in this process and spawns no worker lanes; never pick `direct` or `orchestrate` for the user from a skill rule, hook, or default
 

@@ -794,9 +794,6 @@ const REQUIRED_SKILL_ASSETS = {
     "references/engineering-rules/SOURCE.md",
     // locally authored rules — NOT vendored; a re-vendor must leave this file alone
     "references/engineering-rules/local.rules.md",
-    // locally authored Ponytail rules (adapted from DietrichGebert/ponytail, MIT) — NOT vendored
-    "references/engineering-rules/ponytail.rules.md",
-    "workflows/over-engineering-report.mdscript.md",
     // engineering rule packs (vendored from gabewillen/rules)
     "references/engineering-rules/core.rules.md",
     "references/engineering-rules/dbc.rules.md",
@@ -884,7 +881,6 @@ const REQUIRED_SKILL_ASSETS = {
     "workflows/file-task-comments.mdscript.md",
     "workflows/update-living-skills.mdscript.md",
     "workflows/self-review-consent.mdscript.md",
-    "workflows/least-work.mdscript.md",
     "workflows/execution-mode.mdscript.md",
     "workflows/load-operating-context.mdscript.md",
     "hooks/self-lib.ts",

@@ -3,7 +3,7 @@
 ## Report Status
 
 * report counts first, evidence first, and in plain words
-* run [Report Least Work](least-work.mdscript.md#report-least-work) for the skipped items
+* name each skipped item as `skipped: <item>, add when <trigger>`
 * use a report to the parent agent as a hard stop condition
   * this rule applies to each child orchestrator, implementer, reviewer, and goal-resumed agent lane
 * run [Resolve File Task Root](file-task-comments.mdscript.md#resolve-file-task-root)

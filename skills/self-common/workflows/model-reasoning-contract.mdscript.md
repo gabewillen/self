@@ -8,7 +8,6 @@
   * set `{{required_model}}` to the model of the parent or of this process
   * record that the runtime gave no model list
 * if the runtime lists its models, set `{{required_model}}` to the least capable available model that reliably satisfies this exact task
-  * this is the least-work ladder for models: do not pay for capability that the task does not use
   * judge the task on complexity, ambiguity, consequence, proof burden, and context size
   * also judge the task on tool needs, latency, and cost
 * set `{{required_reasoning}}` to the effort level that the task needs

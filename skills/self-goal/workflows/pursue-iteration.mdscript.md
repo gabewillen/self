@@ -6,7 +6,6 @@
 * if `{{execution_mode}}` is `direct`
   * do the tracks one after the other in this process
   * do not start worker subagents
-* run [Climb Least Work Ladder](../../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder) for each track
 * if independent work exists and `{{execution_mode}}` is not `direct`
   * plan one parallel track for each independent piece of work, and no more
   * the tracks can explore, implement, test, diagnose, or capture proof

@@ -22,14 +22,14 @@ If a rule is only true for this product, it does **not** belong in this pack. Pr
 
 ## How agents use it
 
-Every role does the least work that works. The pack adapts [Ponytail](https://github.com/DietrichGebert/ponytail) to agent work: skip the speculative, reuse what exists, do it in this process before adding a subagent, lane, file, or automation, use the least capable model that reliably works, and report skipped work with its trigger. It is never lazy about reading, real proof, safety, authority, or what the user asked for. See [least-work.mdscript.md](skills/self-common/workflows/least-work.mdscript.md) and, for code, [ponytail.rules.md](skills/self-review/references/engineering-rules/ponytail.rules.md).
+Every role does the least work that works. The pack adapts [Ponytail](https://github.com/DietrichGebert/ponytail) to agent work: skip the speculative, reuse what exists, do it in this process before adding a subagent, lane, file, or automation, use the least capable model that reliably works, and report skipped work with its trigger. It is never lazy about reading, real proof, safety, authority, or what the user asked for. The code rules are `LOCAL-LEAN-*` in [local.rules.md](skills/self-review/references/engineering-rules/local.rules.md).
 
 | Skill | When |
 |-------|------|
 | `self` | **Every request first** — router; pick the role |
 | `self-orchestrate` | Parentless main agents when the user chooses orchestration: prioritize, delegate, goals, lanes, watchers |
-| `self-implement` | Subagents, or the main agent in direct mode: edit code and docs under a DBC claim + engineering rules, including the Ponytail least-code rules |
-| `self-review` | Multi-lane blind review, only when the user asks (rules, security, completeness, eng-*, HSM when in scope); one-shot over-engineering review, audit, and `ponytail:` ledger |
+| `self-implement` | Subagents, or the main agent in direct mode: edit code and docs under a DBC claim + engineering rules |
+| `self-review` | Multi-lane blind review, only when the user asks (rules, security, completeness, eng-*, HSM when in scope) |
 | `self-goal` | Goal loop until real proof + review; prefers harness `/goal` when available |
 | `self-watch` / `self-unwatch` | Interval PR babysit with a standing repair grant |
 | `self-automate` | Design MDScript-backed automations before automation tools |
@@ -43,7 +43,7 @@ Every role does the least work that works. The pack adapts [Ponytail](https://gi
 |------|------|
 | `self-common/` | Shared MDScripts, templates, hook library — linked by other skills |
 
-Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-troubleshoot`, `/self-unwatch`, `/ponytail-review`, `/ponytail-audit`, `/ponytail-debt`.
+Slash routes (examples): `/self-watch`, `/self-goal`, `/self-learn`, `/self-voice`, `/self-troubleshoot`, `/self-unwatch`.
 
 Both `self-voice` and `self-troubleshoot` keep their body in a linked `*.mdscript.md`; `SKILL.md` is the entry the harness lists.
 
@@ -216,4 +216,4 @@ Humans: treat this repo as the agents’ shared memory of *how* to work—not a 
 
 MIT
 
-The Ponytail rules (`skills/self-review/references/engineering-rules/ponytail.rules.md`) and the over-engineering report are adapted from [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail), MIT License, Copyright (c) 2026 DietrichGebert.
+The least-work rules adapt [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail), MIT License, Copyright (c) 2026 DietrichGebert.

@@ -26,7 +26,6 @@ description: "ALWAYS use this skill before you call automation_update. Also use 
 
 ## Prefer Harness Native Automation
 
-* run [Climb Least Work Ladder](../self-common/workflows/least-work.mdscript.md#climb-least-work-ladder) for the automation
 * if the work is a one-time action that this process can do now
   * do the action now
   * do not create an automation

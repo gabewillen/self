@@ -9,7 +9,3 @@
 * set `{{rules_file}}` to empty
 * set `{{rules_basename}}` to `local.rules.md`
 * run [Apply Engineering Rules](apply-engineering-rules.mdscript.md#apply-engineering-rules)
-* set `{{impl_pack}}` to `impl-ponytail`
-* set `{{rules_file}}` to empty
-* set `{{rules_basename}}` to `ponytail.rules.md`
-* run [Apply Engineering Rules](apply-engineering-rules.mdscript.md#apply-engineering-rules)
