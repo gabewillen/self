@@ -37,14 +37,14 @@
 
 * if the blocker clears
   * continue with `/mdscript-exec {{skills_root}}/self-implement/SKILL.md#inspect-current-state`
-  * message the orchestrator with `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
+  * message the orchestrator with `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#monitor-implementer-lane`
 
 * if the blocker changes but does not clear
   * tell the orchestrator the new state, the next watcher check time, and a useful jump
   * use a jump such as `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#monitor-implementer-lane`
 
 * if the blocker needs a coordinator decision
-  * message the orchestrator with `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/handle-worker-exec-jump.mdscript.md#handle-worker-exec-jump`
+  * message the orchestrator with `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#handle-worker-exec-jump`
 
 * before the blocker watcher stops for a cleared, paused, obsolete, blocked, interrupted, or tool-failed state
   * set `{{stop_reason}}` to the exact reason

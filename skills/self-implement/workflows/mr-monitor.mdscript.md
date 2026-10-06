@@ -38,7 +38,7 @@
   * include `/mdscript-exec {{skills_root}}/self-implement/workflows/report-to-orchestrator.mdscript.md#report-to-orchestrator` as the re-entry command
 
 * if the goal finds a merged MR/PR with referenced tickets
-  * include `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision` so that the orchestrator can close eligible tracker items
+  * include `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#handle-merge-or-close-decision` so that the orchestrator can close eligible tracker items
 
 * check CI/CD failures, review comments, unresolved threads, stale base drift, merge conflicts, and the draft state
 * check the mergeability, the status of necessary proof, the merge state, and the referenced tickets
@@ -49,7 +49,7 @@
 * if the MR/PR is on the current target and exact-head CI is green
   * if one fresh current-target `Proven` review exists and no unresolved discussions remain
     * execute `/mdscript-exec {{skills_root}}/self-common/workflows/thread-event-contracts.mdscript.md#event-disposition-ready`
-    * set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision`
+    * set `{{event_exec}}` to `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#handle-merge-or-close-decision`
     * run [Report To Orchestrator](report-to-orchestrator.mdscript.md#report-to-orchestrator)
 
 * if the MR/PR base or tested target is not the same as the current integration target
@@ -83,7 +83,7 @@
   * the status: ready, watching, or blocked
 
 * if you hand an MR/PR to the orchestrator
-  * tell the orchestrator to create or make sure of `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/mr-comment-watcher.mdscript.md#create-mr-comment-watcher`
+  * tell the orchestrator to create or make sure of `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#create-mr-comment-watcher`
 
 * after the merge, tell the orchestrator the merged MR/PR, referenced tickets, likely closure status, and keep-open evidence
 

@@ -31,10 +31,10 @@
   * the review grade state, goal MDScript state, open blocker, residual risk, and exact authority that you need
 
 * include each exact continuation jump that the orchestrator must execute, for example:
-  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/mr-comment-watcher.mdscript.md#create-mr-comment-watcher`
-  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/handle-worker-exec-jump.mdscript.md#handle-worker-exec-jump`
-  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
-  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#create-mr-comment-watcher`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#handle-worker-exec-jump`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#monitor-implementer-lane`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#handle-merge-or-close-decision`
 
 * if `{{event_exec}}` is set
   * before you report or stop, execute that exact MDScript event jump

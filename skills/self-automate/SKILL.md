@@ -74,9 +74,9 @@ description: "ALWAYS use this skill before you call automation_update. Also use 
 * if the workflow file owns the continuation
   * use workflow-file entry points instead of broad role `SKILL.md` entry points
 * common orchestrator re-entry points include:
-  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/mr-comment-watcher.mdscript.md#create-mr-comment-watcher`
-  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/monitor-implementer-lane.mdscript.md#monitor-implementer-lane`
-  * `/mdscript-exec {{skills_root}}/self-orchestrate/workflows/merge-or-close-decision.mdscript.md#handle-merge-or-close-decision`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#create-mr-comment-watcher`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#monitor-implementer-lane`
+  * `/mdscript-exec {{skills_root}}/self-orchestrate/SKILL.md#handle-merge-or-close-decision`
 * common implementer re-entry points include:
   * `/mdscript-exec {{skills_root}}/self-implement/workflows/mr-monitor.mdscript.md#create-mr-monitor-goal`
   * `/mdscript-exec {{skills_root}}/self-implement/workflows/blocker-watcher.mdscript.md#create-blocker-watcher`
